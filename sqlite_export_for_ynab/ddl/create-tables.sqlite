@@ -1,16 +1,6 @@
 CREATE TABLE IF NOT EXISTS budgets (id TEXT primary key, name TEXT, last_knowledge_of_server INT)
 ;
 
-CREATE TABLE IF NOT EXISTS payees (
-    id TEXT primary key,
-    budget_id TEXT,
-    name TEXT,
-    transfer_account_id TEXT,
-    deleted BOOLEAN,
-    foreign key (budget_id) references budgets (id)
-)
-;
-
 CREATE TABLE IF NOT EXISTS category_groups (
     id TEXT primary key,
     budget_id TEXT,
@@ -52,6 +42,16 @@ CREATE TABLE IF NOT EXISTS categories (
 )
 ;
 
+CREATE TABLE IF NOT EXISTS payees (
+    id TEXT primary key,
+    budget_id TEXT,
+    name TEXT,
+    transfer_account_id TEXT,
+    deleted BOOLEAN,
+    foreign key (budget_id) references budgets (id)
+)
+;
+
 CREATE TABLE IF NOT EXISTS transactions (
     id TEXT primary key,
     budget_id TEXT,
@@ -76,7 +76,9 @@ CREATE TABLE IF NOT EXISTS transactions (
     payee_name TEXT,
     transfer_account_id TEXT,
     transfer_transaction_id TEXT,
-    foreign key (budget_id) references budgets (id)
+    foreign key (budget_id) references budgets (id),
+    foreign key (category_id) references categories (id),
+    foreign key (payee_id) references payees (id)
 )
 ;
 
@@ -94,5 +96,7 @@ CREATE TABLE IF NOT EXISTS subtransactions (
     transfer_account_id TEXT,
     transfer_transaction_id TEXT,
     foreign key (budget_id) references budget (id),
+    foreign key (category_id) references categories (id),
+    foreign key (payee_id) references payees (id),
     foreign key (transaction_id) references transaction_id (id)
 )
