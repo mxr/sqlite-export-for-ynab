@@ -1,6 +1,39 @@
 CREATE TABLE IF NOT EXISTS budgets (id TEXT primary key, name TEXT, last_knowledge_of_server INT)
 ;
 
+CREATE TABLE IF NOT EXISTS accounts (
+    id TEXT primary key,
+    budget_id TEXT,
+    balance INT,
+    cleared_balance INT,
+    closed BOOLEAN,
+    debt_original_balance INT,
+    deleted BOOLEAN,
+    direct_import_in_error BOOLEAN,
+    direct_import_linked BOOLEAN,
+    last_reconciled_at TEXT,
+    name TEXT,
+    note TEXT,
+    on_budget BOOLEAN,
+    transfer_payee_id TEXT,
+    TYPE TEXT,
+    uncleared_balance INT,
+    foreign key (budget_id) references budgets (id)
+)
+;
+
+CREATE TABLE IF NOT EXISTS account_periodic_values (
+    DATE TEXT,
+    name TEXT,
+    budget_id TEXT,
+    account_id TEXT,
+    amount INT,
+    primary key (DATE, name, budget_id, account_id),
+    foreign key (budget_id) references budgets (id),
+    foreign key (account_id) references accounts (id)
+)
+;
+
 CREATE TABLE IF NOT EXISTS category_groups (
     id TEXT primary key,
     budget_id TEXT,
@@ -77,6 +110,7 @@ CREATE TABLE IF NOT EXISTS transactions (
     transfer_account_id TEXT,
     transfer_transaction_id TEXT,
     foreign key (budget_id) references budgets (id),
+    foreign key (account_id) references accounts (id),
     foreign key (category_id) references categories (id),
     foreign key (payee_id) references payees (id)
 )
@@ -96,6 +130,7 @@ CREATE TABLE IF NOT EXISTS subtransactions (
     transfer_account_id TEXT,
     transfer_transaction_id TEXT,
     foreign key (budget_id) references budget (id),
+    foreign key (transfer_account_id) references accounts (id),
     foreign key (category_id) references categories (id),
     foreign key (payee_id) references payees (id),
     foreign key (transaction_id) references transaction_id (id)
