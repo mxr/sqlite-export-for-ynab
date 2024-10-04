@@ -49,7 +49,7 @@ async def async_main() -> int:
     parser.add_argument(
         "--full-refresh",
         action="store_true",
-        help="Drop all tables and fetch the budget.",
+        help="**DROP ALL TABLES** and fetch all budget data again.",
     )
 
     args = parser.parse_args()
