@@ -29,7 +29,9 @@ if TYPE_CHECKING:
 
 
 _EntryTable = (
-    Literal["category_groups"]
+    Literal["accounts"]
+    | Literal["account_periodic_values"]
+    | Literal["category_groups"]
     | Literal["categories"]
     | Literal["payees"]
     | Literal["transactions"]
@@ -116,23 +118,28 @@ async def sync(token: str, db: Path, full_refresh: bool) -> None:
         print("Fetching budget data...")
         lkos = get_last_knowledge_of_server(cur)
         async with aiohttp.ClientSession() as session:
-            with tqdm(desc="Budget Data", total=len(budgets) * 3) as pbar:
+            with tqdm(desc="Budget Data", total=len(budgets) * 4) as pbar:
                 yc = ProgressYnabClient(
                     YnabClient(os.environ["YNAB_PERSONAL_ACCESS_TOKEN"], session), pbar
                 )
 
+                account_jobs = jobs(yc, "accounts", budget_ids, lkos)
                 cat_jobs = jobs(yc, "categories", budget_ids, lkos)
                 payee_jobs = jobs(yc, "payees", budget_ids, lkos)
                 txn_jobs = jobs(yc, "transactions", budget_ids, lkos)
 
-                data = await asyncio.gather(*cat_jobs, *payee_jobs, *txn_jobs)
+                data = await asyncio.gather(
+                    *account_jobs, *cat_jobs, *payee_jobs, *txn_jobs
+                )
 
+            la = len(account_jobs)
             lc = len(cat_jobs)
             lp = len(payee_jobs)
 
-            all_cat_data = data[:lc]
-            all_payee_data = data[lc : lc + lp]
-            all_txn_data = data[lc + lp :]
+            all_account_data = data[:la]
+            all_cat_data = data[la : la + lc]
+            all_payee_data = data[la + lc : la + lc + lp]
+            all_txn_data = data[la + lc + lp :]
 
             new_lkos = {
                 bid: t["server_knowledge"]
@@ -141,7 +148,8 @@ async def sync(token: str, db: Path, full_refresh: bool) -> None:
         print("Done")
 
         if (
-            not any(c["category_groups"] for c in all_cat_data)
+            not any(t["accounts"] for t in all_account_data)
+            and not any(t["transactions"] for t in all_txn_data)
             and not any(p["payees"] for p in all_payee_data)
             and not any(t["transactions"] for t in all_txn_data)
         ):
@@ -149,6 +157,8 @@ async def sync(token: str, db: Path, full_refresh: bool) -> None:
         else:
             print("Inserting budget data...")
             insert_budgets(cur, budgets, new_lkos)
+            for bid, account_data in zip(budget_ids, all_account_data, strict=True):
+                insert_accounts(cur, bid, account_data["accounts"])
             for bid, cat_data in zip(budget_ids, all_cat_data, strict=True):
                 insert_category_groups(cur, bid, cat_data["category_groups"])
             for bid, payee_data in zip(budget_ids, all_payee_data, strict=True):
@@ -186,6 +196,42 @@ def insert_budgets(
     cur.executemany(
         "INSERT OR REPLACE INTO budgets (id, name, last_knowledge_of_server) VALUES (?, ?, ?)",
         ((bid := b["id"], b["name"], lkos[bid]) for b in budgets),
+    )
+
+
+_LOAN_ACCOUNT_PERIODIC_VALUES = frozenset(
+    ("debt_escrow_amounts", "debt_interest_rates", "debt_minimum_payments")
+)
+
+
+def insert_accounts(
+    cur: sqlite3.Cursor, budget_id: str, accounts: list[dict[str, Any]]
+) -> None:
+    # YNAB's LoanAccountPeriodValues are untyped dicts so we need to turn them into a more standard sub-entry view
+    updated_accounts = [
+        {
+            "account_periodic_values": [
+                {
+                    "name": key,
+                    "account_id": account["id"],
+                    "date": apvk,
+                    "amount": apvv,
+                }
+                for key in _LOAN_ACCOUNT_PERIODIC_VALUES
+                for apvk, apvv in account.get(key, ()).items()
+            ]
+        }
+        | {k: v for k, v in account.items() if k not in _LOAN_ACCOUNT_PERIODIC_VALUES}
+        for account in accounts
+    ]
+
+    return insert_nested_entries(
+        cur,
+        budget_id,
+        updated_accounts,
+        "Accounts",
+        "accounts",
+        "account_periodic_values",
     )
 
 
@@ -237,13 +283,30 @@ def insert_nested_entries(
 ) -> None: ...
 
 
+@overload
 def insert_nested_entries(
     cur: sqlite3.Cursor,
     budget_id: str,
     entries: list[dict[str, Any]],
-    desc: Literal["Transactions"] | Literal["Categories"],
-    entries_name: Literal["transactions"] | Literal["category_groups"],
-    subentries_name: Literal["subtransactions"] | Literal["categories"],
+    desc: Literal["Accounts"],
+    entries_name: Literal["accounts"],
+    subentries_name: Literal["account_periodic_values"],
+) -> None: ...
+
+
+def insert_nested_entries(
+    cur: sqlite3.Cursor,
+    budget_id: str,
+    entries: list[dict[str, Any]],
+    desc: Literal["Transactions"] | Literal["Categories"] | Literal["Accounts"],
+    entries_name: (
+        Literal["transactions"] | Literal["category_groups"] | Literal["accounts"]
+    ),
+    subentries_name: (
+        Literal["subtransactions"]
+        | Literal["categories"]
+        | Literal["account_periodic_values"]
+    ),
 ) -> None:
     if not entries:
         return
@@ -279,7 +342,12 @@ def insert_entry(
 
 def jobs(
     yc: SupportsYnabClient,
-    endpoint: Literal["transactions"] | Literal["categories"] | Literal["payees"],
+    endpoint: (
+        Literal["accounts"]
+        | Literal["categories"]
+        | Literal["payees"]
+        | Literal["transactions"]
+    ),
     budget_ids: list[str],
     lkos: dict[str, int],
 ) -> list[Awaitable[dict[str, Any]]]:
