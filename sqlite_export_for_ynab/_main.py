@@ -29,11 +29,11 @@ if TYPE_CHECKING:
 
 
 _EntryTable = (
-    Literal["payees"]
+    Literal["category_groups"]
+    | Literal["categories"]
+    | Literal["payees"]
     | Literal["transactions"]
     | Literal["subtransactions"]
-    | Literal["category_groups"]
-    | Literal["categories"]
 )
 _ALL_TABLES = frozenset(
     ("budgets",) + tuple(lit.__args__[0] for lit in _EntryTable.__args__)
@@ -121,16 +121,19 @@ async def sync(token: str, db: Path, full_refresh: bool) -> None:
                     YnabClient(os.environ["YNAB_PERSONAL_ACCESS_TOKEN"], session), pbar
                 )
 
-                txn_jobs = jobs(yc, "transactions", budget_ids, lkos)
-                payee_jobs = jobs(yc, "payees", budget_ids, lkos)
                 cat_jobs = jobs(yc, "categories", budget_ids, lkos)
+                payee_jobs = jobs(yc, "payees", budget_ids, lkos)
+                txn_jobs = jobs(yc, "transactions", budget_ids, lkos)
 
-                data = await asyncio.gather(*txn_jobs, *payee_jobs, *cat_jobs)
+                data = await asyncio.gather(*cat_jobs, *payee_jobs, *txn_jobs)
 
-            all_txn_data = data[: len(txn_jobs)]
-            all_payee_data = data[len(txn_jobs) : len(txn_jobs) + len(payee_jobs)]
-            all_cat_data = data[len(txn_jobs) + len(payee_jobs) :]
+            lc = len(cat_jobs)
+            lp = len(payee_jobs)
 
+            all_cat_data = data[ :  lc]
+            all_payee_data = data[lc :  lc + lp]
+            all_txn_data = data[lc + lp :]
+            
             new_lkos = {
                 bid: t["server_knowledge"]
                 for bid, t in zip(budget_ids, all_txn_data, strict=True)
@@ -138,20 +141,20 @@ async def sync(token: str, db: Path, full_refresh: bool) -> None:
         print("Done")
 
         if (
-            not any(t["transactions"] for t in all_txn_data)
+            not any(c["category_groups"] for c in all_cat_data)
             and not any(p["payees"] for p in all_payee_data)
-            and not any(c["category_groups"] for c in all_cat_data)
+            and not any(t["transactions"] for t in all_txn_data)
         ):
             print("No data fetched")
         else:
             print("Inserting budget data...")
             insert_budgets(cur, budgets, new_lkos)
-            for bid, txn_data in zip(budget_ids, all_txn_data, strict=True):
-                insert_transactions(cur, bid, txn_data["transactions"])
-            for bid, payee_data in zip(budget_ids, all_payee_data, strict=True):
-                insert_payees(cur, bid, payee_data["payees"])
             for bid, cat_data in zip(budget_ids, all_cat_data, strict=True):
                 insert_category_groups(cur, bid, cat_data["category_groups"])
+            for bid, payee_data in zip(budget_ids, all_payee_data, strict=True):
+                insert_payees(cur, bid, payee_data["payees"])
+            for bid, txn_data in zip(budget_ids, all_txn_data, strict=True):
+                insert_transactions(cur, bid, txn_data["transactions"])
             print("Done")
 
 
@@ -159,16 +162,6 @@ def contents(filename: str) -> str:
     return (resources.files(ddl) / filename).read_text()
 
 
-def jobs(
-    yc: SupportsYnabClient,
-    endpoint: Literal["transactions"] | Literal["categories"] | Literal["payees"],
-    budget_ids: list[str],
-    lkos: dict[str, int],
-) -> list[Awaitable[dict[str, Any]]]:
-    return [
-        yc(f"budgets/{bid}/{endpoint}", last_knowledge_of_server=lkos.get(bid))
-        for bid in budget_ids
-    ]
 
 
 def get_tables(cur: sqlite3.Cursor) -> set[str]:
@@ -197,6 +190,22 @@ def insert_budgets(
         ((bid := b["id"], b["name"], lkos[bid]) for b in budgets),
     )
 
+def insert_category_groups(
+    cur: sqlite3.Cursor, budget_id: str, category_groups: list[dict[str, Any]]
+) -> None:
+    return insert_nested_entries(
+        cur, budget_id, category_groups, "Categories", "category_groups", "categories"
+    )
+
+
+def insert_payees(
+    cur: sqlite3.Cursor, budget_id: str, payees: list[dict[str, Any]]
+) -> None:
+    if not payees:
+        return
+
+    for payee in tqdm(payees, desc="Payees"):
+        insert_entry(cur, "payees", budget_id, payee)
 
 def insert_transactions(
     cur: sqlite3.Cursor, budget_id: str, transactions: list[dict[str, Any]]
@@ -253,22 +262,6 @@ def insert_nested_entries(
                 pbar.update()
 
 
-def insert_payees(
-    cur: sqlite3.Cursor, budget_id: str, payees: list[dict[str, Any]]
-) -> None:
-    if not payees:
-        return
-
-    for payee in tqdm(payees, desc="Payees"):
-        insert_entry(cur, "payees", budget_id, payee)
-
-
-def insert_category_groups(
-    cur: sqlite3.Cursor, budget_id: str, category_groups: list[dict[str, Any]]
-) -> None:
-    return insert_nested_entries(
-        cur, budget_id, category_groups, "Categories", "category_groups", "categories"
-    )
 
 
 def insert_entry(
@@ -285,6 +278,16 @@ def insert_entry(
         values,
     )
 
+def jobs(
+    yc: SupportsYnabClient,
+    endpoint: Literal["transactions"] | Literal["categories"] | Literal["payees"],
+    budget_ids: list[str],
+    lkos: dict[str, int],
+) -> list[Awaitable[dict[str, Any]]]:
+    return [
+        yc(f"budgets/{bid}/{endpoint}", last_knowledge_of_server=lkos.get(bid))
+        for bid in budget_ids
+    ]
 
 class SupportsYnabClient(Protocol):
     async def __call__(
