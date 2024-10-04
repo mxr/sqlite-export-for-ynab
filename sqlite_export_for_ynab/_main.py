@@ -64,12 +64,12 @@ async def async_main() -> int:
             "https://api.ynab.com/#personal-access-tokens"
         )
 
-    await sync(db, full_refresh, token)
+    await sync(token, db, full_refresh)
 
     return 0
 
 
-async def sync(db: str, full_refresh: bool, token: str) -> None:
+async def sync(token: str, db: str, full_refresh: bool) -> None:
     async with aiohttp.ClientSession() as session:
         budgets = (await YnabClient(token, session)("budgets"))["budgets"]
 
