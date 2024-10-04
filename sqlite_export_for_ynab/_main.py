@@ -130,10 +130,10 @@ async def sync(token: str, db: Path, full_refresh: bool) -> None:
             lc = len(cat_jobs)
             lp = len(payee_jobs)
 
-            all_cat_data = data[ :  lc]
-            all_payee_data = data[lc :  lc + lp]
+            all_cat_data = data[:lc]
+            all_payee_data = data[lc : lc + lp]
             all_txn_data = data[lc + lp :]
-            
+
             new_lkos = {
                 bid: t["server_knowledge"]
                 for bid, t in zip(budget_ids, all_txn_data, strict=True)
@@ -162,8 +162,6 @@ def contents(filename: str) -> str:
     return (resources.files(ddl) / filename).read_text()
 
 
-
-
 def get_tables(cur: sqlite3.Cursor) -> set[str]:
     return {
         t["name"]
@@ -190,6 +188,7 @@ def insert_budgets(
         ((bid := b["id"], b["name"], lkos[bid]) for b in budgets),
     )
 
+
 def insert_category_groups(
     cur: sqlite3.Cursor, budget_id: str, category_groups: list[dict[str, Any]]
 ) -> None:
@@ -206,6 +205,7 @@ def insert_payees(
 
     for payee in tqdm(payees, desc="Payees"):
         insert_entry(cur, "payees", budget_id, payee)
+
 
 def insert_transactions(
     cur: sqlite3.Cursor, budget_id: str, transactions: list[dict[str, Any]]
@@ -262,8 +262,6 @@ def insert_nested_entries(
                 pbar.update()
 
 
-
-
 def insert_entry(
     cur: sqlite3.Cursor,
     table: _EntryTable,
@@ -278,6 +276,7 @@ def insert_entry(
         values,
     )
 
+
 def jobs(
     yc: SupportsYnabClient,
     endpoint: Literal["transactions"] | Literal["categories"] | Literal["payees"],
@@ -288,6 +287,7 @@ def jobs(
         yc(f"budgets/{bid}/{endpoint}", last_knowledge_of_server=lkos.get(bid))
         for bid in budget_ids
     ]
+
 
 class SupportsYnabClient(Protocol):
     async def __call__(
