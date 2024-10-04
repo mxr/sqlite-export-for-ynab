@@ -7,6 +7,7 @@ import os
 import sqlite3
 from dataclasses import dataclass
 from importlib import resources
+from pathlib import Path
 from typing import Any
 from typing import ClassVar
 from typing import Literal
@@ -40,12 +41,15 @@ _ALL_TABLES = frozenset(
 
 _ENV_TOKEN = "YNAB_PERSONAL_ACCESS_TOKEN"
 
-DEFAULT_DB = "sqlite-export-for-ynab.db"
-
 
 async def async_main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--db", help="The SQLite database file.", default=DEFAULT_DB)
+    parser.add_argument(
+        "--db",
+        help="The path to the SQLite database file.",
+        type=Path,
+        default=default_db_path(),
+    )
     parser.add_argument(
         "--full-refresh",
         action="store_true",
@@ -53,7 +57,7 @@ async def async_main() -> int:
     )
 
     args = parser.parse_args()
-    db: str = args.db
+    db: Path = args.db
     full_refresh: bool = args.full_refresh
 
     token = os.environ.get(_ENV_TOKEN)
@@ -69,11 +73,26 @@ async def async_main() -> int:
     return 0
 
 
-async def sync(token: str, db: str, full_refresh: bool) -> None:
+def default_db_path() -> Path:
+    return (
+        (
+            Path(xdg_data_home)
+            if (xdg_data_home := os.environ.get("XDG_DATA_HOME"))
+            else Path.home() / ".local" / "share"
+        )
+        / "sqlite-export-for-ynab"
+        / "db.sqlite"
+    )
+
+
+async def sync(token: str, db: Path, full_refresh: bool) -> None:
     async with aiohttp.ClientSession() as session:
         budgets = (await YnabClient(token, session)("budgets"))["budgets"]
 
     budget_ids = [b["id"] for b in budgets]
+
+    if not db.exists():
+        db.parent.mkdir(parents=True, exist_ok=True)
 
     with sqlite3.connect(db) as con:
         con.row_factory = lambda c, row: dict(
