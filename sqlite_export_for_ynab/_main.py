@@ -119,9 +119,7 @@ async def sync(token: str, db: Path, full_refresh: bool) -> None:
         lkos = get_last_knowledge_of_server(cur)
         async with aiohttp.ClientSession() as session:
             with tqdm(desc="Budget Data", total=len(budgets) * 4) as pbar:
-                yc = ProgressYnabClient(
-                    YnabClient(os.environ["YNAB_PERSONAL_ACCESS_TOKEN"], session), pbar
-                )
+                yc = ProgressYnabClient(YnabClient(token, session), pbar)
 
                 account_jobs = jobs(yc, "accounts", budget_ids, lkos)
                 cat_jobs = jobs(yc, "categories", budget_ids, lkos)
