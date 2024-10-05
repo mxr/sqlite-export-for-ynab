@@ -75,4 +75,3 @@ ORDER BY
     net_spent DESC
 ;
 ```
-
