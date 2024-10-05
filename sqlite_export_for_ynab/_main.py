@@ -104,14 +104,14 @@ async def sync(token: str, db: Path, full_refresh: bool) -> None:
 
         if full_refresh:
             print("Dropping tables...")
-            cur.executescript(contents("drop-tables.sqlite"))
+            cur.executescript(contents("drop-tables.sql"))
             con.commit()
             print("Done")
 
         tables = get_tables(cur)
         if tables != _ALL_TABLES:
             print("Recreating tables...")
-            cur.executescript(contents("create-tables.sqlite"))
+            cur.executescript(contents("create-tables.sql"))
             con.commit()
             print("Done")
 

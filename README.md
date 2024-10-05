@@ -33,7 +33,7 @@ Use the `--db` argument to specify a different DB path.
 
 ## SQL
 
-The schema is defined in [create-tables.sqlite](sqlite_export_for_ynab/ddl/create-tables.sqlite). It is very similar to [YNAB's OpenAPI Spec](https://api.ynab.com/papi/open_api_spec.yaml) however some objects are pulled out into their own tables (ex: subtransactions, loan account period values) and foreign keys are added as needed (ex: budget ID, transaction ID).
+The schema is defined in [create-tables.sql](sqlite_export_for_ynab/ddl/create-tables.sql). It is very similar to [YNAB's OpenAPI Spec](https://api.ynab.com/papi/open_api_spec.yaml) however some objects are pulled out into their own tables (ex: subtransactions, loan account period values) and foreign keys are added as needed (ex: budget ID, transaction ID).
 
 You can query the DB with typical SQLite tools. For example, to get the top 5 payees by spending per budget, you could do:
 
