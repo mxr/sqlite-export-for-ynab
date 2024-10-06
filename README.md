@@ -41,7 +41,6 @@ You can query the DB with typical SQLite tools. For example, to get the top 5 pa
 WITH
     ranked_payees AS (
         SELECT
-            b.id AS budget_id,
             b.name AS budget_name,
             p.name AS payee,
             SUM(t.amount) / -1000.0 AS net_spent,
