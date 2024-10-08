@@ -453,7 +453,7 @@ class YnabClient:
     token: str
     session: aiohttp.ClientSession
 
-    async def __call__(  # type: ignore[return]
+    async def __call__(
         self, path: str, last_knowledge_of_server: int | None = None
     ) -> dict[str, Any]:
         headers = {
@@ -484,6 +484,8 @@ class YnabClient:
             except json.JSONDecodeError:
                 if i == 2:
                     raise
+
+        raise AssertionError("unreachable")
 
 
 def main() -> int:
