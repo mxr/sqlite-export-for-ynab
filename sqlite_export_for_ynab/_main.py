@@ -264,9 +264,9 @@ def insert_nested_entries(
     cur: sqlite3.Cursor,
     budget_id: str,
     entries: list[dict[str, Any]],
-    desc: Literal["Transactions"],
-    entries_name: Literal["transactions"],
-    subentries_name: Literal["subtransactions"],
+    desc: Literal["Accounts"],
+    entries_name: Literal["accounts"],
+    subentries_name: Literal["account_periodic_values"],
 ) -> None: ...
 
 
@@ -286,9 +286,9 @@ def insert_nested_entries(
     cur: sqlite3.Cursor,
     budget_id: str,
     entries: list[dict[str, Any]],
-    desc: Literal["Accounts"],
-    entries_name: Literal["accounts"],
-    subentries_name: Literal["account_periodic_values"],
+    desc: Literal["Transactions"],
+    entries_name: Literal["transactions"],
+    subentries_name: Literal["subtransactions"],
 ) -> None: ...
 
 
@@ -296,14 +296,14 @@ def insert_nested_entries(
     cur: sqlite3.Cursor,
     budget_id: str,
     entries: list[dict[str, Any]],
-    desc: Literal["Transactions"] | Literal["Categories"] | Literal["Accounts"],
+    desc: Literal["Accounts"] | Literal["Categories"] | Literal["Transactions"],
     entries_name: (
-        Literal["transactions"] | Literal["category_groups"] | Literal["accounts"]
+        Literal["accounts"] | Literal["category_groups"] | Literal["transactions"]
     ),
     subentries_name: (
-        Literal["subtransactions"]
+        Literal["account_periodic_values"]
         | Literal["categories"]
-        | Literal["account_periodic_values"]
+        | Literal["subtransactions"]
     ),
 ) -> None:
     if not entries:
@@ -406,10 +406,17 @@ class YnabClient:
             )
         )
 
-        async with self.session.get(url, headers=headers) as resp:
-            body = await resp.text()
+        for i in range(3):
+            try:
+                async with self.session.get(url, headers=headers) as resp:
+                    body = await resp.text()
 
-        return json.loads(body)["data"]
+                return json.loads(body)["data"]
+            except json.JSONDecodeError:
+                if i == 2:
+                    raise
+
+        raise AssertionError("unreachable")
 
 
 def main() -> int:
