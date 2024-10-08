@@ -406,10 +406,17 @@ class YnabClient:
             )
         )
 
-        async with self.session.get(url, headers=headers) as resp:
-            body = await resp.text()
+        for i in range(3):
+            try:
+                async with self.session.get(url, headers=headers) as resp:
+                    body = await resp.text()
 
-        return json.loads(body)["data"]
+                return json.loads(body)["data"]
+            except json.JSONDecodeError:
+                if i == 2:
+                    raise
+
+        raise AssertionError("unreachable")
 
 
 def main() -> int:
