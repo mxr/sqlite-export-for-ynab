@@ -36,6 +36,8 @@ _EntryTable = (
     | Literal["payees"]
     | Literal["transactions"]
     | Literal["subtransactions"]
+    | Literal["scheduled_transactions"]
+    | Literal["scheduled_subtransactions"]
 )
 _ALL_TABLES = frozenset(
     ("budgets",) + tuple(lit.__args__[0] for lit in _EntryTable.__args__)
@@ -118,26 +120,29 @@ async def sync(token: str, db: Path, full_refresh: bool) -> None:
         print("Fetching budget data...")
         lkos = get_last_knowledge_of_server(cur)
         async with aiohttp.ClientSession() as session:
-            with tqdm(desc="Budget Data", total=len(budgets) * 4) as pbar:
+            with tqdm(desc="Budget Data", total=len(budgets) * 5) as pbar:
                 yc = ProgressYnabClient(YnabClient(token, session), pbar)
 
                 account_jobs = jobs(yc, "accounts", budget_ids, lkos)
                 cat_jobs = jobs(yc, "categories", budget_ids, lkos)
                 payee_jobs = jobs(yc, "payees", budget_ids, lkos)
                 txn_jobs = jobs(yc, "transactions", budget_ids, lkos)
+                sched_txn_jobs = jobs(yc, "scheduled_transactions", budget_ids, lkos)
 
                 data = await asyncio.gather(
-                    *account_jobs, *cat_jobs, *payee_jobs, *txn_jobs
+                    *account_jobs, *cat_jobs, *payee_jobs, *txn_jobs, *sched_txn_jobs
                 )
 
             la = len(account_jobs)
             lc = len(cat_jobs)
             lp = len(payee_jobs)
+            lt = len(txn_jobs)
 
             all_account_data = data[:la]
             all_cat_data = data[la : la + lc]
             all_payee_data = data[la + lc : la + lc + lp]
-            all_txn_data = data[la + lc + lp :]
+            all_txn_data = data[la + lc + lp : la + lc + lp + lt]
+            all_sched_txn_data = data[la + lc + lp + lt :]
 
             new_lkos = {
                 bid: t["server_knowledge"]
@@ -150,6 +155,7 @@ async def sync(token: str, db: Path, full_refresh: bool) -> None:
             and not any(t["transactions"] for t in all_txn_data)
             and not any(p["payees"] for p in all_payee_data)
             and not any(t["transactions"] for t in all_txn_data)
+            and not any(s["scheduled_transactions"] for s in all_sched_txn_data)
         ):
             print("No data fetched")
         else:
@@ -163,6 +169,10 @@ async def sync(token: str, db: Path, full_refresh: bool) -> None:
                 insert_payees(cur, bid, payee_data["payees"])
             for bid, txn_data in zip(budget_ids, all_txn_data, strict=True):
                 insert_transactions(cur, bid, txn_data["transactions"])
+            for bid, sched_txn_data in zip(budget_ids, all_sched_txn_data, strict=True):
+                insert_scheduled_transactions(
+                    cur, bid, sched_txn_data["scheduled_transactions"]
+                )
             print("Done")
 
 
@@ -230,6 +240,7 @@ def insert_accounts(
         "Accounts",
         "accounts",
         "account_periodic_values",
+        "account_periodic_values",
     )
 
 
@@ -237,7 +248,13 @@ def insert_category_groups(
     cur: sqlite3.Cursor, budget_id: str, category_groups: list[dict[str, Any]]
 ) -> None:
     return insert_nested_entries(
-        cur, budget_id, category_groups, "Categories", "category_groups", "categories"
+        cur,
+        budget_id,
+        category_groups,
+        "Categories",
+        "category_groups",
+        "categories",
+        "categories",
     )
 
 
@@ -255,7 +272,27 @@ def insert_transactions(
     cur: sqlite3.Cursor, budget_id: str, transactions: list[dict[str, Any]]
 ) -> None:
     return insert_nested_entries(
-        cur, budget_id, transactions, "Transactions", "transactions", "subtransactions"
+        cur,
+        budget_id,
+        transactions,
+        "Transactions",
+        "transactions",
+        "subtransactions",
+        "subtransactions",
+    )
+
+
+def insert_scheduled_transactions(
+    cur: sqlite3.Cursor, budget_id: str, scheduled_transactions: list[dict[str, Any]]
+) -> None:
+    return insert_nested_entries(
+        cur,
+        budget_id,
+        scheduled_transactions,
+        "Scheduled Transactions",
+        "scheduled_transactions",
+        "subtransactions",
+        "scheduled_subtransactions",
     )
 
 
@@ -267,6 +304,7 @@ def insert_nested_entries(
     desc: Literal["Accounts"],
     entries_name: Literal["accounts"],
     subentries_name: Literal["account_periodic_values"],
+    subentries_table_name: Literal["account_periodic_values"],
 ) -> None: ...
 
 
@@ -278,6 +316,7 @@ def insert_nested_entries(
     desc: Literal["Categories"],
     entries_name: Literal["category_groups"],
     subentries_name: Literal["categories"],
+    subentries_table_name: Literal["categories"],
 ) -> None: ...
 
 
@@ -289,6 +328,19 @@ def insert_nested_entries(
     desc: Literal["Transactions"],
     entries_name: Literal["transactions"],
     subentries_name: Literal["subtransactions"],
+    subentries_table_name: Literal["subtransactions"],
+) -> None: ...
+
+
+@overload
+def insert_nested_entries(
+    cur: sqlite3.Cursor,
+    budget_id: str,
+    entries: list[dict[str, Any]],
+    desc: Literal["Scheduled Transactions"],
+    entries_name: Literal["scheduled_transactions"],
+    subentries_name: Literal["subtransactions"],
+    subentries_table_name: Literal["scheduled_subtransactions"],
 ) -> None: ...
 
 
@@ -296,14 +348,28 @@ def insert_nested_entries(
     cur: sqlite3.Cursor,
     budget_id: str,
     entries: list[dict[str, Any]],
-    desc: Literal["Accounts"] | Literal["Categories"] | Literal["Transactions"],
+    desc: (
+        Literal["Accounts"]
+        | Literal["Categories"]
+        | Literal["Transactions"]
+        | Literal["Scheduled Transactions"]
+    ),
     entries_name: (
-        Literal["accounts"] | Literal["category_groups"] | Literal["transactions"]
+        Literal["accounts"]
+        | Literal["category_groups"]
+        | Literal["transactions"]
+        | Literal["scheduled_transactions"]
     ),
     subentries_name: (
         Literal["account_periodic_values"]
         | Literal["categories"]
         | Literal["subtransactions"]
+    ),
+    subentries_table_name: (
+        Literal["account_periodic_values"]
+        | Literal["categories"]
+        | Literal["subtransactions"]
+        | Literal["scheduled_subtransactions"]
     ),
 ) -> None:
     if not entries:
@@ -319,7 +385,7 @@ def insert_nested_entries(
             pbar.update()
 
             for subentry in subentries:
-                insert_entry(cur, subentries_name, budget_id, subentry)
+                insert_entry(cur, subentries_table_name, budget_id, subentry)
                 pbar.update()
 
 
@@ -345,6 +411,7 @@ def jobs(
         | Literal["categories"]
         | Literal["payees"]
         | Literal["transactions"]
+        | Literal["scheduled_transactions"]
     ),
     budget_ids: list[str],
     lkos: dict[str, int],

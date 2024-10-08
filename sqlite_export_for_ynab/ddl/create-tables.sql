@@ -135,3 +135,48 @@ CREATE TABLE IF NOT EXISTS subtransactions (
     foreign key (payee_id) references payees (id),
     foreign key (transaction_id) references transaction_id (id)
 )
+;
+
+CREATE TABLE IF NOT EXISTS scheduled_transactions (
+    id TEXT primary key,
+    budget_id TEXT,
+    account_id text,
+    account_name text,
+    amount int,
+    category_id text,
+    category_name text,
+    date_first text,
+    date_next text,
+    deleted boolean,
+    flag_color text,
+    flag_name text,
+    frequency text,
+    memo text,
+    payee_id text,
+    payee_name text,
+    transfer_account_id text,
+    foreign key (budget_id) references budgets (id),
+    foreign key (account_id) references accounts (id),
+    foreign key (category_id) references categories (id),
+    foreign key (payee_id) references payees (id),
+    foreign key (transfer_account_id) references accounts (id)
+)
+;
+
+CREATE TABLE IF NOT EXISTS scheduled_subtransactions (
+    id TEXT primary key,
+    budget_id TEXT,
+    scheduled_transaction_id text,
+    amount int,
+    memo text,
+    payee_id text,
+    category_id text,
+    transfer_account_id text,
+    deleted boolean,
+    foreign key (budget_id) references budget (id),
+    foreign key (transfer_account_id) references accounts (id),
+    foreign key (category_id) references categories (id),
+    foreign key (payee_id) references payees (id),
+    foreign key (scheduled_transaction_id) references transaction_id (id)
+)
+;
