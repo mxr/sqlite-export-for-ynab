@@ -16,7 +16,13 @@ $ pip install sqlite-export-for-ynab
 
 ## Usage
 
-Run it from the terminal to download your budget:
+Provision a [YNAB Personal Access Token](https://api.ynab.com/#personal-access-tokens) and save it as an environment variable.
+
+```console
+$ export YNAB_PERSONAL_ACCESS_TOKEN="..."
+```
+
+Run the tool from the terminal to download your budget:
 
 ```console
 $ sqlite-export-for-ynab
