@@ -77,3 +77,24 @@ ORDER BY
     net_spent DESC
 ;
 ```
+
+To get payees with no transactions:
+
+```sql
+SELECT
+    b.name,
+    p.name
+FROM
+    budgets b
+    JOIN payees p ON p.budget_id = b.id
+    LEFT JOIN transactions t ON (
+        t.payee_id = p.id
+        AND t.budget_id = b.id
+    )
+WHERE
+    t.id IS NULL
+GROUP BY
+    1,
+    2
+;
+```
