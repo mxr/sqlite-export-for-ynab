@@ -60,6 +60,7 @@ WITH
         WHERE
             p.name != 'Starting Balance'
             AND p.transfer_account_id IS NULL
+            AND NOT t.deleted
         GROUP BY
             b.id,
             p.id
@@ -75,5 +76,40 @@ WHERE
 ORDER BY
     budget_name,
     net_spent DESC
+;
+```
+
+To get payees with no transactions:
+
+```sql
+SELECT DISTINCT
+    b.name,
+    p.name
+FROM
+    budgets b
+    JOIN payees p ON b.id = p.budget_id
+    LEFT JOIN (
+        SELECT
+            budget_id,
+            payee_id,
+            MAX(NOT deleted) AS has_active_transaction
+        FROM
+            transactions
+        GROUP BY
+            budget_id,
+            payee_id
+    ) t ON (
+        p.id = t.payee_id
+        AND p.budget_id = t.budget_id
+    )
+WHERE
+    NOT p.deleted
+    AND (
+        t.payee_id IS NULL
+        OR NOT t.has_active_transaction
+    )
+ORDER BY
+    1,
+    2
 ;
 ```
