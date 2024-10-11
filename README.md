@@ -103,10 +103,10 @@ FROM
         AND p.budget_id = t.budget_id
     )
 WHERE
-    not p.deleted 
+    NOT p.deleted
     AND (
         t.payee_id IS NULL
-        OR not t.has_active_transaction 
+        OR NOT t.has_active_transaction
     )
 ORDER BY
     1,
