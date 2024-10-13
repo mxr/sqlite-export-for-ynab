@@ -226,7 +226,7 @@ def insert_accounts(
                     "amount": apvv,
                 }
                 for key in _LOAN_ACCOUNT_PERIODIC_VALUES
-                for apvk, apvv in account.get(key, ()).items()
+                for apvk, apvv in account[key].items()
             ]
         }
         | {k: v for k, v in account.items() if k not in _LOAN_ACCOUNT_PERIODIC_VALUES}
