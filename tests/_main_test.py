@@ -85,6 +85,7 @@ def test_insert_accounts(cur):
             "budget_id": BUDGET_ID_1,
         },
     ]
+
     cur.execute("SELECT * FROM account_periodic_values ORDER BY name")
     assert cur.fetchall() == [
         {
@@ -120,6 +121,7 @@ def test_insert_category_groups(cur):
             "budget_id": BUDGET_ID_1,
         },
     ]
+
     cur.execute("SELECT * FROM categories ORDER BY name")
     assert [strip_nones(d) for d in cur.fetchall()] == [
         {
