@@ -85,6 +85,10 @@ def test_insert_budgets(cur):
 
 @pytest.mark.usefixtures(cur.__name__)
 def test_insert_accounts(cur):
+    insert_accounts(cur, BUDGET_ID_1, [])
+    assert not cur.execute("SELECT * FROM accounts").fetchall()
+    assert not cur.execute("SELECT * FROM account_periodic_values").fetchall()
+
     insert_accounts(cur, BUDGET_ID_1, ACCOUNTS)
     cur.execute("SELECT * FROM accounts ORDER BY name")
     assert [strip_nones(d) for d in cur.fetchall()] == [
@@ -123,6 +127,10 @@ def test_insert_accounts(cur):
 
 @pytest.mark.usefixtures(cur.__name__)
 def test_insert_category_groups(cur):
+    insert_category_groups(cur, BUDGET_ID_1, [])
+    assert not cur.execute("SELECT * FROM category_groups").fetchall()
+    assert not cur.execute("SELECT * FROM categories").fetchall()
+
     insert_category_groups(cur, BUDGET_ID_1, CATEGORY_GROUPS)
     cur.execute("SELECT * FROM category_groups ORDER BY name")
     assert [strip_nones(d) for d in cur.fetchall()] == [
@@ -190,6 +198,10 @@ def test_insert_payees(cur):
 
 @pytest.mark.usefixtures(cur.__name__)
 def test_insert_transactions(cur):
+    insert_transactions(cur, BUDGET_ID_1, [])
+    assert not cur.execute("SELECT * FROM transactions").fetchall()
+    assert not cur.execute("SELECT * FROM subtransactions").fetchall()
+
     insert_transactions(cur, BUDGET_ID_1, TRANSACTIONS)
     cur.execute("SELECT * FROM transactions ORDER BY date")
     assert [strip_nones(d) for d in cur.fetchall()] == [
@@ -226,6 +238,10 @@ def test_insert_transactions(cur):
 
 @pytest.mark.usefixtures(cur.__name__)
 def test_insert_scheduled_transactions(cur):
+    insert_scheduled_transactions(cur, BUDGET_ID_1, [])
+    assert not cur.execute("SELECT * FROM scheduled_transactions").fetchall()
+    assert not cur.execute("SELECT * FROM scheduled_subtransactions").fetchall()
+
     insert_scheduled_transactions(cur, BUDGET_ID_1, SCHEDULED_TRANSACTIONS)
     cur.execute("SELECT * FROM scheduled_transactions ORDER BY amount")
     assert [strip_nones(d) for d in cur.fetchall()] == [
