@@ -55,6 +55,7 @@ ACCOUNTS: list[dict[str, Any]] = [
 
 CATEGORY_GROUP_ID_1 = str(uuid4())
 CATEGORY_GROUP_ID_2 = str(uuid4())
+
 CATEGORY_ID_1 = str(uuid4())
 CATEGORY_ID_2 = str(uuid4())
 CATEGORY_ID_3 = str(uuid4())
@@ -111,6 +112,38 @@ PAYEES: list[dict[str, Any]] = [
     {
         "id": PAYEE_ID_2,
         "name": "Payee 2",
+    },
+]
+
+TRANSACTION_ID_1 = str(uuid4())
+TRANSACTION_ID_2 = str(uuid4())
+
+SUBTRANSACTION_ID_1 = str(uuid4())
+SUBTRANSACTION_ID_2 = str(uuid4())
+
+TRANSACTIONS: list[dict[str, Any]] = [
+    {
+        "id": TRANSACTION_ID_1,
+        "date": "2024-01-01",
+        "amount": -10000,
+        "subtransactions": [
+            {
+                "id": SUBTRANSACTION_ID_1,
+                "transaction_id": TRANSACTION_ID_1,
+                "amount": -7000,
+            },
+            {
+                "id": SUBTRANSACTION_ID_2,
+                "transaction_id": TRANSACTION_ID_1,
+                "amount": -3000,
+            },
+        ],
+    },
+    {
+        "id": TRANSACTION_ID_2,
+        "date": "2024-02-01",
+        "amount": -15000,
+        "subtransactions": [],
     },
 ]
 

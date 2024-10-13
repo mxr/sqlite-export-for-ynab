@@ -10,6 +10,7 @@ from sqlite_export_for_ynab._main import insert_accounts
 from sqlite_export_for_ynab._main import insert_budgets
 from sqlite_export_for_ynab._main import insert_category_groups
 from sqlite_export_for_ynab._main import insert_payees
+from sqlite_export_for_ynab._main import insert_transactions
 from testing.fixtures import ACCOUNT_ID_1
 from testing.fixtures import ACCOUNT_ID_2
 from testing.fixtures import ACCOUNTS
@@ -33,6 +34,11 @@ from testing.fixtures import PAYEE_ID_1
 from testing.fixtures import PAYEE_ID_2
 from testing.fixtures import PAYEES
 from testing.fixtures import strip_nones
+from testing.fixtures import SUBTRANSACTION_ID_1
+from testing.fixtures import SUBTRANSACTION_ID_2
+from testing.fixtures import TRANSACTION_ID_1
+from testing.fixtures import TRANSACTION_ID_2
+from testing.fixtures import TRANSACTIONS
 
 
 @pytest.mark.parametrize(
@@ -172,5 +178,41 @@ def test_insert_payees(cur):
             "id": PAYEE_ID_2,
             "budget_id": BUDGET_ID_1,
             "name": PAYEES[1]["name"],
+        },
+    ]
+
+
+@pytest.mark.usefixtures(cur.__name__)
+def test_insert_transactions(cur):
+    insert_transactions(cur, BUDGET_ID_1, TRANSACTIONS)
+    cur.execute("SELECT * FROM transactions ORDER BY date")
+    assert [strip_nones(d) for d in cur.fetchall()] == [
+        {
+            "id": TRANSACTION_ID_1,
+            "budget_id": BUDGET_ID_1,
+            "DATE": "2024-01-01",
+            "amount": -10000,
+        },
+        {
+            "id": TRANSACTION_ID_2,
+            "budget_id": BUDGET_ID_1,
+            "DATE": "2024-02-01",
+            "amount": -15000,
+        },
+    ]
+
+    cur.execute("SELECT * FROM subtransactions ORDER BY amount")
+    assert [strip_nones(d) for d in cur.fetchall()] == [
+        {
+            "id": SUBTRANSACTION_ID_1,
+            "transaction_id": TRANSACTION_ID_1,
+            "budget_id": BUDGET_ID_1,
+            "amount": -7000,
+        },
+        {
+            "id": SUBTRANSACTION_ID_2,
+            "transaction_id": TRANSACTION_ID_1,
+            "budget_id": BUDGET_ID_1,
+            "amount": -3000,
         },
     ]
