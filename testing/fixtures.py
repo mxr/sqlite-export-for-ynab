@@ -147,6 +147,36 @@ TRANSACTIONS: list[dict[str, Any]] = [
     },
 ]
 
+SCHEDULED_TRANSACTION_ID_1 = str(uuid4())
+SCHEDULED_TRANSACTION_ID_2 = str(uuid4())
+
+SCHEDULED_SUBTRANSACTION_ID_1 = str(uuid4())
+SCHEDULED_SUBTRANSACTION_ID_2 = str(uuid4())
+
+SCHEDULED_TRANSACTIONS: list[dict[str, Any]] = [
+    {
+        "id": SCHEDULED_TRANSACTION_ID_1,
+        "amount": -12000,
+        "subtransactions": [
+            {
+                "id": SCHEDULED_SUBTRANSACTION_ID_1,
+                "scheduled_transaction_id": SCHEDULED_TRANSACTION_ID_1,
+                "amount": -8000,
+            },
+            {
+                "id": SCHEDULED_SUBTRANSACTION_ID_2,
+                "scheduled_transaction_id": SCHEDULED_TRANSACTION_ID_1,
+                "amount": -4000,
+            },
+        ],
+    },
+    {
+        "id": SCHEDULED_TRANSACTION_ID_2,
+        "amount": -11000,
+        "subtransactions": [],
+    },
+]
+
 
 @pytest.fixture
 def cur():

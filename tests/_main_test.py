@@ -10,6 +10,7 @@ from sqlite_export_for_ynab._main import insert_accounts
 from sqlite_export_for_ynab._main import insert_budgets
 from sqlite_export_for_ynab._main import insert_category_groups
 from sqlite_export_for_ynab._main import insert_payees
+from sqlite_export_for_ynab._main import insert_scheduled_transactions
 from sqlite_export_for_ynab._main import insert_transactions
 from testing.fixtures import ACCOUNT_ID_1
 from testing.fixtures import ACCOUNT_ID_2
@@ -33,6 +34,11 @@ from testing.fixtures import LKOS
 from testing.fixtures import PAYEE_ID_1
 from testing.fixtures import PAYEE_ID_2
 from testing.fixtures import PAYEES
+from testing.fixtures import SCHEDULED_SUBTRANSACTION_ID_1
+from testing.fixtures import SCHEDULED_SUBTRANSACTION_ID_2
+from testing.fixtures import SCHEDULED_TRANSACTION_ID_1
+from testing.fixtures import SCHEDULED_TRANSACTION_ID_2
+from testing.fixtures import SCHEDULED_TRANSACTIONS
 from testing.fixtures import strip_nones
 from testing.fixtures import SUBTRANSACTION_ID_1
 from testing.fixtures import SUBTRANSACTION_ID_2
@@ -214,5 +220,39 @@ def test_insert_transactions(cur):
             "transaction_id": TRANSACTION_ID_1,
             "budget_id": BUDGET_ID_1,
             "amount": -3000,
+        },
+    ]
+
+
+@pytest.mark.usefixtures(cur.__name__)
+def test_insert_scheduled_transactions(cur):
+    insert_scheduled_transactions(cur, BUDGET_ID_1, SCHEDULED_TRANSACTIONS)
+    cur.execute("SELECT * FROM scheduled_transactions ORDER BY amount")
+    assert [strip_nones(d) for d in cur.fetchall()] == [
+        {
+            "id": SCHEDULED_TRANSACTION_ID_1,
+            "budget_id": BUDGET_ID_1,
+            "amount": -12000,
+        },
+        {
+            "id": SCHEDULED_TRANSACTION_ID_2,
+            "budget_id": BUDGET_ID_1,
+            "amount": -11000,
+        },
+    ]
+
+    cur.execute("SELECT * FROM scheduled_subtransactions ORDER BY amount")
+    assert [strip_nones(d) for d in cur.fetchall()] == [
+        {
+            "id": SCHEDULED_SUBTRANSACTION_ID_1,
+            "scheduled_transaction_id": SCHEDULED_TRANSACTION_ID_1,
+            "budget_id": BUDGET_ID_1,
+            "amount": -8000,
+        },
+        {
+            "id": SCHEDULED_SUBTRANSACTION_ID_2,
+            "scheduled_transaction_id": SCHEDULED_TRANSACTION_ID_1,
+            "budget_id": BUDGET_ID_1,
+            "amount": -4000,
         },
     ]
