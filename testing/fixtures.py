@@ -100,6 +100,20 @@ CATEGORY_GROUPS: list[dict[str, Any]] = [
     },
 ]
 
+PAYEE_ID_1 = str(uuid4())
+PAYEE_ID_2 = str(uuid4())
+
+PAYEES: list[dict[str, Any]] = [
+    {
+        "id": PAYEE_ID_1,
+        "name": "Payee 1",
+    },
+    {
+        "id": PAYEE_ID_2,
+        "name": "Payee 2",
+    },
+]
+
 
 @pytest.fixture
 def cur():

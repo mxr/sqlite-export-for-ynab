@@ -9,6 +9,7 @@ from sqlite_export_for_ynab._main import get_last_knowledge_of_server
 from sqlite_export_for_ynab._main import insert_accounts
 from sqlite_export_for_ynab._main import insert_budgets
 from sqlite_export_for_ynab._main import insert_category_groups
+from sqlite_export_for_ynab._main import insert_payees
 from testing.fixtures import ACCOUNT_ID_1
 from testing.fixtures import ACCOUNT_ID_2
 from testing.fixtures import ACCOUNTS
@@ -28,6 +29,9 @@ from testing.fixtures import CATEGORY_NAME_3
 from testing.fixtures import CATEGORY_NAME_4
 from testing.fixtures import cur
 from testing.fixtures import LKOS
+from testing.fixtures import PAYEE_ID_1
+from testing.fixtures import PAYEE_ID_2
+from testing.fixtures import PAYEES
 from testing.fixtures import strip_nones
 
 
@@ -74,15 +78,15 @@ def test_insert_accounts(cur):
     assert [strip_nones(d) for d in cur.fetchall()] == [
         {
             "id": ACCOUNT_ID_1,
+            "budget_id": BUDGET_ID_1,
             "name": ACCOUNTS[0]["name"],
             "TYPE": ACCOUNTS[0]["type"],
-            "budget_id": BUDGET_ID_1,
         },
         {
             "id": ACCOUNT_ID_2,
+            "budget_id": BUDGET_ID_1,
             "name": ACCOUNTS[1]["name"],
             "TYPE": ACCOUNTS[1]["type"],
-            "budget_id": BUDGET_ID_1,
         },
     ]
 
@@ -147,5 +151,26 @@ def test_insert_category_groups(cur):
             "category_group_id": CATEGORY_GROUP_ID_2,
             "budget_id": BUDGET_ID_1,
             "name": CATEGORY_NAME_4,
+        },
+    ]
+
+
+@pytest.mark.usefixtures(cur.__name__)
+def test_insert_payees(cur):
+    insert_payees(cur, BUDGET_ID_1, [])
+    assert not cur.execute("SELECT * FROM payees").fetchall()
+
+    insert_payees(cur, BUDGET_ID_1, PAYEES)
+    cur.execute("SELECT * FROM payees ORDER BY name")
+    assert [strip_nones(d) for d in cur.fetchall()] == [
+        {
+            "id": PAYEE_ID_1,
+            "budget_id": BUDGET_ID_1,
+            "name": PAYEES[0]["name"],
+        },
+        {
+            "id": PAYEE_ID_2,
+            "budget_id": BUDGET_ID_1,
+            "name": PAYEES[1]["name"],
         },
     ]
