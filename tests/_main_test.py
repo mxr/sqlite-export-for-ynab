@@ -8,12 +8,24 @@ from sqlite_export_for_ynab import default_db_path
 from sqlite_export_for_ynab._main import get_last_knowledge_of_server
 from sqlite_export_for_ynab._main import insert_accounts
 from sqlite_export_for_ynab._main import insert_budgets
+from sqlite_export_for_ynab._main import insert_category_groups
 from testing.fixtures import ACCOUNT_ID_1
 from testing.fixtures import ACCOUNT_ID_2
 from testing.fixtures import ACCOUNTS
 from testing.fixtures import BUDGET_ID_1
 from testing.fixtures import BUDGET_ID_2
 from testing.fixtures import BUDGETS
+from testing.fixtures import CATEGORY_GROUP_ID_1
+from testing.fixtures import CATEGORY_GROUP_ID_2
+from testing.fixtures import CATEGORY_GROUPS
+from testing.fixtures import CATEGORY_ID_1
+from testing.fixtures import CATEGORY_ID_2
+from testing.fixtures import CATEGORY_ID_3
+from testing.fixtures import CATEGORY_ID_4
+from testing.fixtures import CATEGORY_NAME_1
+from testing.fixtures import CATEGORY_NAME_2
+from testing.fixtures import CATEGORY_NAME_3
+from testing.fixtures import CATEGORY_NAME_4
 from testing.fixtures import cur
 from testing.fixtures import LKOS
 from testing.fixtures import strip_nones
@@ -88,5 +100,50 @@ def test_insert_accounts(cur):
             "name": "debt_interest_rates",
             "DATE": "2024-02-01",
             "amount": 5000,
+        },
+    ]
+
+
+@pytest.mark.usefixtures(cur.__name__)
+def test_insert_category_groups(cur):
+    insert_category_groups(cur, BUDGET_ID_1, CATEGORY_GROUPS)
+    cur.execute("SELECT * FROM category_groups ORDER BY name")
+    assert [strip_nones(d) for d in cur.fetchall()] == [
+        {
+            "id": CATEGORY_GROUP_ID_1,
+            "name": CATEGORY_GROUPS[0]["name"],
+            "budget_id": BUDGET_ID_1,
+        },
+        {
+            "id": CATEGORY_GROUP_ID_2,
+            "name": CATEGORY_GROUPS[1]["name"],
+            "budget_id": BUDGET_ID_1,
+        },
+    ]
+    cur.execute("SELECT * FROM categories ORDER BY name")
+    assert [strip_nones(d) for d in cur.fetchall()] == [
+        {
+            "id": CATEGORY_ID_1,
+            "category_group_id": CATEGORY_GROUP_ID_1,
+            "budget_id": BUDGET_ID_1,
+            "name": CATEGORY_NAME_1,
+        },
+        {
+            "id": CATEGORY_ID_2,
+            "category_group_id": CATEGORY_GROUP_ID_1,
+            "budget_id": BUDGET_ID_1,
+            "name": CATEGORY_NAME_2,
+        },
+        {
+            "id": CATEGORY_ID_3,
+            "category_group_id": CATEGORY_GROUP_ID_2,
+            "budget_id": BUDGET_ID_1,
+            "name": CATEGORY_NAME_3,
+        },
+        {
+            "id": CATEGORY_ID_4,
+            "category_group_id": CATEGORY_GROUP_ID_2,
+            "budget_id": BUDGET_ID_1,
+            "name": CATEGORY_NAME_4,
         },
     ]

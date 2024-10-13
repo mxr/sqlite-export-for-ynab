@@ -53,6 +53,53 @@ ACCOUNTS: list[dict[str, Any]] = [
     },
 ]
 
+CATEGORY_GROUP_ID_1 = str(uuid4())
+CATEGORY_GROUP_ID_2 = str(uuid4())
+CATEGORY_ID_1 = str(uuid4())
+CATEGORY_ID_2 = str(uuid4())
+CATEGORY_ID_3 = str(uuid4())
+CATEGORY_ID_4 = str(uuid4())
+
+CATEGORY_NAME_1 = "Category 1"
+CATEGORY_NAME_2 = "Category 2"
+CATEGORY_NAME_3 = "Category 3"
+CATEGORY_NAME_4 = "Category 4"
+
+CATEGORY_GROUPS: list[dict[str, Any]] = [
+    {
+        "id": CATEGORY_GROUP_ID_1,
+        "name": "Category Group 1",
+        "categories": [
+            {
+                "id": CATEGORY_ID_1,
+                "category_group_id": CATEGORY_GROUP_ID_1,
+                "name": CATEGORY_NAME_1,
+            },
+            {
+                "id": CATEGORY_ID_2,
+                "category_group_id": CATEGORY_GROUP_ID_1,
+                "name": CATEGORY_NAME_2,
+            },
+        ],
+    },
+    {
+        "id": CATEGORY_GROUP_ID_2,
+        "name": "Category Group 2",
+        "categories": [
+            {
+                "id": CATEGORY_ID_3,
+                "category_group_id": CATEGORY_GROUP_ID_2,
+                "name": CATEGORY_NAME_3,
+            },
+            {
+                "id": CATEGORY_ID_4,
+                "category_group_id": CATEGORY_GROUP_ID_2,
+                "name": CATEGORY_NAME_4,
+            },
+        ],
+    },
+]
+
 
 @pytest.fixture
 def cur():
