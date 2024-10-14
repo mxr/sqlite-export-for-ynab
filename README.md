@@ -102,11 +102,29 @@ FROM
         p.id = t.payee_id
         AND p.budget_id = t.budget_id
     )
+    LEFT JOIN (
+        SELECT
+            budget_id,
+            payee_id,
+            MAX(NOT deleted) AS has_active_transaction
+        FROM
+            scheduled_transactions
+        GROUP BY
+            budget_id,
+            payee_id
+    ) st ON (
+        p.id = st.payee_id
+        AND p.budget_id = st.budget_id
+    )
 WHERE
     NOT p.deleted
     AND (
         t.payee_id IS NULL
         OR NOT t.has_active_transaction
+    )
+    AND (
+        st.payee_id IS NULL
+        OR NOT st.has_active_transaction
     )
 ORDER BY
     1,
