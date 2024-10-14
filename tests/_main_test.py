@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
+from unittest.mock import patch
 
+import aiohttp
 import pytest
 
 from sqlite_export_for_ynab import default_db_path
@@ -12,6 +15,7 @@ from sqlite_export_for_ynab._main import insert_category_groups
 from sqlite_export_for_ynab._main import insert_payees
 from sqlite_export_for_ynab._main import insert_scheduled_transactions
 from sqlite_export_for_ynab._main import insert_transactions
+from sqlite_export_for_ynab._main import YnabClient
 from testing.fixtures import ACCOUNT_ID_1
 from testing.fixtures import ACCOUNT_ID_2
 from testing.fixtures import ACCOUNTS
@@ -31,6 +35,7 @@ from testing.fixtures import CATEGORY_NAME_3
 from testing.fixtures import CATEGORY_NAME_4
 from testing.fixtures import cur
 from testing.fixtures import LKOS
+from testing.fixtures import MockResponse
 from testing.fixtures import PAYEE_ID_1
 from testing.fixtures import PAYEE_ID_2
 from testing.fixtures import PAYEES
@@ -42,6 +47,7 @@ from testing.fixtures import SCHEDULED_TRANSACTIONS
 from testing.fixtures import strip_nones
 from testing.fixtures import SUBTRANSACTION_ID_1
 from testing.fixtures import SUBTRANSACTION_ID_2
+from testing.fixtures import TOKEN
 from testing.fixtures import TRANSACTION_ID_1
 from testing.fixtures import TRANSACTION_ID_2
 from testing.fixtures import TRANSACTIONS
@@ -272,3 +278,30 @@ def test_insert_scheduled_transactions(cur):
             "amount": -4000,
         },
     ]
+
+
+@pytest.mark.asyncio
+@patch("aiohttp.ClientSession.get")
+async def test_ynab_client_ok(get):
+    expected = [{"id": 1, "value": 2}, {"id": 3, "value": 4}]
+    get.return_value = MockResponse(json.dumps({"data": {"entries": expected}}), 200)
+
+    async with aiohttp.ClientSession() as session:
+        entries = (await YnabClient(TOKEN, session)("example"))["entries"]
+
+    assert entries == expected
+
+
+@pytest.mark.asyncio
+@patch("aiohttp.ClientSession.get")
+async def test_ynab_client_failure(get):
+    side_effect = json.JSONDecodeError("error", "", 0)
+    get.side_effect = side_effect
+
+    with pytest.raises(type(side_effect)) as excinfo:
+        async with aiohttp.ClientSession() as session:
+            await YnabClient(TOKEN, session)("example")
+
+    assert excinfo.value.msg == side_effect.msg
+    assert excinfo.value.doc == side_effect.doc
+    assert excinfo.value.pos == side_effect.pos
