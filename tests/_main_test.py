@@ -8,7 +8,9 @@ import aiohttp
 import pytest
 
 from sqlite_export_for_ynab import default_db_path
+from sqlite_export_for_ynab._main import _ALL_TABLES
 from sqlite_export_for_ynab._main import get_last_knowledge_of_server
+from sqlite_export_for_ynab._main import get_tables
 from sqlite_export_for_ynab._main import insert_accounts
 from sqlite_export_for_ynab._main import insert_budgets
 from sqlite_export_for_ynab._main import insert_category_groups
@@ -63,6 +65,11 @@ from testing.fixtures import TRANSACTIONS
 def test_default_db_path(monkeypatch, xdg_data_home, expected_prefix):
     monkeypatch.setenv("XDG_DATA_HOME", xdg_data_home)
     assert default_db_path() == expected_prefix / "sqlite-export-for-ynab" / "db.sqlite"
+
+
+@pytest.mark.usefixtures(cur.__name__)
+def test_get_tables(cur):
+    assert get_tables(cur) == _ALL_TABLES
 
 
 @pytest.mark.usefixtures(cur.__name__)
