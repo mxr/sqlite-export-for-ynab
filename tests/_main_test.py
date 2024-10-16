@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import asyncio
 import json
+import re
 from pathlib import Path
-from unittest.mock import patch
 
 import aiohttp
 import pytest
+from aiohttp.http_exceptions import HttpProcessingError
 
 from sqlite_export_for_ynab import default_db_path
 from sqlite_export_for_ynab._main import _ALL_TABLES
@@ -37,7 +39,7 @@ from testing.fixtures import CATEGORY_NAME_3
 from testing.fixtures import CATEGORY_NAME_4
 from testing.fixtures import cur
 from testing.fixtures import LKOS
-from testing.fixtures import MockResponse
+from testing.fixtures import mock_aioresponses
 from testing.fixtures import PAYEE_ID_1
 from testing.fixtures import PAYEE_ID_2
 from testing.fixtures import PAYEES
@@ -288,27 +290,25 @@ def test_insert_scheduled_transactions(cur):
 
 
 @pytest.mark.asyncio
-@patch("aiohttp.ClientSession.get")
-async def test_ynab_client_ok(get):
-    expected = [{"id": 1, "value": 2}, {"id": 3, "value": 4}]
-    get.return_value = MockResponse(json.dumps({"data": {"entries": expected}}), 200)
+@pytest.mark.usefixtures(mock_aioresponses.__name__)
+async def test_ynab_client_ok(mock_aioresponses):
+    expected = {"example": [{"id": 1, "value": 2}, {"id": 3, "value": 4}]}
+    mock_aioresponses.get(re.compile(".+/example"), body=json.dumps({"data": expected}))
 
-    async with aiohttp.ClientSession() as session:
-        entries = (await YnabClient(TOKEN, session)("example"))["entries"]
+    async with aiohttp.ClientSession(loop=asyncio.get_event_loop()) as session:
+        entries = await YnabClient(TOKEN, session)("example")
 
     assert entries == expected
 
 
 @pytest.mark.asyncio
-@patch("aiohttp.ClientSession.get")
-async def test_ynab_client_failure(get):
-    side_effect = json.JSONDecodeError("error", "", 0)
-    get.side_effect = side_effect
+@pytest.mark.usefixtures(mock_aioresponses.__name__)
+async def test_ynab_client_failure(mock_aioresponses):
+    exc = HttpProcessingError(code=500)
+    mock_aioresponses.get(re.compile(".+/example"), exception=exc, repeat=True)
 
-    with pytest.raises(type(side_effect)) as excinfo:
-        async with aiohttp.ClientSession() as session:
+    with pytest.raises(type(exc)) as excinfo:
+        async with aiohttp.ClientSession(loop=(asyncio.get_event_loop())) as session:
             await YnabClient(TOKEN, session)("example")
 
-    assert excinfo.value.msg == side_effect.msg
-    assert excinfo.value.doc == side_effect.doc
-    assert excinfo.value.pos == side_effect.pos
+    assert excinfo.value == exc

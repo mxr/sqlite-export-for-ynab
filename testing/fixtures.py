@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import re
 import sqlite3
 from typing import Any
 from uuid import uuid4
 
 import pytest
+from aioresponses import aioresponses
 
 from sqlite_export_for_ynab._main import contents
 
@@ -189,11 +191,19 @@ def cur():
         yield cursor
 
 
+@pytest.fixture
+def mock_aioresponses():
+    with aioresponses() as m:
+        yield m
+
+
 def strip_nones(d: dict[str, Any]) -> dict[str, Any]:
     return {k: v for k, v in d.items() if v is not None}
 
 
 TOKEN = f"token-{uuid4()}"
+
+ANY = re.compile(".")
 
 
 class MockResponse:
