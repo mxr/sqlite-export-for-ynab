@@ -308,7 +308,7 @@ async def test_ynab_client_failure(mock_aioresponses):
     mock_aioresponses.get(re.compile(".+/example"), exception=exc, repeat=True)
 
     with pytest.raises(type(exc)) as excinfo:
-        async with aiohttp.ClientSession(loop=(asyncio.get_event_loop())) as session:
+        async with aiohttp.ClientSession(loop=asyncio.get_event_loop()) as session:
             await YnabClient(TOKEN, session)("example")
 
     assert excinfo.value == exc
