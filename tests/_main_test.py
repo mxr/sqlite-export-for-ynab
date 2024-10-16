@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 import json
-import re
 from pathlib import Path
 
 import aiohttp
@@ -38,6 +37,8 @@ from testing.fixtures import CATEGORY_NAME_2
 from testing.fixtures import CATEGORY_NAME_3
 from testing.fixtures import CATEGORY_NAME_4
 from testing.fixtures import cur
+from testing.fixtures import ENDPOINT
+from testing.fixtures import ENDPOINT_RE
 from testing.fixtures import LKOS
 from testing.fixtures import mock_aioresponses
 from testing.fixtures import PAYEE_ID_1
@@ -292,11 +293,11 @@ def test_insert_scheduled_transactions(cur):
 @pytest.mark.asyncio
 @pytest.mark.usefixtures(mock_aioresponses.__name__)
 async def test_ynab_client_ok(mock_aioresponses):
-    expected = {"example": [{"id": 1, "value": 2}, {"id": 3, "value": 4}]}
-    mock_aioresponses.get(re.compile(".+/example"), body=json.dumps({"data": expected}))
+    expected = {ENDPOINT: [{"id": 1, "value": 2}, {"id": 3, "value": 4}]}
+    mock_aioresponses.get(ENDPOINT_RE, body=json.dumps({"data": expected}))
 
     async with aiohttp.ClientSession(loop=asyncio.get_event_loop()) as session:
-        entries = await YnabClient(TOKEN, session)("example")
+        entries = await YnabClient(TOKEN, session)(ENDPOINT)
 
     assert entries == expected
 
@@ -305,10 +306,10 @@ async def test_ynab_client_ok(mock_aioresponses):
 @pytest.mark.usefixtures(mock_aioresponses.__name__)
 async def test_ynab_client_failure(mock_aioresponses):
     exc = HttpProcessingError(code=500)
-    mock_aioresponses.get(re.compile(".+/example"), exception=exc, repeat=True)
+    mock_aioresponses.get(ENDPOINT_RE, exception=exc, repeat=True)
 
     with pytest.raises(type(exc)) as excinfo:
         async with aiohttp.ClientSession(loop=asyncio.get_event_loop()) as session:
-            await YnabClient(TOKEN, session)("example")
+            await YnabClient(TOKEN, session)(ENDPOINT)
 
     assert excinfo.value == exc

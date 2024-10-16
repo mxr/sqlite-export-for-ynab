@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import sqlite3
 from typing import Any
 from uuid import uuid4
@@ -201,3 +202,5 @@ def strip_nones(d: dict[str, Any]) -> dict[str, Any]:
 
 
 TOKEN = f"token-{uuid4()}"
+ENDPOINT = "example"
+ENDPOINT_RE = re.compile(f".+/{ENDPOINT}$")
