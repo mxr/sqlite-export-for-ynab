@@ -118,6 +118,7 @@ FROM
     )
 WHERE
     NOT p.deleted
+    AND p.name != 'Reconciliation Balance Adjustment'
     AND (
         t.payee_id IS NULL
         OR NOT t.has_active_transaction
