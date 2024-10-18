@@ -24,7 +24,7 @@ from tqdm import tqdm
 from sqlite_export_for_ynab import ddl
 
 if TYPE_CHECKING:
-    from collections.abc import Awaitable
+    from collections.abc import Awaitable, Sequence
     from typing import Never
 
 
@@ -46,7 +46,7 @@ _ALL_TABLES = frozenset(
 _ENV_TOKEN = "YNAB_PERSONAL_ACCESS_TOKEN"
 
 
-async def async_main() -> int:
+async def async_main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--db",
@@ -60,7 +60,7 @@ async def async_main() -> int:
         help="**DROP ALL TABLES** and fetch all budget data again.",
     )
 
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     db: Path = args.db
     full_refresh: bool = args.full_refresh
 
@@ -95,9 +95,7 @@ async def sync(token: str, db: Path, full_refresh: bool) -> None:
 
     budget_ids = [b["id"] for b in budgets]
 
-    if not db.exists():
-        db.parent.mkdir(parents=True, exist_ok=True)
-
+    ensure_db_parent(db)
     with sqlite3.connect(db) as con:
         con.row_factory = lambda c, row: dict(
             zip([name for name, *_ in c.description], row, strict=True)
@@ -196,6 +194,11 @@ def get_last_knowledge_of_server(cur: sqlite3.Cursor) -> dict[str, int]:
             "SELECT id, last_knowledge_of_server FROM budgets",
         ).fetchall()
     }
+
+
+def ensure_db_parent(db: Path) -> None:
+    if not db.exists():
+        db.parent.mkdir(parents=True, exist_ok=True)
 
 
 def insert_budgets(
@@ -486,5 +489,5 @@ class YnabClient:
         raise AssertionError("unreachable")
 
 
-def main() -> int:
-    return asyncio.run(async_main())
+def main(argv: Sequence[str] | None = None) -> int:
+    return asyncio.run(async_main(argv))

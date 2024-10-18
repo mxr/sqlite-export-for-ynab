@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 from pathlib import Path
+from unittest.mock import patch
 
 import aiohttp
 import pytest
@@ -11,6 +12,8 @@ from tqdm import tqdm
 
 from sqlite_export_for_ynab import default_db_path
 from sqlite_export_for_ynab._main import _ALL_TABLES
+from sqlite_export_for_ynab._main import _ENV_TOKEN
+from sqlite_export_for_ynab._main import ensure_db_parent
 from sqlite_export_for_ynab._main import get_last_knowledge_of_server
 from sqlite_export_for_ynab._main import get_tables
 from sqlite_export_for_ynab._main import insert_accounts
@@ -19,6 +22,7 @@ from sqlite_export_for_ynab._main import insert_category_groups
 from sqlite_export_for_ynab._main import insert_payees
 from sqlite_export_for_ynab._main import insert_scheduled_transactions
 from sqlite_export_for_ynab._main import insert_transactions
+from sqlite_export_for_ynab._main import main
 from sqlite_export_for_ynab._main import ProgressYnabClient
 from sqlite_export_for_ynab._main import YnabClient
 from testing.fixtures import ACCOUNT_ID_1
@@ -318,3 +322,34 @@ async def test_ynab_client_failure(mock_aioresponses):
             await YnabClient(TOKEN, session)(ENDPOINT)
 
     assert excinfo.value == exc
+
+
+def test_ensure_db_parent(tmp_path):
+    db_path = tmp_path / "share"
+    assert not db_path.exists()
+
+    db = db_path / "db.sqlite"
+
+    # exercise both branches
+    for _ in range(2):
+        ensure_db_parent(db)
+        assert db_path.exists()
+
+        ensure_db_parent(db)
+        assert db_path.exists()
+
+
+@patch("sqlite_export_for_ynab._main.sync")
+def test_main_ok(sync, tmp_path, monkeypatch):
+    monkeypatch.setenv(_ENV_TOKEN, TOKEN)
+
+    ret = main(("--db", str(tmp_path / "db.sqlite")))
+    sync.assert_called()
+    assert ret == 0
+
+
+def test_main_no_token(tmp_path, monkeypatch):
+    monkeypatch.setenv(_ENV_TOKEN, "")
+
+    with pytest.raises(ValueError):
+        main(("--db", str(tmp_path / "db.sqlite")))
