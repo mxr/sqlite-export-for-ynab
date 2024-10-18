@@ -16,6 +16,8 @@ $ pip install sqlite-export-for-ynab
 
 ## Usage
 
+### CLI
+
 Provision a [YNAB Personal Access Token](https://api.ynab.com/#personal-access-tokens) and save it as an environment variable.
 
 ```console
@@ -34,11 +36,31 @@ You can specify the DB path with `--db`. Otherwise, the DB is stored according t
 If `XDG_DATA_HOME` is set then the DB is saved in `"${XDG_DATA_HOME}"/sqlite-export-for-ynab/db.sqlite`.
 If not, then the DB is saved in `~/.local/share/sqlite-export-for-ynab/db.sqlite`.
 
+### Library
+
+The library exposes the package `sqlite_export_for_ynab` and two functions - `default_db_path` and `sync`. You can use them as follows:
+
+```python
+import asyncio
+import os
+
+from sqlite_export_for_ynab import default_db_path
+from sqlite_export_for_ynab import sync
+
+db = default_db_path()
+token = os.environ["YNAB_PERSONAL_ACCESS_TOKEN"]
+full_refresh = False
+
+asyncio.run(sync(token, db, full_refresh))
+```
+
 ## SQL
 
-The schema is defined in [create-tables.sql](sqlite_export_for_ynab/ddl/create-tables.sql). It is very similar to [YNAB's OpenAPI Spec](https://api.ynab.com/papi/open_api_spec.yaml) however some objects are pulled out into their own tables (ex: subtransactions, loan account periodic values) and foreign keys are added as needed (ex: budget ID, transaction ID).
+The schema is defined in [create-tables.sql](sqlite_export_for_ynab/ddl/create-tables.sql). It is very similar to [YNAB's OpenAPI Spec](https://api.ynab.com/papi/open_api_spec.yaml) however some objects are pulled out into their own tables (ex: subtransactions, loan account periodic values) and foreign keys are added as needed (ex: budget ID, transaction ID). You can query the DB with typical SQLite tools.
 
-You can query the DB with typical SQLite tools. For example, to get the top 5 payees by spending per budget, you could do:
+### Sample queries
+
+To get the top 5 payees by spending per budget, you could do:
 
 ```sql
 WITH
