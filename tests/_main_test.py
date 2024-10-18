@@ -7,6 +7,7 @@ from pathlib import Path
 import aiohttp
 import pytest
 from aiohttp.http_exceptions import HttpProcessingError
+from tqdm import tqdm
 
 from sqlite_export_for_ynab import default_db_path
 from sqlite_export_for_ynab._main import _ALL_TABLES
@@ -18,6 +19,7 @@ from sqlite_export_for_ynab._main import insert_category_groups
 from sqlite_export_for_ynab._main import insert_payees
 from sqlite_export_for_ynab._main import insert_scheduled_transactions
 from sqlite_export_for_ynab._main import insert_transactions
+from sqlite_export_for_ynab._main import ProgressYnabClient
 from sqlite_export_for_ynab._main import YnabClient
 from testing.fixtures import ACCOUNT_ID_1
 from testing.fixtures import ACCOUNT_ID_2
@@ -292,12 +294,15 @@ def test_insert_scheduled_transactions(cur):
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures(mock_aioresponses.__name__)
-async def test_ynab_client_ok(mock_aioresponses):
+async def test_progress_ynab_client_ok(mock_aioresponses):
     expected = {ENDPOINT: [{"id": 1, "value": 2}, {"id": 3, "value": 4}]}
     mock_aioresponses.get(ENDPOINT_RE, body=json.dumps({"data": expected}))
 
-    async with aiohttp.ClientSession(loop=asyncio.get_event_loop()) as session:
-        entries = await YnabClient(TOKEN, session)(ENDPOINT)
+    with tqdm(disable=True) as pbar:
+        async with aiohttp.ClientSession(loop=asyncio.get_event_loop()) as session:
+            entries = await ProgressYnabClient(YnabClient(TOKEN, session), pbar)(
+                ENDPOINT
+            )
 
     assert entries == expected
 
