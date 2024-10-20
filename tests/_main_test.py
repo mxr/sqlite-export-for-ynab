@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 import json
-import sqlite3
 from pathlib import Path
 from unittest.mock import patch
 
@@ -334,8 +333,7 @@ def test_ensure_db_parent(tmp_path):
     ensure_db_parent(db)
     assert db_parent.exists()
 
-    with sqlite3.connect(db):
-        pass
+    db.touch()
     assert db.exists()
 
     # case 2: parent exists
