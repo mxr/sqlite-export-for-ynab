@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import sqlite3
 from pathlib import Path
 from unittest.mock import patch
 
@@ -325,18 +326,22 @@ async def test_ynab_client_failure(mock_aioresponses):
 
 
 def test_ensure_db_parent(tmp_path):
-    db_path = tmp_path / "share"
-    assert not db_path.exists()
+    db_parent = tmp_path / "share"
+    db = db_parent / "db.sqlite"
 
-    db = db_path / "db.sqlite"
+    # case 1: parent doesn't exist
+    assert not db_parent.exists()
+    ensure_db_parent(db)
+    assert db_parent.exists()
 
-    # exercise both branches
-    for _ in range(2):
-        ensure_db_parent(db)
-        assert db_path.exists()
+    with sqlite3.connect(db):
+        pass
+    assert db.exists()
 
-        ensure_db_parent(db)
-        assert db_path.exists()
+    # case 2: parent exists
+    assert db_parent.exists()
+    ensure_db_parent(db)
+    assert db_parent.exists()
 
 
 @patch("sqlite_export_for_ynab._main.sync")
