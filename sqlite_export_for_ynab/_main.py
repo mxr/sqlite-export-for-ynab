@@ -479,7 +479,7 @@ class YnabClient:
                     body = await resp.text()
 
                 return json.loads(body)["data"]
-            except json.JSONDecodeError:
+            except Exception:
                 if i == 2:
                     raise
 
