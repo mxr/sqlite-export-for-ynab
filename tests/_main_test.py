@@ -410,9 +410,7 @@ async def test_sync(tmp_path, mock_aioresponses):
         repeat=True,
     )
     mock_aioresponses.get(
-        PAYEES_ENDPOINT_RE,
-        body=json.dumps({"data": {"payees": PAYEES}}),
-        repeat=True,
+        PAYEES_ENDPOINT_RE, body=json.dumps({"data": {"payees": PAYEES}}), repeat=True
     )
     mock_aioresponses.get(
         TRANSACTIONS_ENDPOINT_RE,
