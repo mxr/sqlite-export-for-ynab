@@ -31,9 +31,12 @@ from sqlite_export_for_ynab._main import YnabClient
 from testing.fixtures import ACCOUNT_ID_1
 from testing.fixtures import ACCOUNT_ID_2
 from testing.fixtures import ACCOUNTS
+from testing.fixtures import ACCOUNTS_ENDPOINT_RE
 from testing.fixtures import BUDGET_ID_1
 from testing.fixtures import BUDGET_ID_2
 from testing.fixtures import BUDGETS
+from testing.fixtures import BUDGETS_ENDPOINT_RE
+from testing.fixtures import CATEGORIES_ENDPOINT_RE
 from testing.fixtures import CATEGORY_GROUP_ID_1
 from testing.fixtures import CATEGORY_GROUP_ID_2
 from testing.fixtures import CATEGORY_GROUPS
@@ -46,18 +49,19 @@ from testing.fixtures import CATEGORY_NAME_2
 from testing.fixtures import CATEGORY_NAME_3
 from testing.fixtures import CATEGORY_NAME_4
 from testing.fixtures import cur
-from testing.fixtures import ENDPOINT
-from testing.fixtures import ENDPOINT_RE
+from testing.fixtures import EXAMPLE_ENDPOINT_RE
 from testing.fixtures import LKOS
 from testing.fixtures import mock_aioresponses
 from testing.fixtures import PAYEE_ID_1
 from testing.fixtures import PAYEE_ID_2
 from testing.fixtures import PAYEES
+from testing.fixtures import PAYEES_ENDPOINT_RE
 from testing.fixtures import SCHEDULED_SUBTRANSACTION_ID_1
 from testing.fixtures import SCHEDULED_SUBTRANSACTION_ID_2
 from testing.fixtures import SCHEDULED_TRANSACTION_ID_1
 from testing.fixtures import SCHEDULED_TRANSACTION_ID_2
 from testing.fixtures import SCHEDULED_TRANSACTIONS
+from testing.fixtures import SCHEDULED_TRANSACTIONS_ENDPOINT_RE
 from testing.fixtures import SERVER_KNOWLEDGE_1
 from testing.fixtures import strip_nones
 from testing.fixtures import SUBTRANSACTION_ID_1
@@ -66,6 +70,7 @@ from testing.fixtures import TOKEN
 from testing.fixtures import TRANSACTION_ID_1
 from testing.fixtures import TRANSACTION_ID_2
 from testing.fixtures import TRANSACTIONS
+from testing.fixtures import TRANSACTIONS_ENDPOINT_RE
 
 
 @pytest.mark.parametrize(
@@ -303,14 +308,13 @@ def test_insert_scheduled_transactions(cur):
 @pytest.mark.asyncio
 @pytest.mark.usefixtures(mock_aioresponses.__name__)
 async def test_progress_ynab_client_ok(mock_aioresponses):
-    expected = {ENDPOINT: [{"id": 1, "value": 2}, {"id": 3, "value": 4}]}
-    mock_aioresponses.get(ENDPOINT_RE, body=json.dumps({"data": expected}))
+    expected = {"example": [{"id": 1, "value": 2}, {"id": 3, "value": 4}]}
+    mock_aioresponses.get(EXAMPLE_ENDPOINT_RE, body=json.dumps({"data": expected}))
 
     with tqdm(disable=True) as pbar:
         async with aiohttp.ClientSession(loop=asyncio.get_event_loop()) as session:
-            entries = await ProgressYnabClient(YnabClient(TOKEN, session), pbar)(
-                ENDPOINT
-            )
+            pyc = ProgressYnabClient(YnabClient(TOKEN, session), pbar)
+            entries = await pyc("example")
 
     assert entries == expected
 
@@ -319,11 +323,11 @@ async def test_progress_ynab_client_ok(mock_aioresponses):
 @pytest.mark.usefixtures(mock_aioresponses.__name__)
 async def test_ynab_client_failure(mock_aioresponses):
     exc = HttpProcessingError(code=500)
-    mock_aioresponses.get(ENDPOINT_RE, exception=exc, repeat=True)
+    mock_aioresponses.get(EXAMPLE_ENDPOINT_RE, exception=exc, repeat=True)
 
     with pytest.raises(type(exc)) as excinfo:
         async with aiohttp.ClientSession(loop=asyncio.get_event_loop()) as session:
-            await YnabClient(TOKEN, session)(ENDPOINT)
+            await YnabClient(TOKEN, session)("example")
 
     assert excinfo.value == exc
 
@@ -393,25 +397,25 @@ async def test_sync_no_data(tmp_path, mock_aioresponses):
 @pytest.mark.usefixtures(mock_aioresponses.__name__)
 async def test_sync(tmp_path, mock_aioresponses):
     mock_aioresponses.get(
-        re.compile(".+/budgets$"), body=json.dumps({"data": {"budgets": BUDGETS}})
+        BUDGETS_ENDPOINT_RE, body=json.dumps({"data": {"budgets": BUDGETS}})
     )
     mock_aioresponses.get(
-        re.compile(".+/accounts$"),
+        ACCOUNTS_ENDPOINT_RE,
         body=json.dumps({"data": {"accounts": ACCOUNTS}}),
         repeat=True,
     )
     mock_aioresponses.get(
-        re.compile(".+/categories$"),
+        CATEGORIES_ENDPOINT_RE,
         body=json.dumps({"data": {"category_groups": CATEGORY_GROUPS}}),
         repeat=True,
     )
     mock_aioresponses.get(
-        re.compile(".+/payees$"),
+        PAYEES_ENDPOINT_RE,
         body=json.dumps({"data": {"payees": PAYEES}}),
         repeat=True,
     )
     mock_aioresponses.get(
-        re.compile(".+/transactions$"),
+        TRANSACTIONS_ENDPOINT_RE,
         body=json.dumps(
             {
                 "data": {
@@ -423,7 +427,7 @@ async def test_sync(tmp_path, mock_aioresponses):
         repeat=True,
     )
     mock_aioresponses.get(
-        re.compile(".+/scheduled_transactions$"),
+        SCHEDULED_TRANSACTIONS_ENDPOINT_RE,
         body=json.dumps({"data": {"scheduled_transactions": SCHEDULED_TRANSACTIONS}}),
         repeat=True,
     )

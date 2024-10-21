@@ -205,5 +205,10 @@ def strip_nones(d: dict[str, Any]) -> dict[str, Any]:
 
 
 TOKEN = f"token-{uuid4()}"
-ENDPOINT = "example"
-ENDPOINT_RE = re.compile(f".+/{ENDPOINT}$")
+EXAMPLE_ENDPOINT_RE = re.compile(".+/example$")
+BUDGETS_ENDPOINT_RE = re.compile(".+/budgets$")
+ACCOUNTS_ENDPOINT_RE = re.compile(".+/accounts$")
+CATEGORIES_ENDPOINT_RE = re.compile(".+/categories$")
+PAYEES_ENDPOINT_RE = re.compile(".+/payees$")
+TRANSACTIONS_ENDPOINT_RE = re.compile(".+/transactions$")
+SCHEDULED_TRANSACTIONS_ENDPOINT_RE = re.compile(".+/scheduled_transactions$")
