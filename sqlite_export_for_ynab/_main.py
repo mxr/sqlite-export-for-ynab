@@ -95,7 +95,9 @@ async def sync(token: str, db: Path, full_refresh: bool) -> None:
 
     budget_ids = [b["id"] for b in budgets]
 
-    ensure_db_parent(db)
+    if not db.exists():
+        db.parent.mkdir(parents=True, exist_ok=True)
+
     with sqlite3.connect(db) as con:
         con.row_factory = lambda c, row: dict(
             zip([name for name, *_ in c.description], row, strict=True)
@@ -194,11 +196,6 @@ def get_last_knowledge_of_server(cur: sqlite3.Cursor) -> dict[str, int]:
             "SELECT id, last_knowledge_of_server FROM budgets",
         ).fetchall()
     }
-
-
-def ensure_db_parent(db: Path) -> None:
-    if not db.exists():
-        db.parent.mkdir(parents=True, exist_ok=True)
 
 
 def insert_budgets(

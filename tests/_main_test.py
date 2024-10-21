@@ -16,7 +16,6 @@ from sqlite_export_for_ynab import default_db_path
 from sqlite_export_for_ynab._main import _ALL_TABLES
 from sqlite_export_for_ynab._main import _ENV_TOKEN
 from sqlite_export_for_ynab._main import contents
-from sqlite_export_for_ynab._main import ensure_db_parent
 from sqlite_export_for_ynab._main import get_last_knowledge_of_server
 from sqlite_export_for_ynab._main import get_tables
 from sqlite_export_for_ynab._main import insert_accounts
@@ -329,24 +328,6 @@ async def test_ynab_client_failure(mock_aioresponses):
     assert excinfo.value == exc
 
 
-def test_ensure_db_parent(tmp_path):
-    db_parent = tmp_path / "share"
-    db = db_parent / "db.sqlite"
-
-    # case 1: parent doesn't exist
-    assert not db_parent.exists()
-    ensure_db_parent(db)
-    assert db_parent.exists()
-
-    db.touch()
-    assert db.exists()
-
-    # case 2: parent exists
-    assert db_parent.exists()
-    ensure_db_parent(db)
-    assert db_parent.exists()
-
-
 @patch("sqlite_export_for_ynab._main.sync")
 def test_main_ok(sync, tmp_path, monkeypatch):
     monkeypatch.setenv(_ENV_TOKEN, TOKEN)
@@ -400,7 +381,7 @@ async def test_sync_no_data(tmp_path, mock_aioresponses):
         repeat=True,
     )
 
-    # create the tables to exercise code coverage
+    # create the db and tables to exercise all code branches
     db = tmp_path / "db.sqlite"
     with sqlite3.connect(db) as con:
         con.executescript(contents("create-tables.sql"))
