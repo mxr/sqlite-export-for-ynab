@@ -21,3 +21,9 @@ DROP TABLE IF EXISTS transactions
 
 DROP TABLE IF EXISTS subtransactions
 ;
+
+DROP TABLE IF EXISTS scheduled_transactions
+;
+
+DROP TABLE IF EXISTS scheduled_subtransactions
+;

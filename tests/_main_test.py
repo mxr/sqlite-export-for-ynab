@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import re
+import sqlite3
 from pathlib import Path
 from unittest.mock import patch
 
@@ -14,6 +15,7 @@ from tqdm import tqdm
 from sqlite_export_for_ynab import default_db_path
 from sqlite_export_for_ynab._main import _ALL_TABLES
 from sqlite_export_for_ynab._main import _ENV_TOKEN
+from sqlite_export_for_ynab._main import contents
 from sqlite_export_for_ynab._main import ensure_db_parent
 from sqlite_export_for_ynab._main import get_last_knowledge_of_server
 from sqlite_export_for_ynab._main import get_tables
@@ -398,7 +400,12 @@ async def test_sync_no_data(tmp_path, mock_aioresponses):
         repeat=True,
     )
 
-    await sync(TOKEN, tmp_path / "db.sqlite", True)
+    # create the tables to exercise code coverage
+    db = tmp_path / "db.sqlite"
+    with sqlite3.connect(db) as con:
+        con.executescript(contents("create-tables.sql"))
+
+    await sync(TOKEN, db, False)
 
 
 @pytest.mark.asyncio
