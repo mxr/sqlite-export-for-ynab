@@ -383,11 +383,15 @@ def insert_nested_entries(
         desc=desc,
     ) as pbar:
         for entry in entries:
-            subentries = entry.pop(subentries_name, ())
-            insert_entry(cur, entries_name, budget_id, entry)
+            insert_entry(
+                cur,
+                entries_name,
+                budget_id,
+                {k: v for k, v in entry.items() if k != subentries_name},
+            )
             pbar.update()
 
-            for subentry in subentries:
+            for subentry in entry[subentries_name]:
                 insert_entry(cur, subentries_table_name, budget_id, subentry)
                 pbar.update()
 

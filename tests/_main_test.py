@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 from pathlib import Path
 from unittest.mock import patch
 
@@ -24,6 +25,7 @@ from sqlite_export_for_ynab._main import insert_scheduled_transactions
 from sqlite_export_for_ynab._main import insert_transactions
 from sqlite_export_for_ynab._main import main
 from sqlite_export_for_ynab._main import ProgressYnabClient
+from sqlite_export_for_ynab._main import sync
 from sqlite_export_for_ynab._main import YnabClient
 from testing.fixtures import ACCOUNT_ID_1
 from testing.fixtures import ACCOUNT_ID_2
@@ -55,6 +57,7 @@ from testing.fixtures import SCHEDULED_SUBTRANSACTION_ID_2
 from testing.fixtures import SCHEDULED_TRANSACTION_ID_1
 from testing.fixtures import SCHEDULED_TRANSACTION_ID_2
 from testing.fixtures import SCHEDULED_TRANSACTIONS
+from testing.fixtures import SERVER_KNOWLEDGE_1
 from testing.fixtures import strip_nones
 from testing.fixtures import SUBTRANSACTION_ID_1
 from testing.fixtures import SUBTRANSACTION_ID_2
@@ -356,3 +359,85 @@ def test_main_no_token(tmp_path, monkeypatch):
 
     with pytest.raises(ValueError):
         main(("--db", str(tmp_path / "db.sqlite")))
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures(mock_aioresponses.__name__)
+async def test_sync_no_data(tmp_path, mock_aioresponses):
+    mock_aioresponses.get(
+        re.compile(".+/budgets$"), body=json.dumps({"data": {"budgets": BUDGETS}})
+    )
+    mock_aioresponses.get(
+        re.compile(".+/accounts$"),
+        body=json.dumps({"data": {"accounts": []}}),
+        repeat=True,
+    )
+    mock_aioresponses.get(
+        re.compile(".+/categories$"),
+        body=json.dumps({"data": {"category_groups": []}}),
+        repeat=True,
+    )
+    mock_aioresponses.get(
+        re.compile(".+/payees$"), body=json.dumps({"data": {"payees": []}}), repeat=True
+    )
+    mock_aioresponses.get(
+        re.compile(".+/transactions$"),
+        body=json.dumps(
+            {
+                "data": {
+                    "transactions": [],
+                    "server_knowledge": SERVER_KNOWLEDGE_1,
+                }
+            }
+        ),
+        repeat=True,
+    )
+    mock_aioresponses.get(
+        re.compile(".+/scheduled_transactions$"),
+        body=json.dumps({"data": {"scheduled_transactions": []}}),
+        repeat=True,
+    )
+
+    await sync(TOKEN, tmp_path / "db.sqlite", True)
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures(mock_aioresponses.__name__)
+async def test_sync(tmp_path, mock_aioresponses):
+    mock_aioresponses.get(
+        re.compile(".+/budgets$"), body=json.dumps({"data": {"budgets": BUDGETS}})
+    )
+    mock_aioresponses.get(
+        re.compile(".+/accounts$"),
+        body=json.dumps({"data": {"accounts": ACCOUNTS}}),
+        repeat=True,
+    )
+    mock_aioresponses.get(
+        re.compile(".+/categories$"),
+        body=json.dumps({"data": {"category_groups": CATEGORY_GROUPS}}),
+        repeat=True,
+    )
+    mock_aioresponses.get(
+        re.compile(".+/payees$"),
+        body=json.dumps({"data": {"payees": PAYEES}}),
+        repeat=True,
+    )
+    mock_aioresponses.get(
+        re.compile(".+/transactions$"),
+        body=json.dumps(
+            {
+                "data": {
+                    "transactions": TRANSACTIONS,
+                    "server_knowledge": SERVER_KNOWLEDGE_1,
+                }
+            }
+        ),
+        repeat=True,
+    )
+    mock_aioresponses.get(
+        re.compile(".+/scheduled_transactions$"),
+        body=json.dumps({"data": {"scheduled_transactions": SCHEDULED_TRANSACTIONS}}),
+        repeat=True,
+    )
+
+    await sync(TOKEN, tmp_path / "db.sqlite", True)
