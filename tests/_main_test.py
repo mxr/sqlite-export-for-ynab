@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 import json
-import re
 import sqlite3
 from pathlib import Path
 from unittest.mock import patch
@@ -352,23 +351,23 @@ def test_main_no_token(tmp_path, monkeypatch):
 @pytest.mark.usefixtures(mock_aioresponses.__name__)
 async def test_sync_no_data(tmp_path, mock_aioresponses):
     mock_aioresponses.get(
-        re.compile(".+/budgets$"), body=json.dumps({"data": {"budgets": BUDGETS}})
+        BUDGETS_ENDPOINT_RE, body=json.dumps({"data": {"budgets": BUDGETS}})
     )
     mock_aioresponses.get(
-        re.compile(".+/accounts$"),
+        ACCOUNTS_ENDPOINT_RE,
         body=json.dumps({"data": {"accounts": []}}),
         repeat=True,
     )
     mock_aioresponses.get(
-        re.compile(".+/categories$"),
+        CATEGORIES_ENDPOINT_RE,
         body=json.dumps({"data": {"category_groups": []}}),
         repeat=True,
     )
     mock_aioresponses.get(
-        re.compile(".+/payees$"), body=json.dumps({"data": {"payees": []}}), repeat=True
+        PAYEES_ENDPOINT_RE, body=json.dumps({"data": {"payees": []}}), repeat=True
     )
     mock_aioresponses.get(
-        re.compile(".+/transactions$"),
+        TRANSACTIONS_ENDPOINT_RE,
         body=json.dumps(
             {
                 "data": {
@@ -380,7 +379,7 @@ async def test_sync_no_data(tmp_path, mock_aioresponses):
         repeat=True,
     )
     mock_aioresponses.get(
-        re.compile(".+/scheduled_transactions$"),
+        SCHEDULED_TRANSACTIONS_ENDPOINT_RE,
         body=json.dumps({"data": {"scheduled_transactions": []}}),
         repeat=True,
     )
