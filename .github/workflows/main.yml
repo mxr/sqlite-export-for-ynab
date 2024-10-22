@@ -1,18 +1,17 @@
 name: main
 
 on:
+  pull_request:
   push:
     branches: [main]
-  pull_request:
 
 jobs:
-  main-windows:
-    uses: asottile/workflows/.github/workflows/tox.yml@v1.6.0
+  main:
+    uses: asottile/workflows/.github/workflows/tox.yml@v1.7.0
+    with:
+      env: '["py312", "py313", "py314", "pypy3"]'
+  main-win:
+    uses: asottile/workflows/.github/workflows/tox.yml@v1.7.0
     with:
       env: '["py312"]'
       os: windows-latest
-  main-linux:
-    uses: asottile/workflows/.github/workflows/tox.yml@v1.6.0
-    with:
-      env: '["py312", "py313", "pypy7.3.13"]' # https://github.com/actions/runner-images/blob/50ae10289a1d019551858f6a174f78d2e212bed4/images/ubuntu/Ubuntu2204-Readme.md#pypy
-      os: ubuntu-latest
