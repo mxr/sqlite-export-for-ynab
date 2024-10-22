@@ -1,6 +1,6 @@
 # sqlite-export-for-ynab
 
-[![pre-commit.ci status](https://results.pre-commit.ci/badge/github/mxr/sqlite-export-for-ynab/main.svg)](https://results.pre-commit.ci/latest/github/mxr/sqlite-export-for-ynab/main)
+[![pre-commit.ci status](https://results.pre-commit.ci/badge/github/mxr/sqlite-export-for-ynab/main.svg)](https://results.pre-commit.ci/latest/github/mxr/sqlite-export-for-ynab/main) [![codecov](https://codecov.io/github/mxr/sqlite-export-for-ynab/graph/badge.svg?token=NVCP6RDKSH)](https://codecov.io/github/mxr/sqlite-export-for-ynab)
 
 SQLite Export for YNAB - Export YNAB Budget Data to SQLite
 
