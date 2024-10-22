@@ -5,6 +5,7 @@ repos:
   - id: check-docstring-first
   - id: debug-statements
   - id: end-of-file-fixer
+  - id: requirements-txt-fixer
   - id: trailing-whitespace
 - repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
   rev: v2.14.0
