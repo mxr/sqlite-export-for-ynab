@@ -152,7 +152,7 @@ async def sync(token: str, db: Path, full_refresh: bool) -> None:
 
         if (
             not any(t["accounts"] for t in all_account_data)
-            and not any(t["transactions"] for t in all_txn_data)
+            and not any(t["category_groups"] for t in all_cat_data)
             and not any(p["payees"] for p in all_payee_data)
             and not any(t["transactions"] for t in all_txn_data)
             and not any(s["scheduled_transactions"] for s in all_sched_txn_data)
