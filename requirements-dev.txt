@@ -1,4 +1,3 @@
-aiohttp!=3.11.0 # https://github.com/pnuckowski/aioresponses/issues/263
 aioresponses
 covdefaults>=2.1.0
 coverage
