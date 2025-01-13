@@ -22,8 +22,14 @@ DROP TABLE IF EXISTS transactions
 DROP TABLE IF EXISTS subtransactions
 ;
 
+DROP VIEW IF EXISTS flat_transactions
+;
+
 DROP TABLE IF EXISTS scheduled_transactions
 ;
 
 DROP TABLE IF EXISTS scheduled_subtransactions
+;
+
+DROP VIEW IF EXISTS scheduled_flat_transactions
 ;

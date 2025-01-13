@@ -39,8 +39,9 @@ _EntryTable = (
     | Literal["scheduled_transactions"]
     | Literal["scheduled_subtransactions"]
 )
-_ALL_TABLES = frozenset(
-    ("budgets",) + tuple(lit.__args__[0] for lit in _EntryTable.__args__)
+_ALL_RELATIONS = frozenset(
+    ("budgets", "flat_transactions", "scheduled_flat_transactions")
+    + tuple(lit.__args__[0] for lit in _EntryTable.__args__)
 )
 
 _ENV_TOKEN = "YNAB_PERSONAL_ACCESS_TOKEN"
@@ -105,15 +106,15 @@ async def sync(token: str, db: Path, full_refresh: bool) -> None:
         cur = con.cursor()
 
         if full_refresh:
-            print("Dropping tables...")
-            cur.executescript(contents("drop-tables.sql"))
+            print("Dropping relations...")
+            cur.executescript(contents("drop-relations.sql"))
             con.commit()
             print("Done")
 
-        tables = get_tables(cur)
-        if tables != _ALL_TABLES:
-            print("Recreating tables...")
-            cur.executescript(contents("create-tables.sql"))
+        relations = get_relations(cur)
+        if relations != _ALL_RELATIONS:
+            print("Recreating relations...")
+            cur.executescript(contents("create-relations.sql"))
             con.commit()
             print("Done")
 
@@ -180,11 +181,11 @@ def contents(filename: str) -> str:
     return (resources.files(ddl) / filename).read_text()
 
 
-def get_tables(cur: sqlite3.Cursor) -> set[str]:
+def get_relations(cur: sqlite3.Cursor) -> set[str]:
     return {
         t["name"]
         for t in cur.execute(
-            "SELECT name FROM sqlite_master WHERE type='table'"
+            "SELECT name FROM sqlite_master WHERE type='table' OR type='view'"
         ).fetchall()
     }
 
