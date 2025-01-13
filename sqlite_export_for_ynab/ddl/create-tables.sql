@@ -1,8 +1,11 @@
-CREATE TABLE IF NOT EXISTS budgets (id TEXT primary key, name TEXT, last_knowledge_of_server INT)
-;
+CREATE TABLE IF NOT EXISTS budgets (
+    id TEXT PRIMARY KEY,
+    name TEXT,
+    last_knowledge_of_server INT
+);
 
 CREATE TABLE IF NOT EXISTS accounts (
-    id TEXT primary key,
+    id TEXT PRIMARY KEY,
     budget_id TEXT,
     balance INT,
     cleared_balance INT,
@@ -16,36 +19,33 @@ CREATE TABLE IF NOT EXISTS accounts (
     note TEXT,
     on_budget BOOLEAN,
     transfer_payee_id TEXT,
-    TYPE TEXT,
+    type TEXT,
     uncleared_balance INT,
-    foreign key (budget_id) references budgets (id)
-)
-;
+    FOREIGN KEY (budget_id) REFERENCES budgets (id)
+);
 
 CREATE TABLE IF NOT EXISTS account_periodic_values (
-    DATE TEXT,
+    "date" TEXT,
     name TEXT,
     budget_id TEXT,
     account_id TEXT,
     amount INT,
-    primary key (DATE, name, budget_id, account_id),
-    foreign key (budget_id) references budgets (id),
-    foreign key (account_id) references accounts (id)
-)
-;
+    PRIMARY KEY (date, name, budget_id, account_id),
+    FOREIGN KEY (budget_id) REFERENCES budgets (id),
+    FOREIGN KEY (account_id) REFERENCES accounts (id)
+);
 
 CREATE TABLE IF NOT EXISTS category_groups (
-    id TEXT primary key,
+    id TEXT PRIMARY KEY,
     budget_id TEXT,
     name TEXT,
     hidden BOOLEAN,
     deleted BOOLEAN,
-    foreign key (budget_id) references budgets (id)
-)
-;
+    FOREIGN KEY (budget_id) REFERENCES budgets (id)
+);
 
 CREATE TABLE IF NOT EXISTS categories (
-    id TEXT primary key,
+    id TEXT PRIMARY KEY,
     budget_id TEXT,
     category_group_id TEXT,
     category_group_name TEXT,
@@ -61,32 +61,30 @@ CREATE TABLE IF NOT EXISTS categories (
     goal_day INT,
     goal_cadence INT,
     goal_cadence_frequency INT,
-    goal_creation_month text,
+    goal_creation_month TEXT,
     goal_target INT,
-    goal_target_month text,
+    goal_target_month TEXT,
     goal_percentage_complete INT,
     goal_months_to_budget INT,
     goal_under_funded INT,
     goal_overall_funded INT,
     goal_overall_left INT,
     deleted BOOLEAN,
-    foreign key (budget_id) references budgets (id),
-    foreign key (category_group_id) references category_groups (id)
-)
-;
+    FOREIGN KEY (budget_id) REFERENCES budgets (id),
+    FOREIGN KEY (category_group_id) REFERENCES category_groups (id)
+);
 
 CREATE TABLE IF NOT EXISTS payees (
-    id TEXT primary key,
+    id TEXT PRIMARY KEY,
     budget_id TEXT,
     name TEXT,
     transfer_account_id TEXT,
     deleted BOOLEAN,
-    foreign key (budget_id) references budgets (id)
-)
-;
+    FOREIGN KEY (budget_id) REFERENCES budgets (id)
+);
 
 CREATE TABLE IF NOT EXISTS transactions (
-    id TEXT primary key,
+    id TEXT PRIMARY KEY,
     budget_id TEXT,
     account_id TEXT,
     account_name TEXT,
@@ -95,7 +93,7 @@ CREATE TABLE IF NOT EXISTS transactions (
     category_id TEXT,
     category_name TEXT,
     cleared TEXT,
-    DATE TEXT,
+    "date" TEXT,
     debt_transaction_type TEXT,
     deleted BOOLEAN,
     flag_color TEXT,
@@ -109,15 +107,14 @@ CREATE TABLE IF NOT EXISTS transactions (
     payee_name TEXT,
     transfer_account_id TEXT,
     transfer_transaction_id TEXT,
-    foreign key (budget_id) references budgets (id),
-    foreign key (account_id) references accounts (id),
-    foreign key (category_id) references categories (id),
-    foreign key (payee_id) references payees (id)
-)
-;
+    FOREIGN KEY (budget_id) REFERENCES budgets (id),
+    FOREIGN KEY (account_id) REFERENCES accounts (id),
+    FOREIGN KEY (category_id) REFERENCES categories (id),
+    FOREIGN KEY (payee_id) REFERENCES payees (id)
+);
 
 CREATE TABLE IF NOT EXISTS subtransactions (
-    id TEXT primary key,
+    id TEXT PRIMARY KEY,
     budget_id TEXT,
     amount INT,
     category_id TEXT,
@@ -129,54 +126,51 @@ CREATE TABLE IF NOT EXISTS subtransactions (
     transaction_id TEXT,
     transfer_account_id TEXT,
     transfer_transaction_id TEXT,
-    foreign key (budget_id) references budget (id),
-    foreign key (transfer_account_id) references accounts (id),
-    foreign key (category_id) references categories (id),
-    foreign key (payee_id) references payees (id),
-    foreign key (transaction_id) references transaction_id (id)
-)
-;
+    FOREIGN KEY (budget_id) REFERENCES budget (id),
+    FOREIGN KEY (transfer_account_id) REFERENCES accounts (id),
+    FOREIGN KEY (category_id) REFERENCES categories (id),
+    FOREIGN KEY (payee_id) REFERENCES payees (id),
+    FOREIGN KEY (transaction_id) REFERENCES transaction_id (id)
+);
 
 CREATE TABLE IF NOT EXISTS scheduled_transactions (
-    id TEXT primary key,
+    id TEXT PRIMARY KEY,
     budget_id TEXT,
-    account_id text,
-    account_name text,
-    amount int,
-    category_id text,
-    category_name text,
-    date_first text,
-    date_next text,
-    deleted boolean,
-    flag_color text,
-    flag_name text,
-    frequency text,
-    memo text,
-    payee_id text,
-    payee_name text,
-    transfer_account_id text,
-    foreign key (budget_id) references budgets (id),
-    foreign key (account_id) references accounts (id),
-    foreign key (category_id) references categories (id),
-    foreign key (payee_id) references payees (id),
-    foreign key (transfer_account_id) references accounts (id)
-)
-;
+    account_id TEXT,
+    account_name TEXT,
+    amount INT,
+    category_id TEXT,
+    category_name TEXT,
+    date_first TEXT,
+    date_next TEXT,
+    deleted BOOLEAN,
+    flag_color TEXT,
+    flag_name TEXT,
+    frequency TEXT,
+    memo TEXT,
+    payee_id TEXT,
+    payee_name TEXT,
+    transfer_account_id TEXT,
+    FOREIGN KEY (budget_id) REFERENCES budgets (id),
+    FOREIGN KEY (account_id) REFERENCES accounts (id),
+    FOREIGN KEY (category_id) REFERENCES categories (id),
+    FOREIGN KEY (payee_id) REFERENCES payees (id),
+    FOREIGN KEY (transfer_account_id) REFERENCES accounts (id)
+);
 
 CREATE TABLE IF NOT EXISTS scheduled_subtransactions (
-    id TEXT primary key,
+    id TEXT PRIMARY KEY,
     budget_id TEXT,
-    scheduled_transaction_id text,
-    amount int,
-    memo text,
-    payee_id text,
-    category_id text,
-    transfer_account_id text,
-    deleted boolean,
-    foreign key (budget_id) references budget (id),
-    foreign key (transfer_account_id) references accounts (id),
-    foreign key (category_id) references categories (id),
-    foreign key (payee_id) references payees (id),
-    foreign key (scheduled_transaction_id) references transaction_id (id)
-)
-;
+    scheduled_transaction_id TEXT,
+    amount INT,
+    memo TEXT,
+    payee_id TEXT,
+    category_id TEXT,
+    transfer_account_id TEXT,
+    deleted BOOLEAN,
+    FOREIGN KEY (budget_id) REFERENCES budget (id),
+    FOREIGN KEY (transfer_account_id) REFERENCES accounts (id),
+    FOREIGN KEY (category_id) REFERENCES categories (id),
+    FOREIGN KEY (payee_id) REFERENCES payees (id),
+    FOREIGN KEY (scheduled_transaction_id) REFERENCES transaction_id (id)
+);
