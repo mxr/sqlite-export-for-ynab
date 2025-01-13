@@ -126,13 +126,13 @@ def test_insert_accounts(cur):
             "id": ACCOUNT_ID_1,
             "budget_id": BUDGET_ID_1,
             "name": ACCOUNTS[0]["name"],
-            "TYPE": ACCOUNTS[0]["type"],
+            "type": ACCOUNTS[0]["type"],
         },
         {
             "id": ACCOUNT_ID_2,
             "budget_id": BUDGET_ID_1,
             "name": ACCOUNTS[1]["name"],
-            "TYPE": ACCOUNTS[1]["type"],
+            "type": ACCOUNTS[1]["type"],
         },
     ]
 
