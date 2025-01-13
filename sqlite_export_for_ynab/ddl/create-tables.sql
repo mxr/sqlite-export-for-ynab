@@ -1,5 +1,7 @@
 CREATE TABLE IF NOT EXISTS budgets (
-    id TEXT PRIMARY KEY, name TEXT, last_knowledge_of_server INT
+    id TEXT PRIMARY KEY,
+    name TEXT,
+    last_knowledge_of_server INT
 );
 
 CREATE TABLE IF NOT EXISTS accounts (
