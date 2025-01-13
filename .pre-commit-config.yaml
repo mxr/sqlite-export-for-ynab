@@ -34,10 +34,11 @@ repos:
   - id: ruff
     args: [--fix]
   - id: ruff-format
-- repo: https://github.com/PabloRMira/sql_formatter
-  rev: 0.6.2
+- repo: https://github.com/sqlfluff/sqlfluff
+  rev: 3.3.0
   hooks:
-  - id: sql_formatter
+  - id: sqlfluff-fix
+    args: [--dialect, sqlite]
 - repo: https://github.com/pre-commit/mirrors-mypy
   rev: v1.14.1
   hooks:
