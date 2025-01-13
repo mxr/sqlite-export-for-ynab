@@ -157,7 +157,7 @@ async def sync(token: str, db: Path, full_refresh: bool) -> None:
             and not any(t["transactions"] for t in all_txn_data)
             and not any(s["scheduled_transactions"] for s in all_sched_txn_data)
         ):
-            print("No data fetched")
+            print("No new data fetched")
         else:
             print("Inserting budget data...")
             insert_budgets(cur, budgets, new_lkos)
