@@ -403,7 +403,7 @@ def insert_entry(
     keys, values = ekeys + ("budget_id",), evalues + (budget_id,)
 
     cur.execute(
-        f'INSERT OR REPLACE INTO {table} ({", ".join(keys)}) VALUES ({", ".join("?" * len(values))})',
+        f"INSERT OR REPLACE INTO {table} ({', '.join(keys)}) VALUES ({', '.join('?' * len(values))})",
         values,
     )
 
