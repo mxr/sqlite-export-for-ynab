@@ -142,14 +142,14 @@ def test_insert_accounts(cur):
             "account_id": ACCOUNT_ID_1,
             "budget_id": BUDGET_ID_1,
             "name": "debt_escrow_amounts",
-            "DATE": "2024-01-01",
+            "date": "2024-01-01",
             "amount": 160000,
         },
         {
             "account_id": ACCOUNT_ID_1,
             "budget_id": BUDGET_ID_1,
             "name": "debt_interest_rates",
-            "DATE": "2024-02-01",
+            "date": "2024-02-01",
             "amount": 5000,
         },
     ]
@@ -238,13 +238,13 @@ def test_insert_transactions(cur):
         {
             "id": TRANSACTION_ID_1,
             "budget_id": BUDGET_ID_1,
-            "DATE": "2024-01-01",
+            "date": "2024-01-01",
             "amount": -10000,
         },
         {
             "id": TRANSACTION_ID_2,
             "budget_id": BUDGET_ID_1,
-            "DATE": "2024-02-01",
+            "date": "2024-02-01",
             "amount": -15000,
         },
     ]
