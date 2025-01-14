@@ -7,12 +7,12 @@ on:
 
 jobs:
   main:
-    uses: mxr/workflows/.github/workflows/tox.yml@910e3a32f3bf3e582117c04d115e7511e4e111c2
+    uses: mxr/workflows/.github/workflows/tox.yml@5cbfbf07f14fa4c4f378044cb2b4ffc9f453ef14
     with:
       env: '["py312", "py313", "py314", "pypy7.3.13"]' # https://github.com/actions/runner-images/blob/50ae10289a1d019551858f6a174f78d2e212bed4/images/ubuntu/Ubuntu2204-Readme.md#pypy
       uv: true
   main-win:
-    uses: mxr/workflows/.github/workflows/tox.yml@910e3a32f3bf3e582117c04d115e7511e4e111c2
+    uses: mxr/workflows/.github/workflows/tox.yml@5cbfbf07f14fa4c4f378044cb2b4ffc9f453ef14
     with:
       env: '["py312"]'
       os: windows-latest
