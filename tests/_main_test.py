@@ -387,7 +387,7 @@ async def test_sync_no_data(tmp_path, mock_aioresponses):
     # create the db and tables to exercise all code branches
     db = tmp_path / "db.sqlite"
     with sqlite3.connect(db) as con:
-        con.executescript(contents("create-tables.sql"))
+        con.executescript(contents("create-relations.sql"))
 
     await sync(TOKEN, db, False)
 
