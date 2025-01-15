@@ -10,10 +10,8 @@ jobs:
     uses: mxr/workflows/.github/workflows/tox.yml@8ba45898b85046f6f1ee4bfcbd0ae754be37a46c
     with:
       env: '["py312", "py313", "py314", "pypy7.3.13"]' # https://github.com/actions/runner-images/blob/50ae10289a1d019551858f6a174f78d2e212bed4/images/ubuntu/Ubuntu2204-Readme.md#pypy
-      uv: true
   main-win:
     uses: mxr/workflows/.github/workflows/tox.yml@8ba45898b85046f6f1ee4bfcbd0ae754be37a46c
     with:
       env: '["py312"]'
       os: windows-latest
-      uv: true
