@@ -12,7 +12,7 @@ from aiohttp.http_exceptions import HttpProcessingError
 from tqdm import tqdm
 
 from sqlite_export_for_ynab import default_db_path
-from sqlite_export_for_ynab._main import _ALL_RELATIONS
+from sqlite_export_for_ynab._main import _ALL_TABLES
 from sqlite_export_for_ynab._main import _ENV_TOKEN
 from sqlite_export_for_ynab._main import contents
 from sqlite_export_for_ynab._main import get_last_knowledge_of_server
@@ -86,7 +86,7 @@ def test_default_db_path(monkeypatch, xdg_data_home, expected_prefix):
 
 @pytest.mark.usefixtures(cur.__name__)
 def test_get_tables(cur):
-    assert get_tables(cur) == _ALL_RELATIONS
+    assert get_tables(cur) == _ALL_TABLES
 
 
 @pytest.mark.usefixtures(cur.__name__)
