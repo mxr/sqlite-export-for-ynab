@@ -135,7 +135,10 @@ CREATE TABLE IF NOT EXISTS subtransactions (
 
 CREATE VIEW IF NOT EXISTS flat_transactions AS
 SELECT
+    COALESCE(st.id, t.id) AS id,
+    t.id AS transaction_id,
     st.id AS subtransaction_id,
+    CASE when st.id is not null then t.id end as parent_transaction_id,
     t.budget_id,
     t.account_id,
     t.account_name,
@@ -149,7 +152,6 @@ SELECT
     t.import_payee_name,
     t.import_payee_name_original,
     t.matched_transaction_id,
-    COALESCE(st.id, t.id) AS transaction_id,
     COALESCE(st.amount, t.amount) AS amount,
     CASE
         WHEN
@@ -222,7 +224,10 @@ CREATE TABLE IF NOT EXISTS scheduled_subtransactions (
 
 CREATE VIEW IF NOT EXISTS scheduled_flat_transactions AS
 SELECT
+    COALESCE(st.id, t.id) AS id,
+    t.id AS transaction_id,
     st.id AS subtransaction_id,
+    CASE when st.id is not null then t.id end as parent_transaction_id,    
     t.budget_id,
     t.account_id,
     t.account_name,
@@ -231,7 +236,6 @@ SELECT
     t.flag_color,
     t.flag_name,
     p.name AS payee_name,
-    COALESCE(st.id, t.id) AS transaction_id,
     COALESCE(st.amount, t.amount) AS amount,
     CASE
         WHEN
