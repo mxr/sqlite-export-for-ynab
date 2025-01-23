@@ -265,6 +265,33 @@ def test_insert_transactions(cur):
         },
     ]
 
+    cur.execute("SELECT * FROM flat_transactions ORDER BY date")
+    assert [strip_nones(d) for d in cur.fetchall()] == [
+        {
+            "transaction_id": TRANSACTION_ID_1,
+            "subtransaction_id": SUBTRANSACTION_ID_1,
+            "budget_id": BUDGET_ID_1,
+            "date": "2024-01-01",
+            "id": SUBTRANSACTION_ID_1,
+            "amount": -7000,
+        },
+        {
+            "transaction_id": TRANSACTION_ID_1,
+            "subtransaction_id": SUBTRANSACTION_ID_2,
+            "budget_id": BUDGET_ID_1,
+            "date": "2024-01-01",
+            "id": SUBTRANSACTION_ID_2,
+            "amount": -3000,
+        },
+        {
+            "transaction_id": TRANSACTION_ID_2,
+            "budget_id": BUDGET_ID_1,
+            "date": "2024-02-01",
+            "id": TRANSACTION_ID_2,
+            "amount": -15000,
+        },
+    ]
+
 
 @pytest.mark.usefixtures(cur.__name__)
 def test_insert_scheduled_transactions(cur):
@@ -299,6 +326,30 @@ def test_insert_scheduled_transactions(cur):
             "id": SCHEDULED_SUBTRANSACTION_ID_2,
             "scheduled_transaction_id": SCHEDULED_TRANSACTION_ID_1,
             "budget_id": BUDGET_ID_1,
+            "amount": -4000,
+        },
+    ]
+
+    cur.execute("SELECT * FROM scheduled_flat_transactions ORDER BY amount")
+    assert [strip_nones(d) for d in cur.fetchall()] == [
+        {
+            "transaction_id": SCHEDULED_TRANSACTION_ID_2,
+            "budget_id": BUDGET_ID_1,
+            "id": SCHEDULED_TRANSACTION_ID_2,
+            "amount": -11000,
+        },
+        {
+            "transaction_id": SCHEDULED_TRANSACTION_ID_1,
+            "subtransaction_id": SCHEDULED_SUBTRANSACTION_ID_1,
+            "budget_id": BUDGET_ID_1,
+            "id": SCHEDULED_SUBTRANSACTION_ID_1,
+            "amount": -8000,
+        },
+        {
+            "transaction_id": SCHEDULED_TRANSACTION_ID_1,
+            "subtransaction_id": SCHEDULED_SUBTRANSACTION_ID_2,
+            "budget_id": BUDGET_ID_1,
+            "id": SCHEDULED_SUBTRANSACTION_ID_2,
             "amount": -4000,
         },
     ]
