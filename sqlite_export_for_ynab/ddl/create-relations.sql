@@ -151,7 +151,6 @@ SELECT
     t.import_payee_name_original,
     t.matched_transaction_id,
     COALESCE(st.id, t.id) AS id,
-    CASE WHEN st.id IS NOT null THEN t.id END AS parent_transaction_id,
     COALESCE(st.amount, t.amount) AS amount,
     CASE
         WHEN
@@ -235,7 +234,6 @@ SELECT
     t.flag_name,
     p.name AS payee_name,
     COALESCE(st.id, t.id) AS id,
-    CASE WHEN st.id IS NOT null THEN t.id END AS parent_transaction_id,
     COALESCE(st.amount, t.amount) AS amount,
     CASE
         WHEN
@@ -257,7 +255,7 @@ FROM
 LEFT JOIN scheduled_subtransactions AS st
     ON (
         t.budget_id = st.budget_id
-        AND t.id = st.transaction_id
+        AND t.id = st.scheduled_transaction_id
     )
     -- work around missing category name from scheduled subtransaction response
 LEFT JOIN categories AS c
