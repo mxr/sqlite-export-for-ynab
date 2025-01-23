@@ -155,12 +155,12 @@ SELECT
     COALESCE(st.amount, t.amount) AS amount,
     CASE
         WHEN
-            COALESCE(st.transfer_account_id, t.transfer_account_id) IS NOT null
+            COALESCE(st.transfer_account_id, t.transfer_account_id) IS null
             THEN COALESCE(st.category_id, t.category_id)
     END AS category_id,
     CASE
         WHEN
-            COALESCE(st.transfer_account_id, t.transfer_account_id) IS NOT null
+            COALESCE(st.transfer_account_id, t.transfer_account_id) IS null
             THEN COALESCE(st.category_name, t.category_name)
     END AS category_name,
     COALESCE(st.deleted, t.deleted) AS deleted,
@@ -239,12 +239,12 @@ SELECT
     COALESCE(st.amount, t.amount) AS amount,
     CASE
         WHEN
-            COALESCE(st.transfer_account_id, t.transfer_account_id) IS NOT null
+            COALESCE(st.transfer_account_id, t.transfer_account_id) IS null
             THEN COALESCE(st.category_id, t.category_id)
     END AS category_id,
     CASE
         WHEN
-            COALESCE(st.transfer_account_id, t.transfer_account_id) IS NOT null
+            COALESCE(st.transfer_account_id, t.transfer_account_id) IS null
             THEN c.name
     END AS category_name,
     COALESCE(st.deleted, t.deleted) AS deleted,
