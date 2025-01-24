@@ -187,7 +187,6 @@ SCHEDULED_TRANSACTIONS: list[dict[str, Any]] = [
 def cur():
     with sqlite3.connect(":memory:") as con:
         cursor = con.cursor()
-        cursor.executescript(contents("drop-relations.sql"))
         cursor.executescript(contents("create-relations.sql"))
         cursor.row_factory = lambda c, row: dict(
             zip([name for name, *_ in c.description], row, strict=True)
