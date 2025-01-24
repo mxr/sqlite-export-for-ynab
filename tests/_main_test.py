@@ -265,8 +265,15 @@ def test_insert_transactions(cur):
         },
     ]
 
-    cur.execute("SELECT * FROM flat_transactions ORDER BY date")
+    cur.execute("SELECT * FROM flat_transactions ORDER BY amount")
     assert [strip_nones(d) for d in cur.fetchall()] == [
+        {
+            "transaction_id": TRANSACTION_ID_2,
+            "budget_id": BUDGET_ID_1,
+            "date": "2024-02-01",
+            "id": TRANSACTION_ID_2,
+            "amount": -15000,
+        },
         {
             "transaction_id": TRANSACTION_ID_1,
             "subtransaction_id": SUBTRANSACTION_ID_1,
@@ -282,13 +289,6 @@ def test_insert_transactions(cur):
             "date": "2024-01-01",
             "id": SUBTRANSACTION_ID_2,
             "amount": -3000,
-        },
-        {
-            "transaction_id": TRANSACTION_ID_2,
-            "budget_id": BUDGET_ID_1,
-            "date": "2024-02-01",
-            "id": TRANSACTION_ID_2,
-            "amount": -15000,
         },
     ]
 
