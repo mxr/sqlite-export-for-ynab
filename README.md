@@ -164,6 +164,6 @@ WHERE
         OR NOT st.has_active_transaction
     )
 ORDER BY
-    1,
-    2;
+    budget,
+    payee;
 ```

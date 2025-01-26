@@ -44,7 +44,7 @@ repos:
   hooks:
   - id: doccmd
     name: sqlfluff-fix-README
-    args: [--no-pad-file, --language, sql, --command, sqlfluff fix --dialect sqlite -- README.md]
+    args: [--no-pad-file, --language, sql, --command, sqlfluff fix --verbose --dialect sqlite -- README.md]
     additional_dependencies: [sqlfluff]
     files: README.md
 - repo: https://github.com/pre-commit/mirrors-mypy
