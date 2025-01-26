@@ -32,9 +32,10 @@ $ sqlite-export-for-ynab
 
 Running it again will pull only the data that changed since the last pull. If you want to wipe the DB and pull all data again use the `--full-refresh` flag.
 
-You can specify the DB path with `--db`. Otherwise, the DB is stored according to the [XDG Base Directory Specification](https://specifications.freedesktop.org/basedir-spec/latest/index.html).
-If `XDG_DATA_HOME` is set then the DB is saved in `"${XDG_DATA_HOME}"/sqlite-export-for-ynab/db.sqlite`.
-If not, then the DB is saved in `~/.local/share/sqlite-export-for-ynab/db.sqlite`.
+You can specify the DB path with the following options
+1. The `--db` flag.
+1. The `XDG_DATA_HOME` variable (see the [XDG Base Directory Specification](https://specifications.freedesktop.org/basedir-spec/latest/index.html)). In that case the DB is saved in `"${XDG_DATA_HOME}"/sqlite-export-for-ynab/db.sqlite`.
+1. If neither is set, the DB is saved in `~/.local/share/sqlite-export-for-ynab/db.sqlite`.
 
 ### Library
 
