@@ -72,7 +72,7 @@ To get the top 5 payees by spending per budget, you could do:
 
 ```sql
 WITH
-    ranked_payees AS (
+                ranked_payees AS (
         SELECT
             b.name AS budget_name,
             p.name AS payee,
