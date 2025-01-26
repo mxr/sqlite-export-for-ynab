@@ -54,9 +54,17 @@ full_refresh = False
 asyncio.run(sync(token, db, full_refresh))
 ```
 
-## SQL
+## Relations
 
-The schema is defined in [create-tables.sql](sqlite_export_for_ynab/ddl/create-tables.sql). It is very similar to [YNAB's OpenAPI Spec](https://api.ynab.com/papi/open_api_spec.yaml) however some objects are pulled out into their own tables (ex: subtransactions, loan account periodic values) and foreign keys are added as needed (ex: budget ID, transaction ID). You can query the DB with typical SQLite tools.
+The relations are defined in [create-relations.sql](sqlite_export_for_ynab/ddl/create-relations.sql). They are 1:1 with [YNAB's OpenAPI Spec](https://api.ynab.com/papi/open_api_spec.yaml) (ex: transactions, accounts, etc) with some additions:
+
+1. Some objects are pulled out into their own tables so they can be more cleanly modeled in SQLite (ex: subtransactions, loan account periodic values).
+1. Foreign keys are added as needed (ex: budget ID, transaction ID) so data across budgets remains separate.
+1. Two new views called `flat_transactions` and `scheduled_flat_transactions` allow you to query split and non-split transactions easily, without needing to also query `subtransactions` and `scheduled_subtransactions` respectively.
+
+## Querying
+
+You can issue queries with typical SQLite tools. *`sqlite-export-for-ynab` deliberately does not implement a SQL REPL.*
 
 ### Sample Queries
 
@@ -76,7 +84,7 @@ WITH
                     SUM(t.amount) ASC
             ) AS rnk
         FROM
-            transactions t
+            flat_transactions t
             JOIN payees p ON t.payee_id = p.id
             JOIN budgets b ON t.budget_id = b.id
         WHERE
@@ -105,8 +113,8 @@ To get payees with no transactions:
 
 ```sql
 SELECT DISTINCT
-    b.name,
-    p.name
+    b.name as budget,
+    p.name as payee
 FROM
     budgets b
     JOIN payees p ON b.id = p.budget_id
@@ -116,7 +124,7 @@ FROM
             payee_id,
             MAX(NOT deleted) AS has_active_transaction
         FROM
-            transactions
+            flat_transactions
         GROUP BY
             budget_id,
             payee_id
@@ -130,7 +138,7 @@ FROM
             payee_id,
             MAX(NOT deleted) AS has_active_transaction
         FROM
-            scheduled_transactions
+            scheduled_flat_transactions
         GROUP BY
             budget_id,
             payee_id
