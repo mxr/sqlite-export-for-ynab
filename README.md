@@ -123,6 +123,7 @@ WITH st AS (
         budget_id,
         payee_id
 ),
+
 t AS (
     SELECT
         budget_id,
@@ -134,6 +135,7 @@ t AS (
         budget_id,
         payee_id
 )
+
 SELECT DISTINCT
     b.name AS budget,
     p.name AS payee
