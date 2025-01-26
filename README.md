@@ -72,29 +72,30 @@ To get the top 5 payees by spending per budget, you could do:
 
 ```sql
 WITH
-                ranked_payees AS (
-        SELECT
-            b.name AS budget_name,
-            p.name AS payee,
-            SUM(t.amount) / -1000.0 AS net_spent,
-            ROW_NUMBER() OVER (
-                PARTITION BY
-                    b.id
-                ORDER BY
-                    SUM(t.amount) ASC
-            ) AS rnk
-        FROM
-            flat_transactions t
-            JOIN payees p ON t.payee_id = p.id
-            JOIN budgets b ON t.budget_id = b.id
-        WHERE
-            p.name != 'Starting Balance'
-            AND p.transfer_account_id IS NULL
-            AND NOT t.deleted
-        GROUP BY
-            b.id,
-            p.id
-    )
+ranked_payees AS (
+    SELECT
+        b.name AS budget_name,
+        p.name AS payee,
+        SUM(t.amount) / -1000.0 AS net_spent,
+        ROW_NUMBER() OVER (
+            PARTITION BY
+                b.id
+            ORDER BY
+                SUM(t.amount) ASC
+        ) AS rnk
+    FROM
+        flat_transactions AS t
+    INNER JOIN payees AS p ON t.payee_id = p.id
+    INNER JOIN budgets AS b ON t.budget_id = b.id
+    WHERE
+        p.name != 'Starting Balance'
+        AND p.transfer_account_id IS NULL
+        AND NOT t.deleted
+    GROUP BY
+        b.id,
+        p.id
+)
+
 SELECT
     budget_name,
     payee,
@@ -104,45 +105,50 @@ FROM
 WHERE
     rnk <= 5
 ORDER BY
-    budget_name,
-    net_spent DESC
-;
+    budget_name ASC,
+    net_spent DESC;
 ```
 
 To get payees with no transactions:
 
 ```sql
+WITH st AS (
+    SELECT
+        budget_id,
+        payee_id,
+        MAX(NOT deleted) AS has_active_transaction
+    FROM
+        scheduled_flat_transactions
+    GROUP BY
+        budget_id,
+        payee_id
+),
+
+t AS (
+    SELECT
+        budget_id,
+        payee_id,
+        MAX(NOT deleted) AS has_active_transaction
+    FROM
+        flat_transactions
+    GROUP BY
+        budget_id,
+        payee_id
+)
+
 SELECT DISTINCT
-    b.name as budget,
-    p.name as payee
+    b.name AS budget,
+    p.name AS payee
 FROM
-    budgets b
-    JOIN payees p ON b.id = p.budget_id
-    LEFT JOIN (
-        SELECT
-            budget_id,
-            payee_id,
-            MAX(NOT deleted) AS has_active_transaction
-        FROM
-            flat_transactions
-        GROUP BY
-            budget_id,
-            payee_id
-    ) t ON (
+    budgets AS b
+INNER JOIN payees AS p ON b.id = p.budget_id
+LEFT JOIN t
+    ON (
         p.id = t.payee_id
         AND p.budget_id = t.budget_id
     )
-    LEFT JOIN (
-        SELECT
-            budget_id,
-            payee_id,
-            MAX(NOT deleted) AS has_active_transaction
-        FROM
-            scheduled_flat_transactions
-        GROUP BY
-            budget_id,
-            payee_id
-    ) st ON (
+LEFT JOIN st
+    ON (
         p.id = st.payee_id
         AND p.budget_id = st.budget_id
     )
@@ -159,6 +165,5 @@ WHERE
     )
 ORDER BY
     1,
-    2
-;
+    2;
 ```
