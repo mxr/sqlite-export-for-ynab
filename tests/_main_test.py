@@ -12,11 +12,11 @@ from aiohttp.http_exceptions import HttpProcessingError
 from tqdm import tqdm
 
 from sqlite_export_for_ynab import default_db_path
-from sqlite_export_for_ynab._main import _ALL_TABLES
+from sqlite_export_for_ynab._main import _ALL_RELATIONS
 from sqlite_export_for_ynab._main import _ENV_TOKEN
 from sqlite_export_for_ynab._main import contents
 from sqlite_export_for_ynab._main import get_last_knowledge_of_server
-from sqlite_export_for_ynab._main import get_tables
+from sqlite_export_for_ynab._main import get_relations
 from sqlite_export_for_ynab._main import insert_accounts
 from sqlite_export_for_ynab._main import insert_budgets
 from sqlite_export_for_ynab._main import insert_category_groups
@@ -85,8 +85,8 @@ def test_default_db_path(monkeypatch, xdg_data_home, expected_prefix):
 
 
 @pytest.mark.usefixtures(cur.__name__)
-def test_get_tables(cur):
-    assert get_tables(cur) == _ALL_TABLES
+def test_get_relations(cur):
+    assert get_relations(cur) == _ALL_RELATIONS
 
 
 @pytest.mark.usefixtures(cur.__name__)
@@ -265,6 +265,33 @@ def test_insert_transactions(cur):
         },
     ]
 
+    cur.execute("SELECT * FROM flat_transactions ORDER BY amount")
+    assert [strip_nones(d) for d in cur.fetchall()] == [
+        {
+            "transaction_id": TRANSACTION_ID_2,
+            "budget_id": BUDGET_ID_1,
+            "date": "2024-02-01",
+            "id": TRANSACTION_ID_2,
+            "amount": -15000,
+        },
+        {
+            "transaction_id": TRANSACTION_ID_1,
+            "subtransaction_id": SUBTRANSACTION_ID_1,
+            "budget_id": BUDGET_ID_1,
+            "date": "2024-01-01",
+            "id": SUBTRANSACTION_ID_1,
+            "amount": -7000,
+        },
+        {
+            "transaction_id": TRANSACTION_ID_1,
+            "subtransaction_id": SUBTRANSACTION_ID_2,
+            "budget_id": BUDGET_ID_1,
+            "date": "2024-01-01",
+            "id": SUBTRANSACTION_ID_2,
+            "amount": -3000,
+        },
+    ]
+
 
 @pytest.mark.usefixtures(cur.__name__)
 def test_insert_scheduled_transactions(cur):
@@ -299,6 +326,30 @@ def test_insert_scheduled_transactions(cur):
             "id": SCHEDULED_SUBTRANSACTION_ID_2,
             "scheduled_transaction_id": SCHEDULED_TRANSACTION_ID_1,
             "budget_id": BUDGET_ID_1,
+            "amount": -4000,
+        },
+    ]
+
+    cur.execute("SELECT * FROM scheduled_flat_transactions ORDER BY amount")
+    assert [strip_nones(d) for d in cur.fetchall()] == [
+        {
+            "transaction_id": SCHEDULED_TRANSACTION_ID_2,
+            "budget_id": BUDGET_ID_1,
+            "id": SCHEDULED_TRANSACTION_ID_2,
+            "amount": -11000,
+        },
+        {
+            "transaction_id": SCHEDULED_TRANSACTION_ID_1,
+            "subtransaction_id": SCHEDULED_SUBTRANSACTION_ID_1,
+            "budget_id": BUDGET_ID_1,
+            "id": SCHEDULED_SUBTRANSACTION_ID_1,
+            "amount": -8000,
+        },
+        {
+            "transaction_id": SCHEDULED_TRANSACTION_ID_1,
+            "subtransaction_id": SCHEDULED_SUBTRANSACTION_ID_2,
+            "budget_id": BUDGET_ID_1,
+            "id": SCHEDULED_SUBTRANSACTION_ID_2,
             "amount": -4000,
         },
     ]
@@ -387,7 +438,7 @@ async def test_sync_no_data(tmp_path, mock_aioresponses):
     # create the db and tables to exercise all code branches
     db = tmp_path / "db.sqlite"
     with sqlite3.connect(db) as con:
-        con.executescript(contents("create-tables.sql"))
+        con.executescript(contents("create-relations.sql"))
 
     await sync(TOKEN, db, False)
 
