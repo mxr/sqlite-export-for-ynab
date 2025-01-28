@@ -8,6 +8,7 @@ from uuid import uuid4
 import pytest
 from aioresponses import aioresponses
 
+from sqlite_export_for_ynab._main import _row_factory
 from sqlite_export_for_ynab._main import contents
 
 BUDGET_ID_1 = str(uuid4())
@@ -186,11 +187,9 @@ SCHEDULED_TRANSACTIONS: list[dict[str, Any]] = [
 @pytest.fixture
 def cur():
     with sqlite3.connect(":memory:") as con:
+        con.row_factory = _row_factory
         cursor = con.cursor()
         cursor.executescript(contents("create-relations.sql"))
-        cursor.row_factory = lambda c, row: dict(
-            zip([name for name, *_ in c.description], row, strict=True)
-        )
         yield cursor
 
 
