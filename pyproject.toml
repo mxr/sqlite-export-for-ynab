@@ -31,8 +31,8 @@ extend-select = [
 ]
 
 [tool.sqlfluff.layout.type.comma]
-spacing_before = "touch"
 line_position = "trailing"
+spacing_before = "touch"
 
 [tool.sqlfluff.rules.convention.terminator]
 multiline_newline = true

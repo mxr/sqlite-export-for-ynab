@@ -107,7 +107,8 @@ WHERE
     rnk <= 5
 ORDER BY
     budget_name ASC,
-    net_spent DESC;
+    net_spent DESC
+;
 ```
 
 To get payees with no transactions:
@@ -166,5 +167,6 @@ WHERE
     )
 ORDER BY
     budget,
-    payee;
+    payee
+;
 ```

@@ -2,7 +2,8 @@ CREATE TABLE IF NOT EXISTS budgets (
     id TEXT PRIMARY KEY,
     name TEXT,
     last_knowledge_of_server INT
-);
+)
+;
 
 CREATE TABLE IF NOT EXISTS accounts (
     id TEXT PRIMARY KEY,
@@ -22,7 +23,8 @@ CREATE TABLE IF NOT EXISTS accounts (
     type TEXT,
     uncleared_balance INT,
     FOREIGN KEY (budget_id) REFERENCES budgets (id)
-);
+)
+;
 
 CREATE TABLE IF NOT EXISTS account_periodic_values (
     "date" TEXT,
@@ -33,7 +35,8 @@ CREATE TABLE IF NOT EXISTS account_periodic_values (
     PRIMARY KEY (date, name, budget_id, account_id),
     FOREIGN KEY (budget_id) REFERENCES budgets (id),
     FOREIGN KEY (account_id) REFERENCES accounts (id)
-);
+)
+;
 
 CREATE TABLE IF NOT EXISTS category_groups (
     id TEXT PRIMARY KEY,
@@ -42,7 +45,8 @@ CREATE TABLE IF NOT EXISTS category_groups (
     hidden BOOLEAN,
     deleted BOOLEAN,
     FOREIGN KEY (budget_id) REFERENCES budgets (id)
-);
+)
+;
 
 CREATE TABLE IF NOT EXISTS categories (
     id TEXT PRIMARY KEY,
@@ -72,7 +76,8 @@ CREATE TABLE IF NOT EXISTS categories (
     deleted BOOLEAN,
     FOREIGN KEY (budget_id) REFERENCES budgets (id),
     FOREIGN KEY (category_group_id) REFERENCES category_groups (id)
-);
+)
+;
 
 CREATE TABLE IF NOT EXISTS payees (
     id TEXT PRIMARY KEY,
@@ -81,7 +86,8 @@ CREATE TABLE IF NOT EXISTS payees (
     transfer_account_id TEXT,
     deleted BOOLEAN,
     FOREIGN KEY (budget_id) REFERENCES budgets (id)
-);
+)
+;
 
 CREATE TABLE IF NOT EXISTS transactions (
     id TEXT PRIMARY KEY,
@@ -111,7 +117,8 @@ CREATE TABLE IF NOT EXISTS transactions (
     FOREIGN KEY (account_id) REFERENCES accounts (id),
     FOREIGN KEY (category_id) REFERENCES categories (id),
     FOREIGN KEY (payee_id) REFERENCES payees (id)
-);
+)
+;
 
 CREATE TABLE IF NOT EXISTS subtransactions (
     id TEXT PRIMARY KEY,
@@ -131,7 +138,8 @@ CREATE TABLE IF NOT EXISTS subtransactions (
     FOREIGN KEY (category_id) REFERENCES categories (id),
     FOREIGN KEY (payee_id) REFERENCES payees (id),
     FOREIGN KEY (transaction_id) REFERENCES transaction_id (id)
-);
+)
+;
 
 CREATE VIEW IF NOT EXISTS flat_transactions AS
 SELECT
@@ -174,10 +182,12 @@ SELECT
     ) AS transfer_transaction_id
 FROM
     transactions AS t
-LEFT JOIN subtransactions AS st ON (
-    t.budget_id = st.budget_id
-    AND t.id = st.transaction_id
-);
+LEFT JOIN subtransactions AS st
+    ON (
+        t.budget_id = st.budget_id
+        AND t.id = st.transaction_id
+    )
+;
 
 CREATE TABLE IF NOT EXISTS scheduled_transactions (
     id TEXT PRIMARY KEY,
@@ -202,7 +212,8 @@ CREATE TABLE IF NOT EXISTS scheduled_transactions (
     FOREIGN KEY (category_id) REFERENCES categories (id),
     FOREIGN KEY (payee_id) REFERENCES payees (id),
     FOREIGN KEY (transfer_account_id) REFERENCES accounts (id)
-);
+)
+;
 
 CREATE TABLE IF NOT EXISTS scheduled_subtransactions (
     id TEXT PRIMARY KEY,
@@ -219,7 +230,8 @@ CREATE TABLE IF NOT EXISTS scheduled_subtransactions (
     FOREIGN KEY (category_id) REFERENCES categories (id),
     FOREIGN KEY (payee_id) REFERENCES payees (id),
     FOREIGN KEY (scheduled_transaction_id) REFERENCES transaction_id (id)
-);
+)
+;
 
 CREATE VIEW IF NOT EXISTS scheduled_flat_transactions AS
 SELECT
@@ -264,7 +276,9 @@ LEFT JOIN categories AS c
         AND COALESCE(st.category_id, t.category_id) = c.id
     )
     -- work around missing payee name from scheduled subtransaction response
-LEFT JOIN payees AS p ON (
-    t.budget_id = p.budget_id
-    AND COALESCE(st.payee_id, t.payee_id) = p.name
-);
+LEFT JOIN payees AS p
+    ON (
+        t.budget_id = p.budget_id
+        AND COALESCE(st.payee_id, t.payee_id) = p.name
+    )
+;
