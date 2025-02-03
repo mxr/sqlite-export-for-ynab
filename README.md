@@ -75,10 +75,10 @@ To get the top 5 payees by spending per budget, you could do:
 WITH
 ranked_payees AS (
     SELECT
-        b.name AS budget_name,
-        p.name AS payee,
-        SUM(t.amount) / -1000.0 AS net_spent,
-        ROW_NUMBER() OVER (
+        b.name AS budget_name
+        , p.name AS payee
+        , SUM(t.amount) / -1000.0 AS net_spent
+        , ROW_NUMBER() OVER (
             PARTITION BY
                 b.id
             ORDER BY
@@ -93,21 +93,22 @@ ranked_payees AS (
         AND p.transfer_account_id IS NULL
         AND NOT t.deleted
     GROUP BY
-        b.id,
-        p.id
+        b.id
+        , p.id
 )
 
 SELECT
-    budget_name,
-    payee,
-    net_spent
+    budget_name
+    , payee
+    , net_spent
 FROM
     ranked_payees
 WHERE
     rnk <= 5
 ORDER BY
-    budget_name ASC,
-    net_spent DESC;
+    budget_name ASC
+    , net_spent DESC
+;
 ```
 
 To get payees with no transactions:
@@ -115,31 +116,31 @@ To get payees with no transactions:
 ```sql
 WITH st AS (
     SELECT
-        budget_id,
-        payee_id,
-        MAX(NOT deleted) AS has_active_transaction
+        budget_id
+        , payee_id
+        , MAX(NOT deleted) AS has_active_transaction
     FROM
         scheduled_flat_transactions
     GROUP BY
-        budget_id,
-        payee_id
-),
+        budget_id
+        , payee_id
+)
 
-t AS (
+, t AS (
     SELECT
-        budget_id,
-        payee_id,
-        MAX(NOT deleted) AS has_active_transaction
+        budget_id
+        , payee_id
+        , MAX(NOT deleted) AS has_active_transaction
     FROM
         flat_transactions
     GROUP BY
-        budget_id,
-        payee_id
+        budget_id
+        , payee_id
 )
 
 SELECT DISTINCT
-    b.name AS budget,
-    p.name AS payee
+    b.name AS budget
+    , p.name AS payee
 FROM
     budgets AS b
 INNER JOIN payees AS p ON b.id = p.budget_id
@@ -165,6 +166,7 @@ WHERE
         OR NOT st.has_active_transaction
     )
 ORDER BY
-    budget,
-    payee;
+    budget
+    , payee
+;
 ```

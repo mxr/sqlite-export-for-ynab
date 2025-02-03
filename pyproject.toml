@@ -29,3 +29,11 @@ extend-select = [
   "SIM",  # see flake8-simplify
   "TCH"  # see flake8-type-checking
 ]
+
+[tool.sqlfluff.layout.type.comma]
+line_position = "leading"
+spacing_before = "touch"
+
+[tool.sqlfluff.rules.convention.terminator]
+multiline_newline = true
+require_final_semicolon = true
