@@ -30,10 +30,10 @@ extend-select = [
   "TCH"  # see flake8-type-checking
 ]
 
-[tool.sqlfluff:layout:type:comma]
-spacing_before = touch
-line_position = trailing
+[sqlfluff:layout:type:comma]
+spacing_before = "touch"
+line_position = "trailing"
 
-[tool.sqlfluff:rules:convention.terminator]
+[sqlfluff:rules:convention.terminator]
 multiline_newline = true
 require_final_semicolon = true
