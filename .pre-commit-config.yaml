@@ -29,13 +29,13 @@ repos:
   hooks:
   - id: unkey
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.9.4
+  rev: v0.9.6
   hooks:
   - id: ruff
     args: [--fix]
   - id: ruff-format
 - repo: https://github.com/sqlfluff/sqlfluff
-  rev: 3.3.0
+  rev: 3.3.1
   hooks:
   - id: sqlfluff-fix
     args: [--dialect, sqlite]
@@ -48,7 +48,7 @@ repos:
     additional_dependencies: [sqlfluff]
     files: README.md
 - repo: https://github.com/pre-commit/mirrors-mypy
-  rev: v1.14.1
+  rev: v1.15.0
   hooks:
   - id: mypy
     language_version: python3.12
