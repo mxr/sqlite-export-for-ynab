@@ -222,7 +222,9 @@ CREATE TABLE IF NOT EXISTS scheduled_subtransactions (
     , amount INT
     , memo TEXT
     , payee_id TEXT
+    , payee_name TEXT
     , category_id TEXT
+    , category_name TEXT
     , transfer_account_id TEXT
     , deleted BOOLEAN
     , FOREIGN KEY (budget_id) REFERENCES budget (id)
@@ -244,7 +246,7 @@ SELECT
     , t.date_next
     , t.flag_color
     , t.flag_name
-    , p.name AS payee_name
+    , COALESCE(st.payee_name, t.payee_name) AS payee_name
     , COALESCE(st.id, t.id) AS id
     , COALESCE(st.amount, t.amount) AS amount
     , CASE
@@ -255,7 +257,7 @@ SELECT
     , CASE
         WHEN
             COALESCE(st.transfer_account_id, t.transfer_account_id) IS null
-            THEN c.name
+            THEN COALESCE(st.category_name, t.category_name)
     END AS category_name
     , COALESCE(st.deleted, t.deleted) AS deleted
     , COALESCE(st.memo, t.memo) AS memo
@@ -268,17 +270,5 @@ LEFT JOIN scheduled_subtransactions AS st
     ON (
         t.budget_id = st.budget_id
         AND t.id = st.scheduled_transaction_id
-    )
-    -- work around missing category name from scheduled subtransaction response
-LEFT JOIN categories AS c
-    ON (
-        t.budget_id = c.budget_id
-        AND COALESCE(st.category_id, t.category_id) = c.id
-    )
-    -- work around missing payee name from scheduled subtransaction response
-LEFT JOIN payees AS p
-    ON (
-        t.budget_id = p.budget_id
-        AND COALESCE(st.payee_id, t.payee_id) = p.name
     )
 ;
