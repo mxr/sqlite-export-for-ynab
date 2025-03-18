@@ -64,17 +64,12 @@ async def async_main(argv: Sequence[str] | None = None) -> int:
         help="**DROP ALL TABLES** and fetch all budget data again.",
     )
     parser.add_argument(
-        "--version", action="store_true", help="Print the version and exit."
+        "--version", action="version", version=pkgversion(_PACKAGE)
     )
 
     args = parser.parse_args(argv)
     db: Path = args.db
     full_refresh: bool = args.full_refresh
-    version: bool = args.version
-
-    if version:
-        print(pkgversion(_PACKAGE))
-        return 0
 
     token = os.environ.get(_ENV_TOKEN)
     if not token:
