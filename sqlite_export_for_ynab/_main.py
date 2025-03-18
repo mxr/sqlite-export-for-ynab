@@ -73,7 +73,7 @@ async def async_main(argv: Sequence[str] | None = None) -> int:
     version: bool = args.version
 
     if version:
-        print(pkgversion("sqlite-export-for-ynab"))
+        print(pkgversion(_PACKAGE))
         return 0
 
     token = os.environ.get(_ENV_TOKEN)
