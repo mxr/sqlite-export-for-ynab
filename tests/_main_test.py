@@ -391,7 +391,7 @@ def test_main_version(capsys):
     with pytest.raises(SystemExit) as excinfo:
         main(("--version",))
     assert excinfo.value.code == 0
-    
+
     out, _ = capsys.readouterr()
     assert out == f"{expected}\n"
 
