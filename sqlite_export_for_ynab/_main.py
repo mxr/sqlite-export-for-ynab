@@ -7,7 +7,7 @@ import os
 import sqlite3
 from dataclasses import dataclass
 from importlib import resources
-from importlib.metadata import version as pkgversion
+from importlib.metadata import version
 from pathlib import Path
 from typing import Any
 from typing import ClassVar
@@ -63,7 +63,7 @@ async def async_main(argv: Sequence[str] | None = None) -> int:
         action="store_true",
         help="**DROP ALL TABLES** and fetch all budget data again.",
     )
-    parser.add_argument("--version", action="version", version=f"%(prog)s {pkgversion(_PACKAGE)}")
+    parser.add_argument("--version", action="version", version=f"%(prog)s {version(_PACKAGE)}")
 
     args = parser.parse_args(argv)
     db: Path = args.db
