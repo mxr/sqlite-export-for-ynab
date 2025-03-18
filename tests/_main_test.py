@@ -388,9 +388,10 @@ def test_main_version(capsys):
     cp.read(Path(__file__).parent.parent / "setup.cfg")
     expected = cp["metadata"]["version"]
 
-    ret = main(("--version",))
-    assert ret == 0
-
+    with pytest.raises(SystemExit) as excinfo:
+        main(("--version",))
+    assert excinfo.value.code == 0
+    
     out, _ = capsys.readouterr()
     assert out == f"{expected}\n"
 
