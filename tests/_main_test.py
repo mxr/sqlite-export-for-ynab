@@ -10,6 +10,7 @@ import aiohttp
 import pytest
 from aiohttp.http_exceptions import HttpProcessingError
 from tqdm import tqdm
+from configparser import ConfigParser
 
 from sqlite_export_for_ynab import default_db_path
 from sqlite_export_for_ynab._main import _ALL_RELATIONS
@@ -381,6 +382,17 @@ async def test_ynab_client_failure(mock_aioresponses):
 
     assert excinfo.value == exc
 
+
+def test_main_version(capsys):
+    cp = ConfigParser()
+    cp.read(Path(__file__).parent.parent / 'setup.cfg')
+    expected = cp['metadata']['version']
+
+    ret = main(("--version",))
+    assert ret == 0
+
+    out,_ = capsys.readouterr()
+    assert out == f"{expected}\n"
 
 @patch("sqlite_export_for_ynab._main.sync")
 def test_main_ok(sync, tmp_path, monkeypatch):
