@@ -51,7 +51,7 @@ _PACKAGE = "sqlite-export-for-ynab"
 
 
 async def async_main(argv: Sequence[str] | None = None) -> int:
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(prog=_PACKAGE)
     parser.add_argument(
         "--db",
         help="The path to the SQLite database file.",
@@ -63,7 +63,7 @@ async def async_main(argv: Sequence[str] | None = None) -> int:
         action="store_true",
         help="**DROP ALL TABLES** and fetch all budget data again.",
     )
-    parser.add_argument("--version", action="version", version=pkgversion(_PACKAGE))
+    parser.add_argument("--version", action="version", version=f"%(prog)s {pkgversion(_PACKAGE)}")
 
     args = parser.parse_args(argv)
     db: Path = args.db
