@@ -49,6 +49,7 @@ _ENV_TOKEN = "YNAB_PERSONAL_ACCESS_TOKEN"
 
 _PACKAGE = "sqlite-export-for-ynab"
 
+
 async def async_main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -62,7 +63,9 @@ async def async_main(argv: Sequence[str] | None = None) -> int:
         action="store_true",
         help="**DROP ALL TABLES** and fetch all budget data again.",
     )
-    parser.add_argument(        "--version",        action="store_true",        help="Print the version and exit."    )
+    parser.add_argument(
+        "--version", action="store_true", help="Print the version and exit."
+    )
 
     args = parser.parse_args(argv)
     db: Path = args.db
