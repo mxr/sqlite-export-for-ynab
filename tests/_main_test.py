@@ -13,7 +13,7 @@ from aiohttp.http_exceptions import HttpProcessingError
 from tqdm import tqdm
 
 from sqlite_export_for_ynab import default_db_path
-from sqlite_export_for_ynab._main import _ALL_RELATIONS
+from sqlite_export_for_ynab._main import _ALL_RELATIONS,_PACKAGE
 from sqlite_export_for_ynab._main import _ENV_TOKEN
 from sqlite_export_for_ynab._main import contents
 from sqlite_export_for_ynab._main import get_last_knowledge_of_server
@@ -386,14 +386,14 @@ async def test_ynab_client_failure(mock_aioresponses):
 def test_main_version(capsys):
     cp = ConfigParser()
     cp.read(Path(__file__).parent.parent / "setup.cfg")
-    expected = cp["metadata"]["version"]
+    expected_version = cp["metadata"]["version"]
 
     with pytest.raises(SystemExit) as excinfo:
         main(("--version",))
     assert excinfo.value.code == 0
 
     out, _ = capsys.readouterr()
-    assert out == f"{expected}\n"
+    assert out == f"{_PACKAGE} {expected_version}\n"
 
 
 @patch("sqlite_export_for_ynab._main.sync")
