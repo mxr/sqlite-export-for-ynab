@@ -63,7 +63,9 @@ async def async_main(argv: Sequence[str] | None = None) -> int:
         action="store_true",
         help="**DROP ALL TABLES** and fetch all budget data again.",
     )
-    parser.add_argument("--version", action="version", version=f"%(prog)s {version(_PACKAGE)}")
+    parser.add_argument(
+        "--version", action="version", version=f"%(prog)s {version(_PACKAGE)}"
+    )
 
     args = parser.parse_args(argv)
     db: Path = args.db

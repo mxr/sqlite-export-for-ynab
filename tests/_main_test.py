@@ -13,8 +13,9 @@ from aiohttp.http_exceptions import HttpProcessingError
 from tqdm import tqdm
 
 from sqlite_export_for_ynab import default_db_path
-from sqlite_export_for_ynab._main import _ALL_RELATIONS,_PACKAGE
+from sqlite_export_for_ynab._main import _ALL_RELATIONS
 from sqlite_export_for_ynab._main import _ENV_TOKEN
+from sqlite_export_for_ynab._main import _PACKAGE
 from sqlite_export_for_ynab._main import contents
 from sqlite_export_for_ynab._main import get_last_knowledge_of_server
 from sqlite_export_for_ynab._main import get_relations
