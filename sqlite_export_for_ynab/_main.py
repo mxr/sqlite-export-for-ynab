@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING
 from urllib.parse import urlencode
 from urllib.parse import urljoin
 from urllib.parse import urlunparse
+from importlib.metadata import version as pkgversion
 
 import aiohttp
 from tqdm import tqdm
@@ -46,6 +47,8 @@ _ALL_RELATIONS = frozenset(
 
 _ENV_TOKEN = "YNAB_PERSONAL_ACCESS_TOKEN"
 
+_PACKAGE = 'sqlite-export-for-ynab'
+
 
 async def async_main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
@@ -60,10 +63,21 @@ async def async_main(argv: Sequence[str] | None = None) -> int:
         action="store_true",
         help="**DROP ALL TABLES** and fetch all budget data again.",
     )
+    parser.add_argument(
+        "--version",
+        action="store_true",
+        help="Print the version and exit.",
+    )
 
     args = parser.parse_args(argv)
     db: Path = args.db
     full_refresh: bool = args.full_refresh
+    version: bool = args.version
+
+    if version:
+        print(pkgversion('sqlite-export-for-ynab'))
+        return 0
+
 
     token = os.environ.get(_ENV_TOKEN)
     if not token:
@@ -85,7 +99,7 @@ def default_db_path() -> Path:
             if (xdg_data_home := os.environ.get("XDG_DATA_HOME"))
             else Path.home() / ".local" / "share"
         )
-        / "sqlite-export-for-ynab"
+        / _PACKAGE
         / "db.sqlite"
     )
 
