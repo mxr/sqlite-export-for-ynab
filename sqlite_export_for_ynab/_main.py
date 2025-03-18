@@ -7,6 +7,7 @@ import os
 import sqlite3
 from dataclasses import dataclass
 from importlib import resources
+from importlib.metadata import version as pkgversion
 from pathlib import Path
 from typing import Any
 from typing import ClassVar
@@ -17,7 +18,6 @@ from typing import TYPE_CHECKING
 from urllib.parse import urlencode
 from urllib.parse import urljoin
 from urllib.parse import urlunparse
-from importlib.metadata import version as pkgversion
 
 import aiohttp
 from tqdm import tqdm
@@ -47,7 +47,7 @@ _ALL_RELATIONS = frozenset(
 
 _ENV_TOKEN = "YNAB_PERSONAL_ACCESS_TOKEN"
 
-_PACKAGE = 'sqlite-export-for-ynab'
+_PACKAGE = "sqlite-export-for-ynab"
 
 
 async def async_main(argv: Sequence[str] | None = None) -> int:
@@ -75,9 +75,8 @@ async def async_main(argv: Sequence[str] | None = None) -> int:
     version: bool = args.version
 
     if version:
-        print(pkgversion('sqlite-export-for-ynab'))
+        print(pkgversion("sqlite-export-for-ynab"))
         return 0
-
 
     token = os.environ.get(_ENV_TOKEN)
     if not token:
