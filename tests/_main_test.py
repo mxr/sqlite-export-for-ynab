@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import sqlite3
+from configparser import ConfigParser
 from pathlib import Path
 from unittest.mock import patch
 
@@ -14,6 +15,7 @@ from tqdm import tqdm
 from sqlite_export_for_ynab import default_db_path
 from sqlite_export_for_ynab._main import _ALL_RELATIONS
 from sqlite_export_for_ynab._main import _ENV_TOKEN
+from sqlite_export_for_ynab._main import _PACKAGE
 from sqlite_export_for_ynab._main import contents
 from sqlite_export_for_ynab._main import get_last_knowledge_of_server
 from sqlite_export_for_ynab._main import get_relations
@@ -380,6 +382,19 @@ async def test_ynab_client_failure(mock_aioresponses):
             await YnabClient(TOKEN, session)("example")
 
     assert excinfo.value == exc
+
+
+def test_main_version(capsys):
+    cp = ConfigParser()
+    cp.read(Path(__file__).parent.parent / "setup.cfg")
+    expected_version = cp["metadata"]["version"]
+
+    with pytest.raises(SystemExit) as excinfo:
+        main(("--version",))
+    assert excinfo.value.code == 0
+
+    out, _ = capsys.readouterr()
+    assert out == f"{_PACKAGE} {expected_version}\n"
 
 
 @patch("sqlite_export_for_ynab._main.sync")

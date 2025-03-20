@@ -7,6 +7,7 @@ import os
 import sqlite3
 from dataclasses import dataclass
 from importlib import resources
+from importlib.metadata import version
 from pathlib import Path
 from typing import Any
 from typing import ClassVar
@@ -46,9 +47,11 @@ _ALL_RELATIONS = frozenset(
 
 _ENV_TOKEN = "YNAB_PERSONAL_ACCESS_TOKEN"
 
+_PACKAGE = "sqlite-export-for-ynab"
+
 
 async def async_main(argv: Sequence[str] | None = None) -> int:
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(prog=_PACKAGE)
     parser.add_argument(
         "--db",
         help="The path to the SQLite database file.",
@@ -59,6 +62,9 @@ async def async_main(argv: Sequence[str] | None = None) -> int:
         "--full-refresh",
         action="store_true",
         help="**DROP ALL TABLES** and fetch all budget data again.",
+    )
+    parser.add_argument(
+        "--version", action="version", version=f"%(prog)s {version(_PACKAGE)}"
     )
 
     args = parser.parse_args(argv)
@@ -85,7 +91,7 @@ def default_db_path() -> Path:
             if (xdg_data_home := os.environ.get("XDG_DATA_HOME"))
             else Path.home() / ".local" / "share"
         )
-        / "sqlite-export-for-ynab"
+        / _PACKAGE
         / "db.sqlite"
     )
 
