@@ -11,7 +11,7 @@ repos:
   rev: v2.14.0
   hooks:
   - id: pretty-format-toml
-    args: [--autofix]
+    args: [--autofix, --trailing-commas]
   - id: pretty-format-yaml
     args: [--autofix]
 - repo: https://github.com/asottile/setup-cfg-fmt
