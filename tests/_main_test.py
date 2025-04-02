@@ -257,13 +257,13 @@ def test_insert_transactions(cur):
             "id": SUBTRANSACTION_ID_1,
             "transaction_id": TRANSACTION_ID_1,
             "budget_id": BUDGET_ID_1,
-            "amount": -7000,
+            "amount": -7500,
         },
         {
             "id": SUBTRANSACTION_ID_2,
             "transaction_id": TRANSACTION_ID_1,
             "budget_id": BUDGET_ID_1,
-            "amount": -3000,
+            "amount": -2500,
         },
     ]
 
@@ -275,6 +275,7 @@ def test_insert_transactions(cur):
             "date": "2024-02-01",
             "id": TRANSACTION_ID_2,
             "amount": -15000,
+            "amount_major": pytest.approx(15),
         },
         {
             "transaction_id": TRANSACTION_ID_1,
@@ -282,7 +283,8 @@ def test_insert_transactions(cur):
             "budget_id": BUDGET_ID_1,
             "date": "2024-01-01",
             "id": SUBTRANSACTION_ID_1,
-            "amount": -7000,
+            "amount": -7500,
+            "amount_major": pytest.approx(7.50),
         },
         {
             "transaction_id": TRANSACTION_ID_1,
@@ -290,7 +292,8 @@ def test_insert_transactions(cur):
             "budget_id": BUDGET_ID_1,
             "date": "2024-01-01",
             "id": SUBTRANSACTION_ID_2,
-            "amount": -3000,
+            "amount": -2500,
+            "amount_major": pytest.approx(2.50),
         },
     ]
 
@@ -322,13 +325,13 @@ def test_insert_scheduled_transactions(cur):
             "id": SCHEDULED_SUBTRANSACTION_ID_1,
             "scheduled_transaction_id": SCHEDULED_TRANSACTION_ID_1,
             "budget_id": BUDGET_ID_1,
-            "amount": -8000,
+            "amount": -8040,
         },
         {
             "id": SCHEDULED_SUBTRANSACTION_ID_2,
             "scheduled_transaction_id": SCHEDULED_TRANSACTION_ID_1,
             "budget_id": BUDGET_ID_1,
-            "amount": -4000,
+            "amount": -2960,
         },
     ]
 
@@ -339,20 +342,23 @@ def test_insert_scheduled_transactions(cur):
             "budget_id": BUDGET_ID_1,
             "id": SCHEDULED_TRANSACTION_ID_2,
             "amount": -11000,
+            "amount_major": pytest.approx(11),
         },
         {
             "transaction_id": SCHEDULED_TRANSACTION_ID_1,
             "subtransaction_id": SCHEDULED_SUBTRANSACTION_ID_1,
             "budget_id": BUDGET_ID_1,
             "id": SCHEDULED_SUBTRANSACTION_ID_1,
-            "amount": -8000,
+            "amount": -8040,
+            "amount_major": pytest.approx(8.04),
         },
         {
             "transaction_id": SCHEDULED_TRANSACTION_ID_1,
             "subtransaction_id": SCHEDULED_SUBTRANSACTION_ID_2,
             "budget_id": BUDGET_ID_1,
             "id": SCHEDULED_SUBTRANSACTION_ID_2,
-            "amount": -4000,
+            "amount": -2960,
+            "amount_major": pytest.approx(2.96),
         },
     ]
 

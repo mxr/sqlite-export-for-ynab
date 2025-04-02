@@ -61,7 +61,7 @@ The relations are defined in [create-relations.sql](sqlite_export_for_ynab/ddl/c
 
 1. Some objects are pulled out into their own tables so they can be more cleanly modeled in SQLite (ex: subtransactions, loan account periodic values).
 1. Foreign keys are added as needed (ex: budget ID, transaction ID) so data across budgets remains separate.
-1. Two new views called `flat_transactions` and `scheduled_flat_transactions` allow you to query split and non-split transactions easily, without needing to also query `subtransactions` and `scheduled_subtransactions` respectively.
+1. Two new views called `flat_transactions` and `scheduled_flat_transactions` allow you to query split and non-split transactions easily, without needing to also query `subtransactions` and `scheduled_subtransactions` respectively. They also include fields to improve quality of life (ex: `amount_major` to convert from [YNAB's milliunits](https://api.ynab.com/#formats) to [major units](https://en.wikipedia.org/wiki/ISO_4217) i.e. dollars).
 
 ## Querying
 
