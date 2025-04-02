@@ -160,7 +160,7 @@ SELECT
     , t.matched_transaction_id
     , COALESCE(st.id, t.id) AS id
     , COALESCE(st.amount, t.amount) AS amount
-    , COALESCE(st.amount, t.amount) / -1000.0 as amount_usd
+    , COALESCE(st.amount, t.amount) / -1000.0 AS amount_usd
     , CASE
         WHEN
             COALESCE(st.transfer_account_id, t.transfer_account_id) IS null
@@ -250,7 +250,7 @@ SELECT
     , COALESCE(st.payee_name, t.payee_name) AS payee_name
     , COALESCE(st.id, t.id) AS id
     , COALESCE(st.amount, t.amount) AS amount
-    , COALESCE(st.amount, t.amount) / -1000.0 as amount_usd
+    , COALESCE(st.amount, t.amount) / -1000.0 AS amount_usd
     , CASE
         WHEN
             COALESCE(st.transfer_account_id, t.transfer_account_id) IS null
