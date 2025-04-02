@@ -136,12 +136,12 @@ TRANSACTIONS: list[dict[str, Any]] = [
             {
                 "id": SUBTRANSACTION_ID_1,
                 "transaction_id": TRANSACTION_ID_1,
-                "amount": -7000,
+                "amount": -7500,
             },
             {
                 "id": SUBTRANSACTION_ID_2,
                 "transaction_id": TRANSACTION_ID_1,
-                "amount": -3000,
+                "amount": -2500,
             },
         ],
     },
@@ -167,12 +167,12 @@ SCHEDULED_TRANSACTIONS: list[dict[str, Any]] = [
             {
                 "id": SCHEDULED_SUBTRANSACTION_ID_1,
                 "scheduled_transaction_id": SCHEDULED_TRANSACTION_ID_1,
-                "amount": -8000,
+                "amount": -8040,
             },
             {
                 "id": SCHEDULED_SUBTRANSACTION_ID_2,
                 "scheduled_transaction_id": SCHEDULED_TRANSACTION_ID_1,
-                "amount": -4000,
+                "amount": -2960,
             },
         ],
     },
