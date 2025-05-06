@@ -34,6 +34,15 @@ extend-select = [
 line_position = "leading"
 spacing_before = "touch"
 
+[tool.sqlfluff.rules.capitalisation.functions]
+extended_capitalisation_policy = 'upper'
+
+[tool.sqlfluff.rules.capitalisation.identifiers]
+extended_capitalisation_policy = 'lower'
+
+[tool.sqlfluff.rules.capitalisation.keywords]
+capitalisation_policy = 'upper'
+
 [tool.sqlfluff.rules.convention.terminator]
 multiline_newline = true
 require_final_semicolon = true

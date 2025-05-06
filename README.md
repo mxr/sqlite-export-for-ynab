@@ -170,3 +170,31 @@ ORDER BY
     , payee
 ;
 ```
+
+To count the spend for a category (ex: "Apps") between this month and the next 11 months (inclusive):
+
+```sql
+SELECT
+    budget_id
+    , SUM(amount_major) AS amount_major
+FROM (
+    SELECT
+        budget_id
+        , amount_major
+    FROM flat_transactions
+    WHERE
+        NOT deleted
+        AND category_name = 'Apps'
+        AND SUBSTR(`date`, 1, 7) = SUBSTR(DATE(), 1, 7)
+    UNION ALL
+    SELECT
+        budget_id
+        , amount_major
+    FROM scheduled_flat_transactions
+    WHERE
+        NOT deleted
+        AND category_name = 'Apps'
+        AND SUBSTR(date_next, 1, 7) < SUBSTR(DATE('now', '+1 year'), 1, 7)
+)
+;
+```
