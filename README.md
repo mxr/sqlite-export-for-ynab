@@ -176,7 +176,7 @@ To count the spend for a category (ex: "Apps") between this month and the next 1
 ```sql
 SELECT
     budget_id
-    , SUM(amount_major)
+    , SUM(amount_major) as amount_major
 FROM (
     SELECT
         budget_id
