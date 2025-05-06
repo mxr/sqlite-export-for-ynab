@@ -74,38 +74,39 @@ To get the top 5 payees by spending per budget, you could do:
 ```sql
 WITH
 ranked_payees AS (
-   SELECT
-       b.name AS budget_name
-       , t.payee_name AS payee       
-       , SUM(t.amount_major) AS net_spent
-       , ROW_NUMBER() OVER (
-           PARTITION BY
-               b.id
-           ORDER BY
-               SUM(t.amount) ASC
-       ) AS rnk
-   FROM
-       flat_transactions AS t
-   INNER JOIN budgets AS b ON t.budget_id = b.id
-   WHERE
-       t.payee_name != 'Starting Balance'
-       AND t.transfer_account_id IS NULL
-       AND NOT t.deleted
-   GROUP BY
-       b.id
-       , t.payee_id
+    SELECT
+        b.name AS budget_name
+        , t.payee_name AS payee
+        , SUM(t.amount_major) AS net_spent
+        , ROW_NUMBER() OVER (
+            PARTITION BY
+                b.id
+            ORDER BY
+                SUM(t.amount) ASC
+        ) AS rnk
+    FROM
+        flat_transactions AS t
+    INNER JOIN budgets AS b ON t.budget_id = b.id
+    WHERE
+        t.payee_name != 'Starting Balance'
+        AND t.transfer_account_id IS NULL
+        AND NOT t.deleted
+    GROUP BY
+        b.id
+        , t.payee_id
 )
+
 SELECT
-   budget_name
-   , payee
-   , net_spent
+    budget_name
+    , payee
+    , net_spent
 FROM
-   ranked_payees
+    ranked_payees
 WHERE
-   rnk <= 5
+    rnk <= 5
 ORDER BY
-   budget_name ASC
-   , net_spent DESC
+    budget_name ASC
+    , net_spent DESC
 ;
 ```
 
