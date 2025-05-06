@@ -39,10 +39,10 @@ multiline_newline = true
 require_final_semicolon = true
 
 [tool.sqlfluff.rules.capitalisation.functions]
-extended_capitalisation_policy = upper
+extended_capitalisation_policy = 'upper'
 
 [tool.sqlfluff.rules.capitalisation.identifiers]
-extended_capitalisation_policy = lower
+extended_capitalisation_policy = 'lower'
 
 [tool.sqlfluff.rules.capitalisation.keywords]
-capitalisation_policy = upper
+capitalisation_policy = 'upper'
