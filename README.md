@@ -183,17 +183,17 @@ FROM (
         , amount_major
     FROM flat_transactions
     WHERE
-not deleted and
-        category_name = 'Apps'
-        AND SUBSTR(`date`, 1, 7) = SUBSTR(DATE(), 1, 7) 
+        NOT deleted
+        AND category_name = 'Apps'
+        AND SUBSTR(`date`, 1, 7) = SUBSTR(DATE(), 1, 7)
     UNION ALL
     SELECT
         budget_id
         , amount_major
     FROM scheduled_flat_transactions
     WHERE
-       not deleted
-and category_name = 'Apps'
+        NOT deleted
+        AND category_name = 'Apps'
         AND SUBSTR(date_next, 1, 7) < SUBSTR(DATE('now', '+1 year'), 1, 7)
 )
 ;
