@@ -174,6 +174,26 @@ ORDER BY
 To count the spend for a category (ex: "Apps") between this month and the next 11 months (inclusive):
 
 ```sql
-select budget_id, sum(amount_major) from (select budget_id,amount_major from flat_transactions where category_name = 'Apps' 
-                   and substr(`date`, 1,7) = substr(date(), 1, 7) and not deleted union all select budget_id, amount_major from scheduled_flat_transactions where category_name = 'Apps' and not deleted and substr(date_next,1,7) < substr(date('now', '+1 year'),1,7));
+select
+    budget_id
+    , sum(amount_major)
+from (
+    select
+        budget_id
+        , amount_major
+    from flat_transactions
+    where
+        category_name = 'Apps'
+        and substr(`date`, 1, 7) = substr(date(), 1, 7) and not deleted
+    union all
+    select
+        budget_id
+        , amount_major
+    from scheduled_flat_transactions
+    where
+        category_name = 'Apps'
+        and not deleted
+        and substr(date_next, 1, 7) < substr(date('now', '+1 year'), 1, 7)
+)
+;
 ```
