@@ -77,7 +77,7 @@ ranked_payees AS (
     SELECT
         b.name AS budget_name
         , p.name AS payee
-        , SUM(t.amount) / -1000.0 AS net_spent
+        , SUM(t.amount_major) AS net_spent
         , ROW_NUMBER() OVER (
             PARTITION BY
                 b.id
