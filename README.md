@@ -76,8 +76,8 @@ WITH
 ranked_payees AS (
     SELECT
         b.name AS budget_name
-        , p.name AS payee
-        , SUM(t.amount) / -1000.0 AS net_spent
+        , t.payee_name AS payee
+        , SUM(t.amount_major) AS net_spent
         , ROW_NUMBER() OVER (
             PARTITION BY
                 b.id
@@ -86,15 +86,14 @@ ranked_payees AS (
         ) AS rnk
     FROM
         flat_transactions AS t
-    INNER JOIN payees AS p ON t.payee_id = p.id
     INNER JOIN budgets AS b ON t.budget_id = b.id
     WHERE
-        p.name != 'Starting Balance'
-        AND p.transfer_account_id IS NULL
+        t.payee_name != 'Starting Balance'
+        AND t.transfer_account_id IS NULL
         AND NOT t.deleted
     GROUP BY
         b.id
-        , p.id
+        , t.payee_id
 )
 
 SELECT
