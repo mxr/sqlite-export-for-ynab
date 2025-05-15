@@ -51,10 +51,10 @@ require_final_semicolon = true
 envlist = ["py", "pypy3", "pre-commit"]
 
 [tool.tox.testenv]
-deps = -rrequirements-dev.txt
+deps = "-rrequirements-dev.txt"
 commands = [["coverage", "erase"], ["coverage", "run", "-m", "pytest", "{posargs:tests}"], ["coverage", "report"]]
 
 [tool.tox.testenv:pre-commit]
 skip_install = true
-deps = pre-commit-uv
+deps = "pre-commit-uv"
 commands = [["pre-commit", "run", "--all-files", "--show-diff-on-failure"]]
