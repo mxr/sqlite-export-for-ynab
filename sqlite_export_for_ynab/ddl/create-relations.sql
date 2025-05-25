@@ -189,7 +189,9 @@ LEFT JOIN subtransactions AS st
         AND t.id = st.transaction_id
     )
 WHERE
-    TRUE AND NOT t.deleted AND NOT st.deleted
+    TRUE
+    AND NOT t.deleted
+    AND NOT st.deleted
 ;
 
 CREATE TABLE IF NOT EXISTS scheduled_transactions (
@@ -276,5 +278,7 @@ LEFT JOIN scheduled_subtransactions AS st
         AND t.id = st.scheduled_transaction_id
     )
 WHERE
-    TRUE AND NOT t.deleted AND NOT st.deleted
+    TRUE
+    AND NOT t.deleted
+    AND NOT st.deleted
 ;
