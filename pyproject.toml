@@ -43,6 +43,9 @@ extended_capitalisation_policy = 'lower'
 [tool.sqlfluff.rules.capitalisation.keywords]
 capitalisation_policy = 'upper'
 
+[tool.sqlfluff.rules.capitalisation.literals]
+capitalisation_policy = 'upper'
+
 [tool.sqlfluff.rules.convention.terminator]
 multiline_newline = true
 require_final_semicolon = true
