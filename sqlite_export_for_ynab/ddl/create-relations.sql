@@ -171,7 +171,6 @@ SELECT
             COALESCE(st.transfer_account_id, t.transfer_account_id) IS NULL
             THEN COALESCE(st.category_name, t.category_name)
     END AS category_name
-    , COALESCE(st.deleted, t.deleted) AS deleted
     , COALESCE(st.memo, t.memo) AS memo
     , COALESCE(st.payee_id, t.payee_id) AS payee_id
     , COALESCE(st.payee_name, t.payee_name) AS payee_name
@@ -265,7 +264,6 @@ SELECT
             COALESCE(st.transfer_account_id, t.transfer_account_id) IS NULL
             THEN COALESCE(st.category_name, t.category_name)
     END AS category_name
-    , COALESCE(st.deleted, t.deleted) AS deleted
     , COALESCE(st.memo, t.memo) AS memo
     , COALESCE(st.payee_id, t.payee_id) AS payee_id
     , COALESCE(st.transfer_account_id, t.transfer_account_id)
