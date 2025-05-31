@@ -242,12 +242,14 @@ def test_insert_transactions(cur):
             "budget_id": BUDGET_ID_1,
             "date": "2024-01-01",
             "amount": -10000,
+            "deleted": False,
         },
         {
             "id": TRANSACTION_ID_2,
             "budget_id": BUDGET_ID_1,
             "date": "2024-02-01",
             "amount": -15000,
+            "deleted": True,
         },
     ]
 
@@ -258,25 +260,19 @@ def test_insert_transactions(cur):
             "transaction_id": TRANSACTION_ID_1,
             "budget_id": BUDGET_ID_1,
             "amount": -7500,
+            "deleted": False,
         },
         {
             "id": SUBTRANSACTION_ID_2,
             "transaction_id": TRANSACTION_ID_1,
             "budget_id": BUDGET_ID_1,
             "amount": -2500,
+            "deleted": False,
         },
     ]
 
     cur.execute("SELECT * FROM flat_transactions ORDER BY amount")
     assert [strip_nones(d) for d in cur.fetchall()] == [
-        {
-            "transaction_id": TRANSACTION_ID_2,
-            "budget_id": BUDGET_ID_1,
-            "date": "2024-02-01",
-            "id": TRANSACTION_ID_2,
-            "amount": -15000,
-            "amount_major": pytest.approx(15),
-        },
         {
             "transaction_id": TRANSACTION_ID_1,
             "subtransaction_id": SUBTRANSACTION_ID_1,
@@ -311,11 +307,13 @@ def test_insert_scheduled_transactions(cur):
             "id": SCHEDULED_TRANSACTION_ID_1,
             "budget_id": BUDGET_ID_1,
             "amount": -12000,
+            "deleted": False,
         },
         {
             "id": SCHEDULED_TRANSACTION_ID_2,
             "budget_id": BUDGET_ID_1,
             "amount": -11000,
+            "deleted": True,
         },
     ]
 
@@ -326,24 +324,19 @@ def test_insert_scheduled_transactions(cur):
             "scheduled_transaction_id": SCHEDULED_TRANSACTION_ID_1,
             "budget_id": BUDGET_ID_1,
             "amount": -8040,
+            "deleted": False,
         },
         {
             "id": SCHEDULED_SUBTRANSACTION_ID_2,
             "scheduled_transaction_id": SCHEDULED_TRANSACTION_ID_1,
             "budget_id": BUDGET_ID_1,
             "amount": -2960,
+            "deleted": False,
         },
     ]
 
     cur.execute("SELECT * FROM scheduled_flat_transactions ORDER BY amount")
     assert [strip_nones(d) for d in cur.fetchall()] == [
-        {
-            "transaction_id": SCHEDULED_TRANSACTION_ID_2,
-            "budget_id": BUDGET_ID_1,
-            "id": SCHEDULED_TRANSACTION_ID_2,
-            "amount": -11000,
-            "amount_major": pytest.approx(11),
-        },
         {
             "transaction_id": SCHEDULED_TRANSACTION_ID_1,
             "subtransaction_id": SCHEDULED_SUBTRANSACTION_ID_1,

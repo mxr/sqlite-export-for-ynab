@@ -171,7 +171,6 @@ SELECT
             COALESCE(st.transfer_account_id, t.transfer_account_id) IS NULL
             THEN COALESCE(st.category_name, t.category_name)
     END AS category_name
-    , COALESCE(st.deleted, t.deleted) AS deleted
     , COALESCE(st.memo, t.memo) AS memo
     , COALESCE(st.payee_id, t.payee_id) AS payee_id
     , COALESCE(st.payee_name, t.payee_name) AS payee_name
@@ -188,6 +187,10 @@ LEFT JOIN subtransactions AS st
         t.budget_id = st.budget_id
         AND t.id = st.transaction_id
     )
+WHERE
+    TRUE
+    AND NOT t.deleted
+    AND NOT st.deleted
 ;
 
 CREATE TABLE IF NOT EXISTS scheduled_transactions (
@@ -261,7 +264,6 @@ SELECT
             COALESCE(st.transfer_account_id, t.transfer_account_id) IS NULL
             THEN COALESCE(st.category_name, t.category_name)
     END AS category_name
-    , COALESCE(st.deleted, t.deleted) AS deleted
     , COALESCE(st.memo, t.memo) AS memo
     , COALESCE(st.payee_id, t.payee_id) AS payee_id
     , COALESCE(st.transfer_account_id, t.transfer_account_id)
@@ -273,4 +275,8 @@ LEFT JOIN scheduled_subtransactions AS st
         t.budget_id = st.budget_id
         AND t.id = st.scheduled_transaction_id
     )
+WHERE
+    TRUE
+    AND NOT t.deleted
+    AND NOT st.deleted
 ;

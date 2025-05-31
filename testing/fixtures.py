@@ -132,16 +132,19 @@ TRANSACTIONS: list[dict[str, Any]] = [
         "id": TRANSACTION_ID_1,
         "date": "2024-01-01",
         "amount": -10000,
+        "deleted": False,
         "subtransactions": [
             {
                 "id": SUBTRANSACTION_ID_1,
                 "transaction_id": TRANSACTION_ID_1,
                 "amount": -7500,
+                "deleted": False,
             },
             {
                 "id": SUBTRANSACTION_ID_2,
                 "transaction_id": TRANSACTION_ID_1,
                 "amount": -2500,
+                "deleted": False,
             },
         ],
     },
@@ -149,6 +152,7 @@ TRANSACTIONS: list[dict[str, Any]] = [
         "id": TRANSACTION_ID_2,
         "date": "2024-02-01",
         "amount": -15000,
+        "deleted": True,
         "subtransactions": [],
     },
 ]
@@ -163,15 +167,18 @@ SCHEDULED_TRANSACTIONS: list[dict[str, Any]] = [
     {
         "id": SCHEDULED_TRANSACTION_ID_1,
         "amount": -12000,
+        "deleted": False,
         "subtransactions": [
             {
                 "id": SCHEDULED_SUBTRANSACTION_ID_1,
                 "scheduled_transaction_id": SCHEDULED_TRANSACTION_ID_1,
+                "deleted": False,
                 "amount": -8040,
             },
             {
                 "id": SCHEDULED_SUBTRANSACTION_ID_2,
                 "scheduled_transaction_id": SCHEDULED_TRANSACTION_ID_1,
+                "deleted": False,
                 "amount": -2960,
             },
         ],
@@ -179,6 +186,7 @@ SCHEDULED_TRANSACTIONS: list[dict[str, Any]] = [
     {
         "id": SCHEDULED_TRANSACTION_ID_2,
         "amount": -11000,
+        "deleted": True,
         "subtransactions": [],
     },
 ]
