@@ -189,8 +189,7 @@ LEFT JOIN subtransactions AS st
     )
 WHERE
     TRUE
-    AND NOT t.deleted
-    AND NOT st.deleted
+    AND NOT COALESCE(st.deleted, t.deleted)
 ;
 
 CREATE TABLE IF NOT EXISTS scheduled_transactions (
@@ -277,6 +276,5 @@ LEFT JOIN scheduled_subtransactions AS st
     )
 WHERE
     TRUE
-    AND NOT t.deleted
-    AND NOT st.deleted
+    AND NOT COALESCE(st.deleted, t.deleted)
 ;

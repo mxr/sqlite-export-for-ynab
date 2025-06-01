@@ -123,6 +123,7 @@ PAYEES: list[dict[str, Any]] = [
 
 TRANSACTION_ID_1 = str(uuid4())
 TRANSACTION_ID_2 = str(uuid4())
+TRANSACTION_ID_3 = str(uuid4())
 
 SUBTRANSACTION_ID_1 = str(uuid4())
 SUBTRANSACTION_ID_2 = str(uuid4())
@@ -155,10 +156,18 @@ TRANSACTIONS: list[dict[str, Any]] = [
         "deleted": True,
         "subtransactions": [],
     },
+    {
+        "id": TRANSACTION_ID_3,
+        "date": "2024-03-01",
+        "amount": -19000,
+        "deleted": False,
+        "subtransactions": [],
+    },
 ]
 
 SCHEDULED_TRANSACTION_ID_1 = str(uuid4())
 SCHEDULED_TRANSACTION_ID_2 = str(uuid4())
+SCHEDULED_TRANSACTION_ID_3 = str(uuid4())
 
 SCHEDULED_SUBTRANSACTION_ID_1 = str(uuid4())
 SCHEDULED_SUBTRANSACTION_ID_2 = str(uuid4())
@@ -187,6 +196,12 @@ SCHEDULED_TRANSACTIONS: list[dict[str, Any]] = [
         "id": SCHEDULED_TRANSACTION_ID_2,
         "amount": -11000,
         "deleted": True,
+        "subtransactions": [],
+    },
+    {
+        "id": SCHEDULED_TRANSACTION_ID_3,
+        "amount": -9000,
+        "deleted": False,
         "subtransactions": [],
     },
 ]
