@@ -86,11 +86,11 @@ ranked_payees AS (
         ) AS rnk
     FROM
         flat_transactions AS t
-    INNER JOIN budgets AS b ON t.budget_id = b.id
+    INNER JOIN budgets AS b
+        ON t.budget_id = b.id
     WHERE
         t.payee_name != 'Starting Balance'
         AND t.transfer_account_id IS NULL
-        AND NOT t.deleted
     GROUP BY
         b.id
         , t.payee_id
@@ -110,63 +110,68 @@ ORDER BY
 ;
 ```
 
-To get payees with no transactions:
+To get duplicate payees, or payees with no transactions:
 
 ```sql
-WITH st AS (
-    SELECT
+WITH txns AS (
+    SELECT DISTINCT
         budget_id
         , payee_id
-        , MAX(NOT deleted) AS has_active_transaction
-    FROM
-        scheduled_flat_transactions
-    GROUP BY
-        budget_id
-        , payee_id
-)
-
-, t AS (
-    SELECT
-        budget_id
-        , payee_id
-        , MAX(NOT deleted) AS has_active_transaction
     FROM
         flat_transactions
-    GROUP BY
+
+    UNION ALL
+
+    SELECT DISTINCT
         budget_id
         , payee_id
+    FROM
+        scheduled_flat_transactions
+)
+
+, p AS (
+    SELECT
+        budget_id
+        , id
+        , name
+    FROM
+        payees
+    WHERE
+        NOT deleted
+        AND name != 'Reconciliation Balance Adjustment'
 )
 
 SELECT DISTINCT
-    b.name AS budget
-    , p.name AS payee
-FROM
-    budgets AS b
-INNER JOIN payees AS p ON b.id = p.budget_id
-LEFT JOIN t
-    ON (
-        p.id = t.payee_id
-        AND p.budget_id = t.budget_id
-    )
-LEFT JOIN st
-    ON (
-        p.id = st.payee_id
-        AND p.budget_id = st.budget_id
-    )
-WHERE
-    NOT p.deleted
-    AND p.name != 'Reconciliation Balance Adjustment'
-    AND (
-        t.payee_id IS NULL
-        OR NOT t.has_active_transaction
-    )
-    AND (
-        st.payee_id IS NULL
-        OR NOT st.has_active_transaction
-    )
-ORDER BY
     budget
     , payee
+FROM (
+    SELECT
+        b.name AS budget
+        , p.name AS payee
+    FROM
+        p
+    INNER JOIN budgets AS b
+        ON p.budget_id = b.id
+    LEFT JOIN txns AS t
+        ON p.id = t.payee_id AND p.budget_id = t.budget_id
+    WHERE
+        t.payee_id IS NULL
+
+    UNION ALL
+
+    SELECT
+        b.name AS budget
+        , p.name AS payee
+    FROM
+        p
+    INNER JOIN budgets AS b
+        ON p.budget_id = b.id
+    GROUP BY budget, payee
+    HAVING
+        COUNT(*) > 1
+
+)
+ORDER BY budget, payee
 ;
 ```
 
@@ -182,8 +187,7 @@ FROM (
         , amount_major
     FROM flat_transactions
     WHERE
-        NOT deleted
-        AND category_name = 'Apps'
+        category_name = 'Apps'
         AND SUBSTR(`date`, 1, 7) = SUBSTR(DATE(), 1, 7)
     UNION ALL
     SELECT
@@ -191,8 +195,7 @@ FROM (
         , amount_major
     FROM scheduled_flat_transactions
     WHERE
-        NOT deleted
-        AND category_name = 'Apps'
+        category_name = 'Apps'
         AND SUBSTR(date_next, 1, 7) < SUBSTR(DATE('now', '+1 year'), 1, 7)
 )
 ;
