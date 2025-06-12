@@ -114,7 +114,7 @@ To get duplicate payees, or payees with no transactions:
 
 ```sql
 WITH txns AS (
-    SELECT distinct
+    SELECT DISTINCT
         budget_id
         , payee_id
     FROM
@@ -122,7 +122,7 @@ WITH txns AS (
 
     UNION ALL
 
-    SELECT distinct
+    SELECT DISTINCT
         budget_id
         , payee_id
     FROM
@@ -131,14 +131,14 @@ WITH txns AS (
 
 , p AS (
     SELECT
-         budget_id
+        budget_id
         , id
         , name
     FROM
         payees
     WHERE
         NOT deleted
-         AND name != 'Reconciliation Balance Adjustment'
+        AND name != 'Reconciliation Balance Adjustment'
 )
 
 SELECT DISTINCT
@@ -151,9 +151,9 @@ FROM (
     FROM
         p
     INNER JOIN budgets AS b
-    ON p.budget_id = b.id
+        ON p.budget_id = b.id
     LEFT JOIN txns AS t
-        ON  p.id = t.payee_id AND p.budget_id = t.budget_id
+        ON p.id = t.payee_id AND p.budget_id = t.budget_id
     WHERE
         t.payee_id IS NULL
 
