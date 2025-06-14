@@ -161,25 +161,15 @@ SELECT
     , COALESCE(st.id, t.id) AS id
     , COALESCE(st.amount, t.amount) AS amount
     , COALESCE(st.amount, t.amount) / -1000.0 AS amount_major
-    , CASE
-        WHEN
-            COALESCE(st.transfer_account_id, t.transfer_account_id) IS NULL
-            THEN COALESCE(st.category_id, t.category_id)
-    END AS category_id
-    , CASE
-        WHEN
-            COALESCE(st.transfer_account_id, t.transfer_account_id) IS NULL
-            THEN COALESCE(st.category_name, t.category_name)
-    END AS category_name
+    , COALESCE(st.category_id, t.category_id) AS category_id
+    , COALESCE(st.category_name, t.category_name) AS category_name
     , COALESCE(st.memo, t.memo) AS memo
     , COALESCE(st.payee_id, t.payee_id) AS payee_id
     , COALESCE(st.payee_name, t.payee_name) AS payee_name
     , COALESCE(st.transfer_account_id, t.transfer_account_id)
         AS transfer_account_id
-    , COALESCE(
-        st.transfer_transaction_id
-        , t.transfer_transaction_id
-    ) AS transfer_transaction_id
+    , COALESCE(st.transfer_transaction_id, t.transfer_transaction_id)
+        AS transfer_transaction_id
 FROM
     transactions AS t
 LEFT JOIN subtransactions AS st
@@ -253,16 +243,10 @@ SELECT
     , COALESCE(st.id, t.id) AS id
     , COALESCE(st.amount, t.amount) AS amount
     , COALESCE(st.amount, t.amount) / -1000.0 AS amount_major
-    , CASE
-        WHEN
-            COALESCE(st.transfer_account_id, t.transfer_account_id) IS NULL
-            THEN COALESCE(st.category_id, t.category_id)
-    END AS category_id
-    , CASE
-        WHEN
-            COALESCE(st.transfer_account_id, t.transfer_account_id) IS NULL
-            THEN COALESCE(st.category_name, t.category_name)
-    END AS category_name
+    , COALESCE(st.category_id, t.category_id)
+        AS category_id
+    , COALESCE(st.category_name, t.category_name)
+        AS category_name
     , COALESCE(st.memo, t.memo) AS memo
     , COALESCE(st.payee_id, t.payee_id) AS payee_id
     , COALESCE(st.transfer_account_id, t.transfer_account_id)
