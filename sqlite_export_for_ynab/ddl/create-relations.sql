@@ -176,10 +176,8 @@ SELECT
     , COALESCE(st.payee_name, t.payee_name) AS payee_name
     , COALESCE(st.transfer_account_id, t.transfer_account_id)
         AS transfer_account_id
-    , COALESCE(
-        st.transfer_transaction_id
-        , t.transfer_transaction_id
-    ) AS transfer_transaction_id
+    , COALESCE(st.transfer_transaction_id, t.transfer_transaction_id)
+        AS transfer_transaction_id
 FROM
     transactions AS t
 LEFT JOIN subtransactions AS st
