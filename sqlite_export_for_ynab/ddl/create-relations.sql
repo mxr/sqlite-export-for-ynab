@@ -163,7 +163,7 @@ SELECT
     , COALESCE(st.amount, t.amount) / -1000.0 AS amount_major
     , COALESCE(st.category_id, t.category_id) AS category_id
     , COALESCE(st.category_name, t.category_name) AS category_name
-    , COALESCE(st.memo, t.memo) AS memo
+    , COALESCE(NULLIF(st.memo, ''), NULLIF(t.memo, '')) AS memo
     , COALESCE(st.payee_id, t.payee_id) AS payee_id
     , COALESCE(st.payee_name, t.payee_name) AS payee_name
     , COALESCE(st.transfer_account_id, t.transfer_account_id)
@@ -247,7 +247,7 @@ SELECT
         AS category_id
     , COALESCE(st.category_name, t.category_name)
         AS category_name
-    , COALESCE(st.memo, t.memo) AS memo
+    , COALESCE(NULLIF(st.memo, ''), NULLIF(t.memo, '')) AS memo
     , COALESCE(st.payee_id, t.payee_id) AS payee_id
     , COALESCE(st.transfer_account_id, t.transfer_account_id)
         AS transfer_account_id
