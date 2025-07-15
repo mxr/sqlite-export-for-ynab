@@ -271,4 +271,3 @@ WHERE
     TRUE
     AND NOT COALESCE(st.deleted, t.deleted)
 ;
-
