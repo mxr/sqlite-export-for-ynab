@@ -211,8 +211,35 @@ def insert_budgets(
     cur: sqlite3.Cursor, budgets: list[dict[str, Any]], lkos: dict[str, int]
 ) -> None:
     cur.executemany(
-        "INSERT OR REPLACE INTO budgets (id, name, last_knowledge_of_server) VALUES (?, ?, ?)",
-        ((bid := b["id"], b["name"], lkos[bid]) for b in budgets),
+        """
+        INSERT OR REPLACE INTO budgets (
+            id
+            , name
+            , currency_format_currency_symbol
+            , currency_format_decimal_digits
+            , currency_format_decimal_separator
+            , currency_format_display_symbol
+            , currency_format_group_separator
+            , currency_format_iso_code
+            , currency_format_symbol_first
+            , last_knowledge_of_server
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            (
+                bid := b["id"],
+                b["name"],
+                b["currency_format"]["currency_symbol"],
+                b["currency_format"]["decimal_digits"],
+                b["currency_format"]["decimal_separator"],
+                b["currency_format"]["display_symbol"],
+                b["currency_format"]["group_separator"],
+                b["currency_format"]["iso_code"],
+                b["currency_format"]["symbol_first"],
+                lkos[bid],
+            )
+            for b in budgets
+        ),
     )
 
 
