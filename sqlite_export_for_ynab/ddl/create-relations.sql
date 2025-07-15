@@ -168,26 +168,17 @@ SELECT
     , COALESCE(st.id, t.id) AS id
     , COALESCE(st.amount, t.amount) AS amount
     , COALESCE(st.amount, t.amount) / -1000.0 AS amount_major
-    , CASE
-        WHEN
-            COALESCE(st.transfer_account_id, t.transfer_account_id) IS NULL
-            THEN COALESCE(st.category_id, t.category_id)
-    END AS category_id
-    , CASE
-        WHEN
-            COALESCE(st.transfer_account_id, t.transfer_account_id) IS NULL
-            THEN COALESCE(st.category_name, t.category_name)
-    END AS category_name
-    , COALESCE(st.deleted, t.deleted) AS deleted
-    , COALESCE(st.memo, t.memo) AS memo
+    , CASE WHEN st.id IS NULL THEN t.category_id ELSE st.category_id END
+        AS category_id
+    , CASE WHEN st.id IS NULL THEN t.category_name ELSE st.category_name END
+        AS category_name
+    , COALESCE(NULLIF(st.memo, ''), NULLIF(t.memo, '')) AS memo
     , COALESCE(st.payee_id, t.payee_id) AS payee_id
     , COALESCE(st.payee_name, t.payee_name) AS payee_name
     , COALESCE(st.transfer_account_id, t.transfer_account_id)
         AS transfer_account_id
-    , COALESCE(
-        st.transfer_transaction_id
-        , t.transfer_transaction_id
-    ) AS transfer_transaction_id
+    , COALESCE(st.transfer_transaction_id, t.transfer_transaction_id)
+        AS transfer_transaction_id
 FROM
     transactions AS t
 LEFT JOIN subtransactions AS st
@@ -195,6 +186,9 @@ LEFT JOIN subtransactions AS st
         t.budget_id = st.budget_id
         AND t.id = st.transaction_id
     )
+WHERE
+    TRUE
+    AND NOT COALESCE(st.deleted, t.deleted)
 ;
 
 CREATE TABLE IF NOT EXISTS scheduled_transactions (
@@ -258,18 +252,11 @@ SELECT
     , COALESCE(st.id, t.id) AS id
     , COALESCE(st.amount, t.amount) AS amount
     , COALESCE(st.amount, t.amount) / -1000.0 AS amount_major
-    , CASE
-        WHEN
-            COALESCE(st.transfer_account_id, t.transfer_account_id) IS NULL
-            THEN COALESCE(st.category_id, t.category_id)
-    END AS category_id
-    , CASE
-        WHEN
-            COALESCE(st.transfer_account_id, t.transfer_account_id) IS NULL
-            THEN COALESCE(st.category_name, t.category_name)
-    END AS category_name
-    , COALESCE(st.deleted, t.deleted) AS deleted
-    , COALESCE(st.memo, t.memo) AS memo
+    , CASE WHEN st.id IS NULL THEN t.category_id ELSE st.category_id END
+        AS category_id
+    , CASE WHEN st.id IS NULL THEN t.category_name ELSE st.category_name END
+        AS category_name
+    , COALESCE(NULLIF(st.memo, ''), NULLIF(t.memo, '')) AS memo
     , COALESCE(st.payee_id, t.payee_id) AS payee_id
     , COALESCE(st.transfer_account_id, t.transfer_account_id)
         AS transfer_account_id
@@ -280,4 +267,8 @@ LEFT JOIN scheduled_subtransactions AS st
         t.budget_id = st.budget_id
         AND t.id = st.scheduled_transaction_id
     )
+WHERE
+    TRUE
+    AND NOT COALESCE(st.deleted, t.deleted)
 ;
+
