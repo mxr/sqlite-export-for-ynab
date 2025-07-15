@@ -18,7 +18,7 @@ BUDGETS: list[dict[str, Any]] = [
     {
         "id": BUDGET_ID_1,
         "name": "Budget 1",
-                "currency_format": {
+        "currency_format": {
             "currency_symbol": "$",
             "decimal_digits": 2,
             "decimal_separator": ".",
@@ -32,7 +32,7 @@ BUDGETS: list[dict[str, Any]] = [
     {
         "id": BUDGET_ID_2,
         "name": "Budget 2",
-                "currency_format": {
+        "currency_format": {
             "currency_symbol": "$",
             "decimal_digits": 2,
             "decimal_separator": ".",
