@@ -61,7 +61,6 @@ from testing.fixtures import SCHEDULED_SUBTRANSACTION_ID_1
 from testing.fixtures import SCHEDULED_SUBTRANSACTION_ID_2
 from testing.fixtures import SCHEDULED_TRANSACTION_ID_1
 from testing.fixtures import SCHEDULED_TRANSACTION_ID_2
-from testing.fixtures import SCHEDULED_TRANSACTION_ID_3
 from testing.fixtures import SCHEDULED_TRANSACTIONS
 from testing.fixtures import SCHEDULED_TRANSACTIONS_ENDPOINT_RE
 from testing.fixtures import SERVER_KNOWLEDGE_1
@@ -71,7 +70,6 @@ from testing.fixtures import SUBTRANSACTION_ID_2
 from testing.fixtures import TOKEN
 from testing.fixtures import TRANSACTION_ID_1
 from testing.fixtures import TRANSACTION_ID_2
-from testing.fixtures import TRANSACTION_ID_3
 from testing.fixtures import TRANSACTIONS
 from testing.fixtures import TRANSACTIONS_ENDPOINT_RE
 
@@ -107,11 +105,25 @@ def test_insert_budgets(cur):
         {
             "id": BUDGET_ID_1,
             "name": BUDGETS[0]["name"],
+            "currency_format_currency_symbol": "$",
+            "currency_format_decimal_digits": 2,
+            "currency_format_decimal_separator": ".",
+            "currency_format_display_symbol": 1,
+            "currency_format_group_separator": ",",
+            "currency_format_iso_code": "USD",
+            "currency_format_symbol_first": 1,
             "last_knowledge_of_server": LKOS[BUDGET_ID_1],
         },
         {
             "id": BUDGET_ID_2,
             "name": BUDGETS[1]["name"],
+            "currency_format_currency_symbol": "$",
+            "currency_format_decimal_digits": 2,
+            "currency_format_decimal_separator": ".",
+            "currency_format_display_symbol": 1,
+            "currency_format_group_separator": ",",
+            "currency_format_iso_code": "USD",
+            "currency_format_symbol_first": 1,
             "last_knowledge_of_server": LKOS[BUDGET_ID_2],
         },
     ]
@@ -244,21 +256,12 @@ def test_insert_transactions(cur):
             "budget_id": BUDGET_ID_1,
             "date": "2024-01-01",
             "amount": -10000,
-            "deleted": False,
         },
         {
             "id": TRANSACTION_ID_2,
             "budget_id": BUDGET_ID_1,
             "date": "2024-02-01",
             "amount": -15000,
-            "deleted": True,
-        },
-        {
-            "id": TRANSACTION_ID_3,
-            "budget_id": BUDGET_ID_1,
-            "date": "2024-03-01",
-            "amount": -19000,
-            "deleted": False,
         },
     ]
 
@@ -269,26 +272,24 @@ def test_insert_transactions(cur):
             "transaction_id": TRANSACTION_ID_1,
             "budget_id": BUDGET_ID_1,
             "amount": -7500,
-            "deleted": False,
         },
         {
             "id": SUBTRANSACTION_ID_2,
             "transaction_id": TRANSACTION_ID_1,
             "budget_id": BUDGET_ID_1,
             "amount": -2500,
-            "deleted": False,
         },
     ]
 
     cur.execute("SELECT * FROM flat_transactions ORDER BY amount")
     assert [strip_nones(d) for d in cur.fetchall()] == [
         {
-            "transaction_id": TRANSACTION_ID_3,
+            "transaction_id": TRANSACTION_ID_2,
             "budget_id": BUDGET_ID_1,
-            "date": "2024-03-01",
-            "id": TRANSACTION_ID_3,
-            "amount": -19000,
-            "amount_major": pytest.approx(19),
+            "date": "2024-02-01",
+            "id": TRANSACTION_ID_2,
+            "amount": -15000,
+            "amount_major": pytest.approx(15),
         },
         {
             "transaction_id": TRANSACTION_ID_1,
@@ -324,19 +325,11 @@ def test_insert_scheduled_transactions(cur):
             "id": SCHEDULED_TRANSACTION_ID_1,
             "budget_id": BUDGET_ID_1,
             "amount": -12000,
-            "deleted": False,
         },
         {
             "id": SCHEDULED_TRANSACTION_ID_2,
             "budget_id": BUDGET_ID_1,
             "amount": -11000,
-            "deleted": True,
-        },
-        {
-            "id": SCHEDULED_TRANSACTION_ID_3,
-            "budget_id": BUDGET_ID_1,
-            "amount": -9000,
-            "deleted": False,
         },
     ]
 
@@ -347,25 +340,23 @@ def test_insert_scheduled_transactions(cur):
             "scheduled_transaction_id": SCHEDULED_TRANSACTION_ID_1,
             "budget_id": BUDGET_ID_1,
             "amount": -8040,
-            "deleted": False,
         },
         {
             "id": SCHEDULED_SUBTRANSACTION_ID_2,
             "scheduled_transaction_id": SCHEDULED_TRANSACTION_ID_1,
             "budget_id": BUDGET_ID_1,
             "amount": -2960,
-            "deleted": False,
         },
     ]
 
     cur.execute("SELECT * FROM scheduled_flat_transactions ORDER BY amount")
     assert [strip_nones(d) for d in cur.fetchall()] == [
         {
-            "transaction_id": SCHEDULED_TRANSACTION_ID_3,
+            "transaction_id": SCHEDULED_TRANSACTION_ID_2,
             "budget_id": BUDGET_ID_1,
-            "id": SCHEDULED_TRANSACTION_ID_3,
-            "amount": -9000,
-            "amount_major": pytest.approx(9),
+            "id": SCHEDULED_TRANSACTION_ID_2,
+            "amount": -11000,
+            "amount_major": pytest.approx(11),
         },
         {
             "transaction_id": SCHEDULED_TRANSACTION_ID_1,
