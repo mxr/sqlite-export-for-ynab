@@ -107,7 +107,7 @@ def test_insert_budgets(cur):
         {
             "id": BUDGET_ID_1,
             "name": BUDGETS[0]["name"],
-          "currency_format_currency_symbol": "$",
+            "currency_format_currency_symbol": "$",
             "currency_format_decimal_digits": 2,
             "currency_format_decimal_separator": ".",
             "currency_format_display_symbol": 1,
@@ -119,7 +119,7 @@ def test_insert_budgets(cur):
         {
             "id": BUDGET_ID_2,
             "name": BUDGETS[1]["name"],
-          "currency_format_currency_symbol": "$",
+            "currency_format_currency_symbol": "$",
             "currency_format_decimal_digits": 2,
             "currency_format_decimal_separator": ".",
             "currency_format_display_symbol": 1,
