@@ -170,12 +170,12 @@ SELECT
     , COALESCE(st.amount, t.amount) / -1000.0 AS amount_major
     , CASE
         WHEN
-            COALESCE(st.transfer_account_id, t.transfer_account_id) IS null
+            COALESCE(st.transfer_account_id, t.transfer_account_id) IS NULL
             THEN COALESCE(st.category_id, t.category_id)
     END AS category_id
     , CASE
         WHEN
-            COALESCE(st.transfer_account_id, t.transfer_account_id) IS null
+            COALESCE(st.transfer_account_id, t.transfer_account_id) IS NULL
             THEN COALESCE(st.category_name, t.category_name)
     END AS category_name
     , COALESCE(st.deleted, t.deleted) AS deleted
@@ -260,12 +260,12 @@ SELECT
     , COALESCE(st.amount, t.amount) / -1000.0 AS amount_major
     , CASE
         WHEN
-            COALESCE(st.transfer_account_id, t.transfer_account_id) IS null
+            COALESCE(st.transfer_account_id, t.transfer_account_id) IS NULL
             THEN COALESCE(st.category_id, t.category_id)
     END AS category_id
     , CASE
         WHEN
-            COALESCE(st.transfer_account_id, t.transfer_account_id) IS null
+            COALESCE(st.transfer_account_id, t.transfer_account_id) IS NULL
             THEN COALESCE(st.category_name, t.category_name)
     END AS category_name
     , COALESCE(st.deleted, t.deleted) AS deleted
