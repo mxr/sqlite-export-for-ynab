@@ -1,6 +1,13 @@
 CREATE TABLE IF NOT EXISTS budgets (
     id TEXT PRIMARY KEY
     , name TEXT
+    , currency_format_currency_symbol TEXT
+    , currency_format_decimal_digits INT
+    , currency_format_decimal_separator TEXT
+    , currency_format_display_symbol BOOLEAN
+    , currency_format_group_separator TEXT
+    , currency_format_iso_code TEXT
+    , currency_format_symbol_first BOOLEAN
     , last_knowledge_of_server INT
 )
 ;
