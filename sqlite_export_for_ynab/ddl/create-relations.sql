@@ -248,6 +248,7 @@ SELECT
     , t.date_next
     , t.flag_color
     , t.flag_name
+    , t.frequency
     , COALESCE(st.payee_name, t.payee_name) AS payee_name
     , COALESCE(st.id, t.id) AS id
     , COALESCE(st.amount, t.amount) AS amount
