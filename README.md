@@ -200,13 +200,13 @@ FROM (
                     THEN
                         CAST(
                             SUBSTR(
-                                TIMEDIFF(DATE('now', '+1 year'), date_next)
+                                timediff( DATE(DATE('now', '+1 year'), '-1 day'), date_next),
                                 , 7
                                 , 2
                             ) AS integer
                         )
-                        - 1
-                ELSE 1
+                        
+                ELSE 1 -- assumes yearly
             END
         )
     FROM scheduled_flat_transactions
