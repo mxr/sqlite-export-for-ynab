@@ -208,8 +208,8 @@ FROM (
                             ) AS integer
                         )
                 ELSE 1 -- assumes yearly
-            END as amount_major
-        )
+            END 
+        ) AS amount_major
     FROM scheduled_flat_transactions
     WHERE
         category_name = 'Apps'
