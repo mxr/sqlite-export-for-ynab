@@ -208,7 +208,7 @@ FROM (
                             ) AS integer
                         )
                 ELSE 1 -- assumes yearly
-            END 
+            END
         ) AS amount_major
     FROM scheduled_flat_transactions
     WHERE
