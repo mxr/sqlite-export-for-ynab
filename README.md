@@ -205,7 +205,7 @@ FROM (
                                 , 2
                             ) AS integer
                         )
-                        
+
                 ELSE 1 -- assumes yearly
             END
         )
