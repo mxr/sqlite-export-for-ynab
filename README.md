@@ -209,7 +209,7 @@ FROM (
                         )
 
                 ELSE 1 -- assumes yearly
-            END
+            END as amount_major
         )
     FROM scheduled_flat_transactions
     WHERE
