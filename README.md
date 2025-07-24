@@ -192,8 +192,23 @@ FROM (
     UNION ALL
     SELECT
         budget_id
-        , amount_major * (case when frequency = 'monthly' then cast(substr(timediff( DATE
-                                                          ('now','+1 year'), date_next), 7, 2) as integer) -1 else 1 end)
+        , amount_major
+        * (
+            CASE
+                WHEN
+                    frequency = 'monthly'
+                    THEN
+                        CAST(
+                            SUBSTR(
+                                TIMEDIFF(DATE('now', '+1 year'), date_next)
+                                , 7
+                                , 2
+                            ) AS integer
+                        )
+                        - 1
+                ELSE 1
+            END
+        )
     FROM scheduled_flat_transactions
     WHERE
         category_name = 'Apps'
