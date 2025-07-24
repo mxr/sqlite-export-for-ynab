@@ -196,6 +196,7 @@ SCHEDULED_TRANSACTIONS: list[dict[str, Any]] = [
     {
         "id": SCHEDULED_TRANSACTION_ID_1,
         "amount": -12000,
+        "frequency": "monthly",
         "deleted": False,
         "subtransactions": [
             {
@@ -215,12 +216,14 @@ SCHEDULED_TRANSACTIONS: list[dict[str, Any]] = [
     {
         "id": SCHEDULED_TRANSACTION_ID_2,
         "amount": -11000,
+        "frequency": "yearly",
         "deleted": True,
         "subtransactions": [],
     },
     {
         "id": SCHEDULED_TRANSACTION_ID_3,
         "amount": -9000,
+        "frequency": "everyOtherMonth",
         "deleted": False,
         "subtransactions": [],
     },
