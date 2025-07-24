@@ -199,7 +199,10 @@ FROM (
                     THEN
                         CAST(
                             SUBSTR(
-                                timediff( DATE(DATE('now', '+1 year'), '-1 day'), date_next)
+                                TIMEDIFF(
+                                    DATE(DATE('now', '+1 year'), '-1 day')
+                                    , date_next
+                                )
                                 , 7
                                 , 2
                             ) AS integer
