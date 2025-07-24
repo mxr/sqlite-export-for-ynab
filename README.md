@@ -194,19 +194,7 @@ FROM (
         budget_id
         , amount_major * (
             CASE
-                WHEN
-                    frequency = 'monthly'
-                    THEN
-                        CAST(
-                            SUBSTR(
-                                TIMEDIFF(
-                                    DATE(DATE('now', '+1 year'), '-1 day')
-                                    , date_next
-                                )
-                                , 7
-                                , 2
-                            ) AS integer
-                        )
+ WHEN    frequency = 'monthly'                    THEN                        11
                 ELSE 1 -- assumes yearly
             END
         ) AS amount_major
