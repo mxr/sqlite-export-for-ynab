@@ -194,7 +194,7 @@ FROM (
         budget_id
         , amount_major * (
             CASE
- WHEN    frequency = 'monthly'                    THEN                        11
+                WHEN frequency = 'monthly' THEN 11
                 ELSE 1 -- assumes yearly
             END
         ) AS amount_major
