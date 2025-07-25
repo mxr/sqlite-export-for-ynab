@@ -192,7 +192,12 @@ FROM (
     UNION ALL
     SELECT
         budget_id
-        , amount_major
+        , amount_major * (
+            CASE
+                WHEN frequency = 'monthly' THEN 11
+                ELSE 1 -- assumes yearly
+            END
+        ) AS amount_major
     FROM scheduled_flat_transactions
     WHERE
         category_name = 'Apps'
