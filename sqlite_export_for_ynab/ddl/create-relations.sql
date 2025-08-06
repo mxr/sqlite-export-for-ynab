@@ -73,6 +73,7 @@ CREATE TABLE IF NOT EXISTS categories (
     , goal_cadence INT
     , goal_cadence_frequency INT
     , goal_creation_month TEXT
+    , goal_snoozed_at TEXT
     , goal_target INT
     , goal_target_month TEXT
     , goal_percentage_complete INT
@@ -111,7 +112,6 @@ CREATE TABLE IF NOT EXISTS transactions (
     , deleted BOOLEAN
     , flag_color TEXT
     , flag_name TEXT
-    , goal_snoozed_at TEXT
     , import_id TEXT
     , import_payee_name TEXT
     , import_payee_name_original TEXT
@@ -162,7 +162,6 @@ SELECT
     , t.debt_transaction_type
     , t.flag_color
     , t.flag_name
-    , t.goal_snoozed_at
     , t.import_id
     , t.import_payee_name
     , t.import_payee_name_original
