@@ -73,6 +73,7 @@ CREATE TABLE IF NOT EXISTS categories (
     , goal_cadence INT
     , goal_cadence_frequency INT
     , goal_creation_month TEXT
+    , goal_snoozed_at TEXT
     , goal_target INT
     , goal_target_month TEXT
     , goal_percentage_complete INT
