@@ -49,19 +49,3 @@ capitalisation_policy = 'upper'
 [tool.sqlfluff.rules.convention.terminator]
 multiline_newline = true
 require_final_semicolon = true
-
-[tool.tox]
-envlist = ["py", "pypy3", "pre-commit"]
-
-[tool.tox.env.pre-commit]
-commands = [["pre-commit", "run", "--all-files", "--show-diff-on-failure"]]
-deps = "pre-commit-uv"
-skip_install = true
-
-[tool.tox.env_run_base]
-commands = [
-  ["coverage", "erase"],
-  ["coverage", "run", "-m", "pytest", "{posargs:tests}"],
-  ["coverage", "report"],
-]
-deps = "-rrequirements-dev.txt"
