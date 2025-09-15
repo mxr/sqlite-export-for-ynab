@@ -9,7 +9,7 @@ jobs:
   main:
     uses: asottile/workflows/.github/workflows/tox.yml@v1.8.1
     with:
-      env: '["py312", "py313", "py314", "pypy7.3.13"]' # https://github.com/actions/runner-images/blob/50ae10289a1d019551858f6a174f78d2e212bed4/images/ubuntu/Ubuntu2204-Readme.md#pypy
+      env: '["py312", "py313", "py314", "pypy7.3.20"]' # https://github.com/actions/runner-images/blob/4847d9e554d1ad62acec5c5bddfc6175fe1bef4e/images/ubuntu/Ubuntu2204-Readme.md#pypy
   main-win:
     uses: asottile/workflows/.github/workflows/tox.yml@v1.8.1
     with:
