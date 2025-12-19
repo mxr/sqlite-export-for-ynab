@@ -10,7 +10,7 @@ from unittest.mock import patch
 import aiohttp
 import pytest
 from aiohttp.http_exceptions import HttpProcessingError
-from tqdm import tqdm
+from tldm import tldm
 
 from sqlite_export_for_ynab import default_db_path
 from sqlite_export_for_ynab._main import _ALL_RELATIONS
@@ -412,7 +412,7 @@ async def test_progress_ynab_client_ok(mock_aioresponses):
     expected = {"example": [{"id": 1, "value": 2}, {"id": 3, "value": 4}]}
     mock_aioresponses.get(EXAMPLE_ENDPOINT_RE, body=json.dumps({"data": expected}))
 
-    with tqdm(disable=True) as pbar:
+    with tldm(disable=True) as pbar:
         async with aiohttp.ClientSession(loop=asyncio.get_event_loop()) as session:
             pyc = ProgressYnabClient(YnabClient(TOKEN, session), pbar)
             entries = await pyc("example")
