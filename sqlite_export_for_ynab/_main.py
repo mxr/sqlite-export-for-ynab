@@ -20,7 +20,7 @@ from urllib.parse import urljoin
 from urllib.parse import urlunparse
 
 import aiohttp
-from tqdm import tqdm
+from tldm import tldm
 
 from sqlite_export_for_ynab import ddl
 
@@ -125,7 +125,7 @@ async def sync(token: str, db: Path, full_refresh: bool) -> None:
         print("Fetching budget data...")
         lkos = get_last_knowledge_of_server(cur)
         async with aiohttp.ClientSession() as session:
-            with tqdm(desc="Budget Data", total=len(budgets) * 5) as pbar:
+            with tldm(desc="Budget Data", total=len(budgets) * 5) as pbar:
                 yc = ProgressYnabClient(YnabClient(token, session), pbar)
 
                 account_jobs = jobs(yc, "accounts", budget_ids, lkos)
@@ -300,7 +300,7 @@ def insert_payees(
     if not payees:
         return
 
-    for payee in tqdm(payees, desc="Payees"):
+    for payee in tldm(payees, desc="Payees"):
         insert_entry(cur, "payees", budget_id, payee)
 
 
@@ -411,7 +411,7 @@ def insert_nested_entries(
     if not entries:
         return
 
-    with tqdm(
+    with tldm(
         total=sum(1 + len(e[subentries_name]) for e in entries),
         desc=desc,
     ) as pbar:
@@ -471,7 +471,7 @@ class SupportsYnabClient(Protocol):
 @dataclass
 class ProgressYnabClient:
     yc: YnabClient
-    pbar: tqdm[Never]
+    pbar: tldm[Never]
 
     async def __call__(
         self, path: str, last_knowledge_of_server: int | None = None
