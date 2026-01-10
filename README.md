@@ -136,7 +136,7 @@ FROM (
         AND p.transfer_account_id IS NULL
         AND p.name != 'Reconciliation Balance Adjustment'
 
-    UNION
+    UNION ALL
 
     SELECT
         budget_id
