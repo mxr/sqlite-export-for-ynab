@@ -113,64 +113,41 @@ ORDER BY
 To get duplicate payees, or payees with no transactions:
 
 ```sql
-WITH txns AS (
-    SELECT DISTINCT
-        budget_id
-        , payee_id
-    FROM
-        flat_transactions
-
-    UNION ALL
-
-    SELECT DISTINCT
-        budget_id
-        , payee_id
-    FROM
-        scheduled_flat_transactions
-)
-
-, p AS (
-    SELECT
-        budget_id
-        , id
-        , name
-    FROM
-        payees
-    WHERE
-        NOT deleted
-        AND name != 'Reconciliation Balance Adjustment'
-)
-
 SELECT DISTINCT
-    budget
-    , payee
+    b.name AS budget
+    , dupes.name AS payee
 FROM (
-    SELECT
-        b.name AS budget
-        , p.name AS payee
-    FROM
-        p
-    INNER JOIN budgets AS b
-        ON p.budget_id = b.id
-    LEFT JOIN txns AS t
-        ON p.id = t.payee_id AND p.budget_id = t.budget_id
+    SELECT DISTINCT
+        p.budget_id
+        , p.name
+    FROM payees AS p
+    LEFT JOIN flat_transactions AS ft
+        ON
+            p.budget_id = ft.budget_id
+            AND p.id = ft.payee_id
+    LEFT JOIN scheduled_flat_transactions AS sft
+        ON
+            p.budget_id = sft.budget_id
+            AND p.id = sft.payee_id
     WHERE
-        t.payee_id IS NULL
+        TRUE
+        AND ft.payee_id IS NULL
+        AND sft.payee_id IS NULL
+        AND p.transfer_account_id IS NULL
+        AND p.name != 'Reconciliation Balance Adjustment'
 
     UNION ALL
 
     SELECT
-        b.name AS budget
-        , p.name AS payee
-    FROM
-        p
-    INNER JOIN budgets AS b
-        ON p.budget_id = b.id
-    GROUP BY budget, payee
-    HAVING
-        COUNT(*) > 1
+        budget_id
+        , name
+    FROM payees
+    GROUP BY budget_id, name
+    HAVING COUNT(*) > 1
 
-)
+) AS dupes
+INNER JOIN budgets AS b
+    ON dupes.budget_id = b.id
 ORDER BY budget, payee
 ;
 ```
