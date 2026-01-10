@@ -113,66 +113,41 @@ ORDER BY
 To get duplicate payees, or payees with no transactions:
 
 ```sql
-WITH txns AS (
-    SELECT DISTINCT
-        budget_id
-        , payee_id
-    FROM
-        flat_transactions
+select distinct
+    budget_id,
+    name
+from (
+    select distinct
+        p.budget_id,
+        p.name
+    from payees as p
+    left join flat_transactions as ft
+        on
+            p.budget_id = ft.budget_id
+            and p.id = ft.payee_id
+    left join scheduled_flat_transactions as sft
+        on
+            p.budget_id = sft.budget_id
+            and p.id = sft.payee_id
+    where
+    true and
+        ft.payee_id is NULL
+        and sft.payee_id is NULL
+        and p.transfer_account_id is null
+        and p.name != 'Reconciliation Balance Adjustment'
 
-    UNION ALL
+    union
 
-    SELECT DISTINCT
-        budget_id
-        , payee_id
-    FROM
-        scheduled_flat_transactions
-)
 
-, p AS (
-    SELECT
-        budget_id
-        , id
-        , name
-    FROM
-        payees
-    WHERE
-        NOT deleted
-        AND name != 'Reconciliation Balance Adjustment'
-)
-
-SELECT DISTINCT
-    budget
-    , payee
-FROM (
-    SELECT
-        b.name AS budget
-        , p.name AS payee
-    FROM
-        p
-    INNER JOIN budgets AS b
-        ON p.budget_id = b.id
-    LEFT JOIN txns AS t
-        ON p.id = t.payee_id AND p.budget_id = t.budget_id
-    WHERE
-        t.payee_id IS NULL
-
-    UNION ALL
-
-    SELECT
-        b.name AS budget
-        , p.name AS payee
-    FROM
-        p
-    INNER JOIN budgets AS b
-        ON p.budget_id = b.id
-    GROUP BY budget, payee
-    HAVING
-        COUNT(*) > 1
+    select
+        budget_id,
+        name
+    from payees
+    group by budget_id, name
+    having COUNT(*) > 1
 
 )
-ORDER BY budget, payee
-;
+order by budget_id, name;
 ```
 
 To count the spend for a category (ex: "Apps") between this month and the next 11 months (inclusive):
