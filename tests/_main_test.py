@@ -40,6 +40,8 @@ from testing.fixtures import BUDGETS_ENDPOINT_RE
 from testing.fixtures import CATEGORIES_ENDPOINT_RE
 from testing.fixtures import CATEGORY_GROUP_ID_1
 from testing.fixtures import CATEGORY_GROUP_ID_2
+from testing.fixtures import CATEGORY_GROUP_NAME_1
+from testing.fixtures import CATEGORY_GROUP_NAME_2
 from testing.fixtures import CATEGORY_GROUPS
 from testing.fixtures import CATEGORY_ID_1
 from testing.fixtures import CATEGORY_ID_2
@@ -184,12 +186,12 @@ def test_insert_category_groups(cur):
     assert [strip_nones(d) for d in cur.fetchall()] == [
         {
             "id": CATEGORY_GROUP_ID_1,
-            "name": CATEGORY_GROUPS[0]["name"],
+            "name": CATEGORY_GROUP_NAME_1,
             "budget_id": BUDGET_ID_1,
         },
         {
             "id": CATEGORY_GROUP_ID_2,
-            "name": CATEGORY_GROUPS[1]["name"],
+            "name": CATEGORY_GROUP_NAME_2,
             "budget_id": BUDGET_ID_1,
         },
     ]
@@ -199,24 +201,28 @@ def test_insert_category_groups(cur):
         {
             "id": CATEGORY_ID_1,
             "category_group_id": CATEGORY_GROUP_ID_1,
+            "category_group_name": CATEGORY_GROUP_NAME_1,
             "budget_id": BUDGET_ID_1,
             "name": CATEGORY_NAME_1,
         },
         {
             "id": CATEGORY_ID_2,
             "category_group_id": CATEGORY_GROUP_ID_1,
+            "category_group_name": CATEGORY_GROUP_NAME_1,
             "budget_id": BUDGET_ID_1,
             "name": CATEGORY_NAME_2,
         },
         {
             "id": CATEGORY_ID_3,
             "category_group_id": CATEGORY_GROUP_ID_2,
+            "category_group_name": CATEGORY_GROUP_NAME_2,
             "budget_id": BUDGET_ID_1,
             "name": CATEGORY_NAME_3,
         },
         {
             "id": CATEGORY_ID_4,
             "category_group_id": CATEGORY_GROUP_ID_2,
+            "category_group_name": CATEGORY_GROUP_NAME_2,
             "budget_id": BUDGET_ID_1,
             "name": CATEGORY_NAME_4,
         },
@@ -250,6 +256,7 @@ def test_insert_transactions(cur):
     assert not cur.execute("SELECT * FROM transactions").fetchall()
     assert not cur.execute("SELECT * FROM subtransactions").fetchall()
 
+    insert_category_groups(cur, BUDGET_ID_1, CATEGORY_GROUPS)
     insert_transactions(cur, BUDGET_ID_1, TRANSACTIONS)
     cur.execute("SELECT * FROM transactions ORDER BY date")
     assert [strip_nones(d) for d in cur.fetchall()] == [
@@ -258,6 +265,8 @@ def test_insert_transactions(cur):
             "budget_id": BUDGET_ID_1,
             "date": "2024-01-01",
             "amount": -10000,
+            "category_id": CATEGORY_ID_3,
+            "category_name": CATEGORY_NAME_3,
             "deleted": False,
         },
         {
@@ -265,6 +274,8 @@ def test_insert_transactions(cur):
             "budget_id": BUDGET_ID_1,
             "date": "2024-02-01",
             "amount": -15000,
+            "category_id": CATEGORY_ID_2,
+            "category_name": CATEGORY_NAME_2,
             "deleted": True,
         },
         {
@@ -272,6 +283,8 @@ def test_insert_transactions(cur):
             "budget_id": BUDGET_ID_1,
             "date": "2024-03-01",
             "amount": -19000,
+            "category_id": CATEGORY_ID_4,
+            "category_name": CATEGORY_NAME_4,
             "deleted": False,
         },
     ]
@@ -283,6 +296,8 @@ def test_insert_transactions(cur):
             "transaction_id": TRANSACTION_ID_1,
             "budget_id": BUDGET_ID_1,
             "amount": -7500,
+            "category_id": CATEGORY_ID_1,
+            "category_name": CATEGORY_NAME_1,
             "deleted": False,
         },
         {
@@ -290,6 +305,8 @@ def test_insert_transactions(cur):
             "transaction_id": TRANSACTION_ID_1,
             "budget_id": BUDGET_ID_1,
             "amount": -2500,
+            "category_id": CATEGORY_ID_2,
+            "category_name": CATEGORY_NAME_2,
             "deleted": False,
         },
     ]
@@ -303,6 +320,10 @@ def test_insert_transactions(cur):
             "id": TRANSACTION_ID_3,
             "amount": -19000,
             "amount_major": pytest.approx(19),
+            "category_id": CATEGORY_ID_4,
+            "category_name": CATEGORY_NAME_4,
+            "category_group_id": CATEGORY_GROUP_ID_2,
+            "category_group_name": CATEGORY_GROUP_NAME_2,
         },
         {
             "transaction_id": TRANSACTION_ID_1,
@@ -312,6 +333,10 @@ def test_insert_transactions(cur):
             "id": SUBTRANSACTION_ID_1,
             "amount": -7500,
             "amount_major": pytest.approx(7.50),
+            "category_id": CATEGORY_ID_1,
+            "category_name": CATEGORY_NAME_1,
+            "category_group_id": CATEGORY_GROUP_ID_1,
+            "category_group_name": CATEGORY_GROUP_NAME_1,
         },
         {
             "transaction_id": TRANSACTION_ID_1,
@@ -321,6 +346,10 @@ def test_insert_transactions(cur):
             "id": SUBTRANSACTION_ID_2,
             "amount": -2500,
             "amount_major": pytest.approx(2.50),
+            "category_id": CATEGORY_ID_2,
+            "category_name": CATEGORY_NAME_2,
+            "category_group_id": CATEGORY_GROUP_ID_1,
+            "category_group_name": CATEGORY_GROUP_NAME_1,
         },
     ]
 
@@ -331,6 +360,7 @@ def test_insert_scheduled_transactions(cur):
     assert not cur.execute("SELECT * FROM scheduled_transactions").fetchall()
     assert not cur.execute("SELECT * FROM scheduled_subtransactions").fetchall()
 
+    insert_category_groups(cur, BUDGET_ID_1, CATEGORY_GROUPS)
     insert_scheduled_transactions(cur, BUDGET_ID_1, SCHEDULED_TRANSACTIONS)
     cur.execute("SELECT * FROM scheduled_transactions ORDER BY amount")
     assert [strip_nones(d) for d in cur.fetchall()] == [
@@ -339,6 +369,8 @@ def test_insert_scheduled_transactions(cur):
             "budget_id": BUDGET_ID_1,
             "frequency": "monthly",
             "amount": -12000,
+            "category_id": CATEGORY_ID_1,
+            "category_name": CATEGORY_NAME_1,
             "deleted": False,
         },
         {
@@ -346,6 +378,8 @@ def test_insert_scheduled_transactions(cur):
             "budget_id": BUDGET_ID_1,
             "frequency": "yearly",
             "amount": -11000,
+            "category_id": CATEGORY_ID_3,
+            "category_name": CATEGORY_NAME_3,
             "deleted": True,
         },
         {
@@ -353,6 +387,8 @@ def test_insert_scheduled_transactions(cur):
             "budget_id": BUDGET_ID_1,
             "frequency": "everyOtherMonth",
             "amount": -9000,
+            "category_id": CATEGORY_ID_4,
+            "category_name": CATEGORY_NAME_4,
             "deleted": False,
         },
     ]
@@ -364,6 +400,8 @@ def test_insert_scheduled_transactions(cur):
             "scheduled_transaction_id": SCHEDULED_TRANSACTION_ID_1,
             "budget_id": BUDGET_ID_1,
             "amount": -8040,
+            "category_id": CATEGORY_ID_2,
+            "category_name": CATEGORY_NAME_2,
             "deleted": False,
         },
         {
@@ -371,6 +409,8 @@ def test_insert_scheduled_transactions(cur):
             "scheduled_transaction_id": SCHEDULED_TRANSACTION_ID_1,
             "budget_id": BUDGET_ID_1,
             "amount": -2960,
+            "category_id": CATEGORY_ID_3,
+            "category_name": CATEGORY_NAME_3,
             "deleted": False,
         },
     ]
@@ -384,6 +424,10 @@ def test_insert_scheduled_transactions(cur):
             "frequency": "everyOtherMonth",
             "amount": -9000,
             "amount_major": pytest.approx(9),
+            "category_id": CATEGORY_ID_4,
+            "category_name": CATEGORY_NAME_4,
+            "category_group_id": CATEGORY_GROUP_ID_2,
+            "category_group_name": CATEGORY_GROUP_NAME_2,
         },
         {
             "transaction_id": SCHEDULED_TRANSACTION_ID_1,
@@ -393,6 +437,10 @@ def test_insert_scheduled_transactions(cur):
             "frequency": "monthly",
             "amount": -8040,
             "amount_major": pytest.approx(8.04),
+            "category_id": CATEGORY_ID_2,
+            "category_name": CATEGORY_NAME_2,
+            "category_group_id": CATEGORY_GROUP_ID_1,
+            "category_group_name": CATEGORY_GROUP_NAME_1,
         },
         {
             "transaction_id": SCHEDULED_TRANSACTION_ID_1,
@@ -402,6 +450,10 @@ def test_insert_scheduled_transactions(cur):
             "frequency": "monthly",
             "amount": -2960,
             "amount_major": pytest.approx(2.96),
+            "category_id": CATEGORY_ID_3,
+            "category_name": CATEGORY_NAME_3,
+            "category_group_id": CATEGORY_GROUP_ID_2,
+            "category_group_name": CATEGORY_GROUP_NAME_2,
         },
     ]
 

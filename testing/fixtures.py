@@ -82,6 +82,9 @@ ACCOUNTS: list[dict[str, Any]] = [
 CATEGORY_GROUP_ID_1 = str(uuid4())
 CATEGORY_GROUP_ID_2 = str(uuid4())
 
+CATEGORY_GROUP_NAME_1 = "Category Group 1"
+CATEGORY_GROUP_NAME_2 = "Category Group 2"
+
 CATEGORY_ID_1 = str(uuid4())
 CATEGORY_ID_2 = str(uuid4())
 CATEGORY_ID_3 = str(uuid4())
@@ -95,32 +98,36 @@ CATEGORY_NAME_4 = "Category 4"
 CATEGORY_GROUPS: list[dict[str, Any]] = [
     {
         "id": CATEGORY_GROUP_ID_1,
-        "name": "Category Group 1",
+        "name": CATEGORY_GROUP_NAME_1,
         "categories": [
             {
                 "id": CATEGORY_ID_1,
                 "category_group_id": CATEGORY_GROUP_ID_1,
+                "category_group_name": CATEGORY_GROUP_NAME_1,
                 "name": CATEGORY_NAME_1,
             },
             {
                 "id": CATEGORY_ID_2,
                 "category_group_id": CATEGORY_GROUP_ID_1,
+                "category_group_name": CATEGORY_GROUP_NAME_1,
                 "name": CATEGORY_NAME_2,
             },
         ],
     },
     {
         "id": CATEGORY_GROUP_ID_2,
-        "name": "Category Group 2",
+        "name": CATEGORY_GROUP_NAME_2,
         "categories": [
             {
                 "id": CATEGORY_ID_3,
                 "category_group_id": CATEGORY_GROUP_ID_2,
+                "category_group_name": CATEGORY_GROUP_NAME_2,
                 "name": CATEGORY_NAME_3,
             },
             {
                 "id": CATEGORY_ID_4,
                 "category_group_id": CATEGORY_GROUP_ID_2,
+                "category_group_name": CATEGORY_GROUP_NAME_2,
                 "name": CATEGORY_NAME_4,
             },
         ],
@@ -153,18 +160,24 @@ TRANSACTIONS: list[dict[str, Any]] = [
         "id": TRANSACTION_ID_1,
         "date": "2024-01-01",
         "amount": -10000,
+        "category_id": CATEGORY_ID_3,
+        "category_name": CATEGORY_NAME_3,
         "deleted": False,
         "subtransactions": [
             {
                 "id": SUBTRANSACTION_ID_1,
                 "transaction_id": TRANSACTION_ID_1,
                 "amount": -7500,
+                "category_id": CATEGORY_ID_1,
+                "category_name": CATEGORY_NAME_1,
                 "deleted": False,
             },
             {
                 "id": SUBTRANSACTION_ID_2,
                 "transaction_id": TRANSACTION_ID_1,
                 "amount": -2500,
+                "category_id": CATEGORY_ID_2,
+                "category_name": CATEGORY_NAME_2,
                 "deleted": False,
             },
         ],
@@ -173,6 +186,8 @@ TRANSACTIONS: list[dict[str, Any]] = [
         "id": TRANSACTION_ID_2,
         "date": "2024-02-01",
         "amount": -15000,
+        "category_id": CATEGORY_ID_2,
+        "category_name": CATEGORY_NAME_2,
         "deleted": True,
         "subtransactions": [],
     },
@@ -180,6 +195,8 @@ TRANSACTIONS: list[dict[str, Any]] = [
         "id": TRANSACTION_ID_3,
         "date": "2024-03-01",
         "amount": -19000,
+        "category_id": CATEGORY_ID_4,
+        "category_name": CATEGORY_NAME_4,
         "deleted": False,
         "subtransactions": [],
     },
@@ -197,6 +214,8 @@ SCHEDULED_TRANSACTIONS: list[dict[str, Any]] = [
         "id": SCHEDULED_TRANSACTION_ID_1,
         "amount": -12000,
         "frequency": "monthly",
+        "category_id": CATEGORY_ID_1,
+        "category_name": CATEGORY_NAME_1,
         "deleted": False,
         "subtransactions": [
             {
@@ -204,12 +223,16 @@ SCHEDULED_TRANSACTIONS: list[dict[str, Any]] = [
                 "scheduled_transaction_id": SCHEDULED_TRANSACTION_ID_1,
                 "deleted": False,
                 "amount": -8040,
+                "category_id": CATEGORY_ID_2,
+                "category_name": CATEGORY_NAME_2,
             },
             {
                 "id": SCHEDULED_SUBTRANSACTION_ID_2,
                 "scheduled_transaction_id": SCHEDULED_TRANSACTION_ID_1,
                 "deleted": False,
                 "amount": -2960,
+                "category_id": CATEGORY_ID_3,
+                "category_name": CATEGORY_NAME_3,
             },
         ],
     },
@@ -217,6 +240,8 @@ SCHEDULED_TRANSACTIONS: list[dict[str, Any]] = [
         "id": SCHEDULED_TRANSACTION_ID_2,
         "amount": -11000,
         "frequency": "yearly",
+        "category_id": CATEGORY_ID_3,
+        "category_name": CATEGORY_NAME_3,
         "deleted": True,
         "subtransactions": [],
     },
@@ -224,6 +249,8 @@ SCHEDULED_TRANSACTIONS: list[dict[str, Any]] = [
         "id": SCHEDULED_TRANSACTION_ID_3,
         "amount": -9000,
         "frequency": "everyOtherMonth",
+        "category_id": CATEGORY_ID_4,
+        "category_name": CATEGORY_NAME_4,
         "deleted": False,
         "subtransactions": [],
     },
