@@ -166,6 +166,8 @@ SELECT
     , t.import_payee_name
     , t.import_payee_name_original
     , t.matched_transaction_id
+    , c.category_group_id
+    , c.category_group_name
     , COALESCE(st.id, t.id) AS id
     , COALESCE(st.amount, t.amount) AS amount
     , COALESCE(st.amount, t.amount) / -1000.0 AS amount_major
@@ -186,6 +188,12 @@ LEFT JOIN subtransactions AS st
     ON (
         t.budget_id = st.budget_id
         AND t.id = st.transaction_id
+    )
+INNER JOIN categories AS c
+    ON (
+        t.budget_id = c.budget_id
+        AND c.id
+        = CASE WHEN st.id IS NULL THEN t.category_id ELSE st.category_id END
     )
 WHERE
     TRUE
@@ -250,6 +258,8 @@ SELECT
     , t.flag_color
     , t.flag_name
     , t.frequency
+    , c.category_group_id
+    , c.category_group_name
     , COALESCE(st.payee_name, t.payee_name) AS payee_name
     , COALESCE(st.id, t.id) AS id
     , COALESCE(st.amount, t.amount) AS amount
@@ -268,6 +278,12 @@ LEFT JOIN scheduled_subtransactions AS st
     ON (
         t.budget_id = st.budget_id
         AND t.id = st.scheduled_transaction_id
+    )
+INNER JOIN categories AS c
+    ON (
+        t.budget_id = c.budget_id
+        AND c.id
+        = CASE WHEN st.id IS NULL THEN t.category_id ELSE st.category_id END
     )
 WHERE
     TRUE
