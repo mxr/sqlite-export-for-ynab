@@ -25,18 +25,18 @@ repos:
   - id: reorder-python-imports
     args: [--py312-plus, --add-import, from __future__ import annotations]
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.14.14
+  rev: v0.15.0
   hooks:
   - id: ruff-check
     args: [--fix]
   - id: ruff-format
 - repo: https://github.com/sqlfluff/sqlfluff
-  rev: 4.0.0
+  rev: 4.0.4
   hooks:
   - id: sqlfluff-fix
     args: [--dialect, sqlite]
 - repo: https://github.com/adamtheturtle/doccmd-pre-commit
-  rev: v2026.1.28
+  rev: v2026.1.31.3
   hooks:
   - id: doccmd
     name: doccmd-sqlfluff
