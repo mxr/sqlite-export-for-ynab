@@ -135,6 +135,7 @@ FROM (
         AND sft.payee_id IS NULL
         AND p.transfer_account_id IS NULL
         AND p.name != 'Reconciliation Balance Adjustment'
+        AND NOT p.deleted
 
     UNION ALL
 
@@ -142,6 +143,7 @@ FROM (
         budget_id
         , name
     FROM payees
+    WHERE NOT deleted
     GROUP BY budget_id, name
     HAVING COUNT(*) > 1
 
