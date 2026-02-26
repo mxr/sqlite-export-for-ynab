@@ -75,6 +75,7 @@ CREATE TABLE IF NOT EXISTS categories (
     , goal_creation_month TEXT
     , goal_snoozed_at TEXT
     , goal_target INT
+    , goal_target_date TEXT
     , goal_target_month TEXT
     , goal_percentage_complete INT
     , goal_months_to_budget INT

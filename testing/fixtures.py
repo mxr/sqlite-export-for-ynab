@@ -94,6 +94,7 @@ CATEGORY_NAME_1 = "Category 1"
 CATEGORY_NAME_2 = "Category 2"
 CATEGORY_NAME_3 = "Category 3"
 CATEGORY_NAME_4 = "Category 4"
+CATEGORY_GOAL_TARGET_DATE_1 = "2026-12-31"
 
 CATEGORY_GROUPS: list[dict[str, Any]] = [
     {
@@ -105,6 +106,7 @@ CATEGORY_GROUPS: list[dict[str, Any]] = [
                 "category_group_id": CATEGORY_GROUP_ID_1,
                 "category_group_name": CATEGORY_GROUP_NAME_1,
                 "name": CATEGORY_NAME_1,
+                "goal_target_date": CATEGORY_GOAL_TARGET_DATE_1,
             },
             {
                 "id": CATEGORY_ID_2,
