@@ -135,6 +135,7 @@ FROM (
         AND sft.payee_id IS NULL
         AND p.transfer_account_id IS NULL
         AND p.name != 'Reconciliation Balance Adjustment'
+        AND p.name != 'Manual Balance Adjustment'
         AND NOT p.deleted
 
     UNION ALL
