@@ -7,11 +7,11 @@ on:
 
 jobs:
   main:
-    uses: asottile/workflows/.github/workflows/tox.yml@v1.11.0
+    uses: asottile/workflows/.github/workflows/tox.yml@adfec6a1ccb5d6b189aa153676d4f0743afa21c1 # v1.11.0
     with:
       env: '["py312", "py313", "py314", "pypy7.3.20"]' # https://github.com/actions/runner-images/blob/4847d9e554d1ad62acec5c5bddfc6175fe1bef4e/images/ubuntu/Ubuntu2204-Readme.md#pypy
   main-win:
-    uses: asottile/workflows/.github/workflows/tox.yml@v1.11.0
+    uses: asottile/workflows/.github/workflows/tox.yml@adfec6a1ccb5d6b189aa153676d4f0743afa21c1 # v1.11.0
     with:
       env: '["py312"]'
       os: windows-latest
