@@ -6,7 +6,7 @@ SQLite Export for YNAB - Export YNAB Budget Data to SQLite
 
 ## What This Does
 
-Export your [YNAB](https://ynab.com/) budget to a local [SQLite](https://www.sqlite.org/) DB. Then you can query your budget with any tools compatible with SQLite.
+Export all your [YNAB](https://ynab.com/) plans to a local [SQLite](https://www.sqlite.org/) DB. Then you can query your data with any tools compatible with SQLite.
 
 ## Installation
 
@@ -24,7 +24,7 @@ Provision a [YNAB Personal Access Token](https://api.ynab.com/#personal-access-t
 $ export YNAB_PERSONAL_ACCESS_TOKEN="..."
 ```
 
-Run the tool from the terminal to download your budget:
+Run the tool from the terminal to download your plans:
 
 ```console
 $ sqlite-export-for-ynab
@@ -60,7 +60,7 @@ asyncio.run(sync(token, db, full_refresh))
 The relations are defined in [create-relations.sql](sqlite_export_for_ynab/ddl/create-relations.sql). They are 1:1 with [YNAB's OpenAPI Spec](https://api.ynab.com/papi/open_api_spec.yaml) (ex: transactions, accounts, etc) with some additions:
 
 1. Some objects are pulled out into their own tables so they can be more cleanly modeled in SQLite (ex: subtransactions, loan account periodic values).
-1. Foreign keys are added as needed (ex: budget ID, transaction ID) so data across budgets remains separate.
+1. Foreign keys are added as needed (ex: plan ID, transaction ID) so data across plans remains separate.
 1. Two new views called `flat_transactions` and `scheduled_flat_transactions`. These allow you to query split and non-split transactions easily, without needing to also query `subtransactions` and `scheduled_subtransactions` respectively. They also include fields to improve quality of life (ex: `amount_major` to convert from [YNAB's milliunits](https://api.ynab.com/#formats) to [major units](https://en.wikipedia.org/wiki/ISO_4217) i.e. dollars) and filter out deleted transactions/subtransactions.
 
 ## Querying
@@ -69,35 +69,35 @@ You can issue queries with typical SQLite tools. *`sqlite-export-for-ynab` delib
 
 ### Sample Queries
 
-To get the top 5 payees by spending per budget, you could do:
+To get the top 5 payees by spending per plan, you could do:
 
 ```sql
 WITH
 ranked_payees AS (
     SELECT
-        b.name AS budget_name
+        pl."name" AS plan_name
         , t.payee_name AS payee
         , SUM(t.amount_major) AS net_spent
         , ROW_NUMBER() OVER (
             PARTITION BY
-                b.id
+                pl.id
             ORDER BY
                 SUM(t.amount) ASC
         ) AS rnk
     FROM
         flat_transactions AS t
-    INNER JOIN budgets AS b
-        ON t.budget_id = b.id
+    INNER JOIN plans AS pl
+        ON t.plan_id = pl.id
     WHERE
         t.payee_name != 'Starting Balance'
         AND t.transfer_account_id IS NULL
     GROUP BY
-        b.id
+        pl.id
         , t.payee_id
 )
 
 SELECT
-    budget_name
+    plan_name
     , payee
     , net_spent
 FROM
@@ -105,7 +105,7 @@ FROM
 WHERE
     rnk <= 5
 ORDER BY
-    budget_name ASC
+    plan_name ASC
     , net_spent DESC
 ;
 ```
@@ -114,44 +114,44 @@ To get duplicate payees, or payees with no transactions:
 
 ```sql
 SELECT DISTINCT
-    b.name AS budget
-    , dupes.name AS payee
+    pl."name" AS "plan"
+    , dupes."name" AS payee
 FROM (
     SELECT DISTINCT
-        p.budget_id
-        , p.name
+        p.plan_id
+        , p."name"
     FROM payees AS p
     LEFT JOIN flat_transactions AS ft
         ON
-            p.budget_id = ft.budget_id
+            p.plan_id = ft.plan_id
             AND p.id = ft.payee_id
     LEFT JOIN scheduled_flat_transactions AS sft
         ON
-            p.budget_id = sft.budget_id
+            p.plan_id = sft.plan_id
             AND p.id = sft.payee_id
     WHERE
         TRUE
         AND ft.payee_id IS NULL
         AND sft.payee_id IS NULL
         AND p.transfer_account_id IS NULL
-        AND p.name != 'Reconciliation Balance Adjustment'
-        AND p.name != 'Manual Balance Adjustment'
+        AND p."name" != 'Reconciliation Balance Adjustment'
+        AND p."name" != 'Manual Balance Adjustment'
         AND NOT p.deleted
 
     UNION ALL
 
     SELECT
-        budget_id
-        , name
+        plan_id
+        , "name"
     FROM payees
     WHERE NOT deleted
-    GROUP BY budget_id, name
+    GROUP BY plan_id, "name"
     HAVING COUNT(*) > 1
 
 ) AS dupes
-INNER JOIN budgets AS b
-    ON dupes.budget_id = b.id
-ORDER BY budget, payee
+INNER JOIN plans AS pl
+    ON dupes.plan_id = pl.id
+ORDER BY "plan", payee
 ;
 ```
 
@@ -159,11 +159,11 @@ To count the spend for a category (ex: "Apps") between this month and the next 1
 
 ```sql
 SELECT
-    budget_id
+    plan_id
     , SUM(amount_major) AS amount_major
 FROM (
     SELECT
-        budget_id
+        plan_id
         , amount_major
     FROM flat_transactions
     WHERE
@@ -171,7 +171,7 @@ FROM (
         AND SUBSTR(`date`, 1, 7) = SUBSTR(DATE(), 1, 7)
     UNION ALL
     SELECT
-        budget_id
+        plan_id
         , amount_major * (
             CASE
                 WHEN frequency = 'monthly' THEN 11

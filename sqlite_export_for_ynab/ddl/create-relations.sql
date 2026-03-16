@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS budgets (
+CREATE TABLE IF NOT EXISTS plans (
     id TEXT PRIMARY KEY
     , name TEXT
     , currency_format_currency_symbol TEXT
@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS budgets (
 
 CREATE TABLE IF NOT EXISTS accounts (
     id TEXT PRIMARY KEY
-    , budget_id TEXT
+    , plan_id TEXT
     , balance INT
     , cleared_balance INT
     , closed BOOLEAN
@@ -29,35 +29,35 @@ CREATE TABLE IF NOT EXISTS accounts (
     , transfer_payee_id TEXT
     , type TEXT
     , uncleared_balance INT
-    , FOREIGN KEY (budget_id) REFERENCES budgets (id)
+    , FOREIGN KEY (plan_id) REFERENCES plans (id)
 )
 ;
 
 CREATE TABLE IF NOT EXISTS account_periodic_values (
     "date" TEXT
     , name TEXT
-    , budget_id TEXT
+    , plan_id TEXT
     , account_id TEXT
     , amount INT
-    , PRIMARY KEY (date, name, budget_id, account_id)
-    , FOREIGN KEY (budget_id) REFERENCES budgets (id)
+    , PRIMARY KEY (date, name, plan_id, account_id)
+    , FOREIGN KEY (plan_id) REFERENCES plans (id)
     , FOREIGN KEY (account_id) REFERENCES accounts (id)
 )
 ;
 
 CREATE TABLE IF NOT EXISTS category_groups (
     id TEXT PRIMARY KEY
-    , budget_id TEXT
+    , plan_id TEXT
     , name TEXT
     , hidden BOOLEAN
     , deleted BOOLEAN
-    , FOREIGN KEY (budget_id) REFERENCES budgets (id)
+    , FOREIGN KEY (plan_id) REFERENCES plans (id)
 )
 ;
 
 CREATE TABLE IF NOT EXISTS categories (
     id TEXT PRIMARY KEY
-    , budget_id TEXT
+    , plan_id TEXT
     , category_group_id TEXT
     , category_group_name TEXT
     , name TEXT
@@ -83,24 +83,24 @@ CREATE TABLE IF NOT EXISTS categories (
     , goal_overall_funded INT
     , goal_overall_left INT
     , deleted BOOLEAN
-    , FOREIGN KEY (budget_id) REFERENCES budgets (id)
+    , FOREIGN KEY (plan_id) REFERENCES plans (id)
     , FOREIGN KEY (category_group_id) REFERENCES category_groups (id)
 )
 ;
 
 CREATE TABLE IF NOT EXISTS payees (
     id TEXT PRIMARY KEY
-    , budget_id TEXT
+    , plan_id TEXT
     , name TEXT
     , transfer_account_id TEXT
     , deleted BOOLEAN
-    , FOREIGN KEY (budget_id) REFERENCES budgets (id)
+    , FOREIGN KEY (plan_id) REFERENCES plans (id)
 )
 ;
 
 CREATE TABLE IF NOT EXISTS transactions (
     id TEXT PRIMARY KEY
-    , budget_id TEXT
+    , plan_id TEXT
     , account_id TEXT
     , account_name TEXT
     , amount INT
@@ -122,7 +122,7 @@ CREATE TABLE IF NOT EXISTS transactions (
     , payee_name TEXT
     , transfer_account_id TEXT
     , transfer_transaction_id TEXT
-    , FOREIGN KEY (budget_id) REFERENCES budgets (id)
+    , FOREIGN KEY (plan_id) REFERENCES plans (id)
     , FOREIGN KEY (account_id) REFERENCES accounts (id)
     , FOREIGN KEY (category_id) REFERENCES categories (id)
     , FOREIGN KEY (payee_id) REFERENCES payees (id)
@@ -131,7 +131,7 @@ CREATE TABLE IF NOT EXISTS transactions (
 
 CREATE TABLE IF NOT EXISTS subtransactions (
     id TEXT PRIMARY KEY
-    , budget_id TEXT
+    , plan_id TEXT
     , amount INT
     , category_id TEXT
     , category_name TEXT
@@ -142,11 +142,11 @@ CREATE TABLE IF NOT EXISTS subtransactions (
     , transaction_id TEXT
     , transfer_account_id TEXT
     , transfer_transaction_id TEXT
-    , FOREIGN KEY (budget_id) REFERENCES budget (id)
+    , FOREIGN KEY (plan_id) REFERENCES plans (id)
     , FOREIGN KEY (transfer_account_id) REFERENCES accounts (id)
     , FOREIGN KEY (category_id) REFERENCES categories (id)
     , FOREIGN KEY (payee_id) REFERENCES payees (id)
-    , FOREIGN KEY (transaction_id) REFERENCES transaction_id (id)
+    , FOREIGN KEY (transaction_id) REFERENCES transactions (id)
 )
 ;
 
@@ -154,7 +154,7 @@ CREATE VIEW IF NOT EXISTS flat_transactions AS
 SELECT
     t.id AS transaction_id
     , st.id AS subtransaction_id
-    , t.budget_id
+    , t.plan_id
     , t.account_id
     , t.account_name
     , t.approved
@@ -187,12 +187,12 @@ FROM
     transactions AS t
 LEFT JOIN subtransactions AS st
     ON (
-        t.budget_id = st.budget_id
+        t.plan_id = st.plan_id
         AND t.id = st.transaction_id
     )
 INNER JOIN categories AS c
     ON (
-        t.budget_id = c.budget_id
+        t.plan_id = c.plan_id
         AND c.id
         = CASE WHEN st.id IS NULL THEN t.category_id ELSE st.category_id END
     )
@@ -203,7 +203,7 @@ WHERE
 
 CREATE TABLE IF NOT EXISTS scheduled_transactions (
     id TEXT PRIMARY KEY
-    , budget_id TEXT
+    , plan_id TEXT
     , account_id TEXT
     , account_name TEXT
     , amount INT
@@ -219,7 +219,7 @@ CREATE TABLE IF NOT EXISTS scheduled_transactions (
     , payee_id TEXT
     , payee_name TEXT
     , transfer_account_id TEXT
-    , FOREIGN KEY (budget_id) REFERENCES budgets (id)
+    , FOREIGN KEY (plan_id) REFERENCES plans (id)
     , FOREIGN KEY (account_id) REFERENCES accounts (id)
     , FOREIGN KEY (category_id) REFERENCES categories (id)
     , FOREIGN KEY (payee_id) REFERENCES payees (id)
@@ -229,7 +229,7 @@ CREATE TABLE IF NOT EXISTS scheduled_transactions (
 
 CREATE TABLE IF NOT EXISTS scheduled_subtransactions (
     id TEXT PRIMARY KEY
-    , budget_id TEXT
+    , plan_id TEXT
     , scheduled_transaction_id TEXT
     , amount INT
     , memo TEXT
@@ -239,11 +239,13 @@ CREATE TABLE IF NOT EXISTS scheduled_subtransactions (
     , category_name TEXT
     , transfer_account_id TEXT
     , deleted BOOLEAN
-    , FOREIGN KEY (budget_id) REFERENCES budget (id)
+    , FOREIGN KEY (plan_id) REFERENCES plans (id)
     , FOREIGN KEY (transfer_account_id) REFERENCES accounts (id)
     , FOREIGN KEY (category_id) REFERENCES categories (id)
     , FOREIGN KEY (payee_id) REFERENCES payees (id)
-    , FOREIGN KEY (scheduled_transaction_id) REFERENCES transaction_id (id)
+    , FOREIGN KEY (
+        scheduled_transaction_id
+    ) REFERENCES scheduled_transactions (id)
 )
 ;
 
@@ -251,7 +253,7 @@ CREATE VIEW IF NOT EXISTS scheduled_flat_transactions AS
 SELECT
     t.id AS transaction_id
     , st.id AS subtransaction_id
-    , t.budget_id
+    , t.plan_id
     , t.account_id
     , t.account_name
     , t.date_first
@@ -277,12 +279,12 @@ FROM
     scheduled_transactions AS t
 LEFT JOIN scheduled_subtransactions AS st
     ON (
-        t.budget_id = st.budget_id
+        t.plan_id = st.plan_id
         AND t.id = st.scheduled_transaction_id
     )
 INNER JOIN categories AS c
     ON (
-        t.budget_id = c.budget_id
+        t.plan_id = c.plan_id
         AND c.id
         = CASE WHEN st.id IS NULL THEN t.category_id ELSE st.category_id END
     )

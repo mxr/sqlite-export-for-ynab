@@ -1,4 +1,4 @@
-DROP TABLE IF EXISTS budgets;
+DROP TABLE IF EXISTS plans;
 
 DROP TABLE IF EXISTS accounts;
 
