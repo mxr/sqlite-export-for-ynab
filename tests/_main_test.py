@@ -20,9 +20,9 @@ from sqlite_export_for_ynab._main import contents
 from sqlite_export_for_ynab._main import get_last_knowledge_of_server
 from sqlite_export_for_ynab._main import get_relations
 from sqlite_export_for_ynab._main import insert_accounts
-from sqlite_export_for_ynab._main import insert_budgets
 from sqlite_export_for_ynab._main import insert_category_groups
 from sqlite_export_for_ynab._main import insert_payees
+from sqlite_export_for_ynab._main import insert_plans
 from sqlite_export_for_ynab._main import insert_scheduled_transactions
 from sqlite_export_for_ynab._main import insert_transactions
 from sqlite_export_for_ynab._main import main
@@ -33,10 +33,6 @@ from testing.fixtures import ACCOUNT_ID_1
 from testing.fixtures import ACCOUNT_ID_2
 from testing.fixtures import ACCOUNTS
 from testing.fixtures import ACCOUNTS_ENDPOINT_RE
-from testing.fixtures import BUDGET_ID_1
-from testing.fixtures import BUDGET_ID_2
-from testing.fixtures import BUDGETS
-from testing.fixtures import BUDGETS_ENDPOINT_RE
 from testing.fixtures import CATEGORIES_ENDPOINT_RE
 from testing.fixtures import CATEGORY_GOAL_TARGET_DATE_1
 from testing.fixtures import CATEGORY_GROUP_ID_1
@@ -60,6 +56,10 @@ from testing.fixtures import PAYEE_ID_1
 from testing.fixtures import PAYEE_ID_2
 from testing.fixtures import PAYEES
 from testing.fixtures import PAYEES_ENDPOINT_RE
+from testing.fixtures import PLAN_ID_1
+from testing.fixtures import PLAN_ID_2
+from testing.fixtures import PLANS
+from testing.fixtures import PLANS_ENDPOINT_RE
 from testing.fixtures import SCHEDULED_SUBTRANSACTION_ID_1
 from testing.fixtures import SCHEDULED_SUBTRANSACTION_ID_2
 from testing.fixtures import SCHEDULED_TRANSACTION_ID_1
@@ -98,18 +98,18 @@ def test_get_relations(cur):
 
 @pytest.mark.usefixtures(cur.__name__)
 def test_get_last_knowledge_of_server(cur):
-    insert_budgets(cur, BUDGETS, LKOS)
+    insert_plans(cur, PLANS, LKOS)
     assert get_last_knowledge_of_server(cur) == LKOS
 
 
 @pytest.mark.usefixtures(cur.__name__)
-def test_insert_budgets(cur):
-    insert_budgets(cur, BUDGETS, LKOS)
-    cur.execute("SELECT * FROM budgets ORDER BY name")
+def test_insert_plans(cur):
+    insert_plans(cur, PLANS, LKOS)
+    cur.execute("SELECT * FROM plans ORDER BY name")
     assert cur.fetchall() == [
         {
-            "id": BUDGET_ID_1,
-            "name": BUDGETS[0]["name"],
+            "id": PLAN_ID_1,
+            "name": PLANS[0]["name"],
             "currency_format_currency_symbol": "$",
             "currency_format_decimal_digits": 2,
             "currency_format_decimal_separator": ".",
@@ -117,11 +117,11 @@ def test_insert_budgets(cur):
             "currency_format_group_separator": ",",
             "currency_format_iso_code": "USD",
             "currency_format_symbol_first": 1,
-            "last_knowledge_of_server": LKOS[BUDGET_ID_1],
+            "last_knowledge_of_server": LKOS[PLAN_ID_1],
         },
         {
-            "id": BUDGET_ID_2,
-            "name": BUDGETS[1]["name"],
+            "id": PLAN_ID_2,
+            "name": PLANS[1]["name"],
             "currency_format_currency_symbol": "$",
             "currency_format_decimal_digits": 2,
             "currency_format_decimal_separator": ".",
@@ -129,29 +129,29 @@ def test_insert_budgets(cur):
             "currency_format_group_separator": ",",
             "currency_format_iso_code": "USD",
             "currency_format_symbol_first": 1,
-            "last_knowledge_of_server": LKOS[BUDGET_ID_2],
+            "last_knowledge_of_server": LKOS[PLAN_ID_2],
         },
     ]
 
 
 @pytest.mark.usefixtures(cur.__name__)
 def test_insert_accounts(cur):
-    insert_accounts(cur, BUDGET_ID_1, [])
+    insert_accounts(cur, PLAN_ID_1, [])
     assert not cur.execute("SELECT * FROM accounts").fetchall()
     assert not cur.execute("SELECT * FROM account_periodic_values").fetchall()
 
-    insert_accounts(cur, BUDGET_ID_1, ACCOUNTS)
+    insert_accounts(cur, PLAN_ID_1, ACCOUNTS)
     cur.execute("SELECT * FROM accounts ORDER BY name")
     assert [strip_nones(d) for d in cur.fetchall()] == [
         {
             "id": ACCOUNT_ID_1,
-            "budget_id": BUDGET_ID_1,
+            "plan_id": PLAN_ID_1,
             "name": ACCOUNTS[0]["name"],
             "type": ACCOUNTS[0]["type"],
         },
         {
             "id": ACCOUNT_ID_2,
-            "budget_id": BUDGET_ID_1,
+            "plan_id": PLAN_ID_1,
             "name": ACCOUNTS[1]["name"],
             "type": ACCOUNTS[1]["type"],
         },
@@ -161,14 +161,14 @@ def test_insert_accounts(cur):
     assert cur.fetchall() == [
         {
             "account_id": ACCOUNT_ID_1,
-            "budget_id": BUDGET_ID_1,
+            "plan_id": PLAN_ID_1,
             "name": "debt_escrow_amounts",
             "date": "2024-01-01",
             "amount": 160000,
         },
         {
             "account_id": ACCOUNT_ID_1,
-            "budget_id": BUDGET_ID_1,
+            "plan_id": PLAN_ID_1,
             "name": "debt_interest_rates",
             "date": "2024-02-01",
             "amount": 5000,
@@ -178,22 +178,22 @@ def test_insert_accounts(cur):
 
 @pytest.mark.usefixtures(cur.__name__)
 def test_insert_category_groups(cur):
-    insert_category_groups(cur, BUDGET_ID_1, [])
+    insert_category_groups(cur, PLAN_ID_1, [])
     assert not cur.execute("SELECT * FROM category_groups").fetchall()
     assert not cur.execute("SELECT * FROM categories").fetchall()
 
-    insert_category_groups(cur, BUDGET_ID_1, CATEGORY_GROUPS)
+    insert_category_groups(cur, PLAN_ID_1, CATEGORY_GROUPS)
     cur.execute("SELECT * FROM category_groups ORDER BY name")
     assert [strip_nones(d) for d in cur.fetchall()] == [
         {
             "id": CATEGORY_GROUP_ID_1,
             "name": CATEGORY_GROUP_NAME_1,
-            "budget_id": BUDGET_ID_1,
+            "plan_id": PLAN_ID_1,
         },
         {
             "id": CATEGORY_GROUP_ID_2,
             "name": CATEGORY_GROUP_NAME_2,
-            "budget_id": BUDGET_ID_1,
+            "plan_id": PLAN_ID_1,
         },
     ]
 
@@ -203,7 +203,7 @@ def test_insert_category_groups(cur):
             "id": CATEGORY_ID_1,
             "category_group_id": CATEGORY_GROUP_ID_1,
             "category_group_name": CATEGORY_GROUP_NAME_1,
-            "budget_id": BUDGET_ID_1,
+            "plan_id": PLAN_ID_1,
             "name": CATEGORY_NAME_1,
             "goal_target_date": CATEGORY_GOAL_TARGET_DATE_1,
         },
@@ -211,21 +211,21 @@ def test_insert_category_groups(cur):
             "id": CATEGORY_ID_2,
             "category_group_id": CATEGORY_GROUP_ID_1,
             "category_group_name": CATEGORY_GROUP_NAME_1,
-            "budget_id": BUDGET_ID_1,
+            "plan_id": PLAN_ID_1,
             "name": CATEGORY_NAME_2,
         },
         {
             "id": CATEGORY_ID_3,
             "category_group_id": CATEGORY_GROUP_ID_2,
             "category_group_name": CATEGORY_GROUP_NAME_2,
-            "budget_id": BUDGET_ID_1,
+            "plan_id": PLAN_ID_1,
             "name": CATEGORY_NAME_3,
         },
         {
             "id": CATEGORY_ID_4,
             "category_group_id": CATEGORY_GROUP_ID_2,
             "category_group_name": CATEGORY_GROUP_NAME_2,
-            "budget_id": BUDGET_ID_1,
+            "plan_id": PLAN_ID_1,
             "name": CATEGORY_NAME_4,
         },
     ]
@@ -233,20 +233,20 @@ def test_insert_category_groups(cur):
 
 @pytest.mark.usefixtures(cur.__name__)
 def test_insert_payees(cur):
-    insert_payees(cur, BUDGET_ID_1, [])
+    insert_payees(cur, PLAN_ID_1, [])
     assert not cur.execute("SELECT * FROM payees").fetchall()
 
-    insert_payees(cur, BUDGET_ID_1, PAYEES)
+    insert_payees(cur, PLAN_ID_1, PAYEES)
     cur.execute("SELECT * FROM payees ORDER BY name")
     assert [strip_nones(d) for d in cur.fetchall()] == [
         {
             "id": PAYEE_ID_1,
-            "budget_id": BUDGET_ID_1,
+            "plan_id": PLAN_ID_1,
             "name": PAYEES[0]["name"],
         },
         {
             "id": PAYEE_ID_2,
-            "budget_id": BUDGET_ID_1,
+            "plan_id": PLAN_ID_1,
             "name": PAYEES[1]["name"],
         },
     ]
@@ -254,17 +254,17 @@ def test_insert_payees(cur):
 
 @pytest.mark.usefixtures(cur.__name__)
 def test_insert_transactions(cur):
-    insert_transactions(cur, BUDGET_ID_1, [])
+    insert_transactions(cur, PLAN_ID_1, [])
     assert not cur.execute("SELECT * FROM transactions").fetchall()
     assert not cur.execute("SELECT * FROM subtransactions").fetchall()
 
-    insert_category_groups(cur, BUDGET_ID_1, CATEGORY_GROUPS)
-    insert_transactions(cur, BUDGET_ID_1, TRANSACTIONS)
+    insert_category_groups(cur, PLAN_ID_1, CATEGORY_GROUPS)
+    insert_transactions(cur, PLAN_ID_1, TRANSACTIONS)
     cur.execute("SELECT * FROM transactions ORDER BY date")
     assert [strip_nones(d) for d in cur.fetchall()] == [
         {
             "id": TRANSACTION_ID_1,
-            "budget_id": BUDGET_ID_1,
+            "plan_id": PLAN_ID_1,
             "date": "2024-01-01",
             "amount": -10000,
             "category_id": CATEGORY_ID_3,
@@ -273,7 +273,7 @@ def test_insert_transactions(cur):
         },
         {
             "id": TRANSACTION_ID_2,
-            "budget_id": BUDGET_ID_1,
+            "plan_id": PLAN_ID_1,
             "date": "2024-02-01",
             "amount": -15000,
             "category_id": CATEGORY_ID_2,
@@ -282,7 +282,7 @@ def test_insert_transactions(cur):
         },
         {
             "id": TRANSACTION_ID_3,
-            "budget_id": BUDGET_ID_1,
+            "plan_id": PLAN_ID_1,
             "date": "2024-03-01",
             "amount": -19000,
             "category_id": CATEGORY_ID_4,
@@ -296,7 +296,7 @@ def test_insert_transactions(cur):
         {
             "id": SUBTRANSACTION_ID_1,
             "transaction_id": TRANSACTION_ID_1,
-            "budget_id": BUDGET_ID_1,
+            "plan_id": PLAN_ID_1,
             "amount": -7500,
             "category_id": CATEGORY_ID_1,
             "category_name": CATEGORY_NAME_1,
@@ -305,7 +305,7 @@ def test_insert_transactions(cur):
         {
             "id": SUBTRANSACTION_ID_2,
             "transaction_id": TRANSACTION_ID_1,
-            "budget_id": BUDGET_ID_1,
+            "plan_id": PLAN_ID_1,
             "amount": -2500,
             "category_id": CATEGORY_ID_2,
             "category_name": CATEGORY_NAME_2,
@@ -317,7 +317,7 @@ def test_insert_transactions(cur):
     assert [strip_nones(d) for d in cur.fetchall()] == [
         {
             "transaction_id": TRANSACTION_ID_3,
-            "budget_id": BUDGET_ID_1,
+            "plan_id": PLAN_ID_1,
             "date": "2024-03-01",
             "id": TRANSACTION_ID_3,
             "amount": -19000,
@@ -330,7 +330,7 @@ def test_insert_transactions(cur):
         {
             "transaction_id": TRANSACTION_ID_1,
             "subtransaction_id": SUBTRANSACTION_ID_1,
-            "budget_id": BUDGET_ID_1,
+            "plan_id": PLAN_ID_1,
             "date": "2024-01-01",
             "id": SUBTRANSACTION_ID_1,
             "amount": -7500,
@@ -343,7 +343,7 @@ def test_insert_transactions(cur):
         {
             "transaction_id": TRANSACTION_ID_1,
             "subtransaction_id": SUBTRANSACTION_ID_2,
-            "budget_id": BUDGET_ID_1,
+            "plan_id": PLAN_ID_1,
             "date": "2024-01-01",
             "id": SUBTRANSACTION_ID_2,
             "amount": -2500,
@@ -358,17 +358,17 @@ def test_insert_transactions(cur):
 
 @pytest.mark.usefixtures(cur.__name__)
 def test_insert_scheduled_transactions(cur):
-    insert_scheduled_transactions(cur, BUDGET_ID_1, [])
+    insert_scheduled_transactions(cur, PLAN_ID_1, [])
     assert not cur.execute("SELECT * FROM scheduled_transactions").fetchall()
     assert not cur.execute("SELECT * FROM scheduled_subtransactions").fetchall()
 
-    insert_category_groups(cur, BUDGET_ID_1, CATEGORY_GROUPS)
-    insert_scheduled_transactions(cur, BUDGET_ID_1, SCHEDULED_TRANSACTIONS)
+    insert_category_groups(cur, PLAN_ID_1, CATEGORY_GROUPS)
+    insert_scheduled_transactions(cur, PLAN_ID_1, SCHEDULED_TRANSACTIONS)
     cur.execute("SELECT * FROM scheduled_transactions ORDER BY amount")
     assert [strip_nones(d) for d in cur.fetchall()] == [
         {
             "id": SCHEDULED_TRANSACTION_ID_1,
-            "budget_id": BUDGET_ID_1,
+            "plan_id": PLAN_ID_1,
             "frequency": "monthly",
             "amount": -12000,
             "category_id": CATEGORY_ID_1,
@@ -377,7 +377,7 @@ def test_insert_scheduled_transactions(cur):
         },
         {
             "id": SCHEDULED_TRANSACTION_ID_2,
-            "budget_id": BUDGET_ID_1,
+            "plan_id": PLAN_ID_1,
             "frequency": "yearly",
             "amount": -11000,
             "category_id": CATEGORY_ID_3,
@@ -386,7 +386,7 @@ def test_insert_scheduled_transactions(cur):
         },
         {
             "id": SCHEDULED_TRANSACTION_ID_3,
-            "budget_id": BUDGET_ID_1,
+            "plan_id": PLAN_ID_1,
             "frequency": "everyOtherMonth",
             "amount": -9000,
             "category_id": CATEGORY_ID_4,
@@ -400,7 +400,7 @@ def test_insert_scheduled_transactions(cur):
         {
             "id": SCHEDULED_SUBTRANSACTION_ID_1,
             "scheduled_transaction_id": SCHEDULED_TRANSACTION_ID_1,
-            "budget_id": BUDGET_ID_1,
+            "plan_id": PLAN_ID_1,
             "amount": -8040,
             "category_id": CATEGORY_ID_2,
             "category_name": CATEGORY_NAME_2,
@@ -409,7 +409,7 @@ def test_insert_scheduled_transactions(cur):
         {
             "id": SCHEDULED_SUBTRANSACTION_ID_2,
             "scheduled_transaction_id": SCHEDULED_TRANSACTION_ID_1,
-            "budget_id": BUDGET_ID_1,
+            "plan_id": PLAN_ID_1,
             "amount": -2960,
             "category_id": CATEGORY_ID_3,
             "category_name": CATEGORY_NAME_3,
@@ -421,7 +421,7 @@ def test_insert_scheduled_transactions(cur):
     assert [strip_nones(d) for d in cur.fetchall()] == [
         {
             "transaction_id": SCHEDULED_TRANSACTION_ID_3,
-            "budget_id": BUDGET_ID_1,
+            "plan_id": PLAN_ID_1,
             "id": SCHEDULED_TRANSACTION_ID_3,
             "frequency": "everyOtherMonth",
             "amount": -9000,
@@ -434,7 +434,7 @@ def test_insert_scheduled_transactions(cur):
         {
             "transaction_id": SCHEDULED_TRANSACTION_ID_1,
             "subtransaction_id": SCHEDULED_SUBTRANSACTION_ID_1,
-            "budget_id": BUDGET_ID_1,
+            "plan_id": PLAN_ID_1,
             "id": SCHEDULED_SUBTRANSACTION_ID_1,
             "frequency": "monthly",
             "amount": -8040,
@@ -447,7 +447,7 @@ def test_insert_scheduled_transactions(cur):
         {
             "transaction_id": SCHEDULED_TRANSACTION_ID_1,
             "subtransaction_id": SCHEDULED_SUBTRANSACTION_ID_2,
-            "budget_id": BUDGET_ID_1,
+            "plan_id": PLAN_ID_1,
             "id": SCHEDULED_SUBTRANSACTION_ID_2,
             "frequency": "monthly",
             "amount": -2960,
@@ -520,7 +520,7 @@ def test_main_no_token(tmp_path, monkeypatch):
 @pytest.mark.usefixtures(mock_aioresponses.__name__)
 async def test_sync_no_data(tmp_path, mock_aioresponses):
     mock_aioresponses.get(
-        BUDGETS_ENDPOINT_RE, body=json.dumps({"data": {"budgets": BUDGETS}})
+        PLANS_ENDPOINT_RE, body=json.dumps({"data": {"plans": PLANS}})
     )
     mock_aioresponses.get(
         ACCOUNTS_ENDPOINT_RE,
@@ -565,7 +565,7 @@ async def test_sync_no_data(tmp_path, mock_aioresponses):
 @pytest.mark.usefixtures(mock_aioresponses.__name__)
 async def test_sync(tmp_path, mock_aioresponses):
     mock_aioresponses.get(
-        BUDGETS_ENDPOINT_RE, body=json.dumps({"data": {"budgets": BUDGETS}})
+        PLANS_ENDPOINT_RE, body=json.dumps({"data": {"plans": PLANS}})
     )
     mock_aioresponses.get(
         ACCOUNTS_ENDPOINT_RE,

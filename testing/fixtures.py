@@ -11,13 +11,13 @@ from aioresponses import aioresponses
 from sqlite_export_for_ynab._main import _row_factory
 from sqlite_export_for_ynab._main import contents
 
-BUDGET_ID_1 = str(uuid4())
-BUDGET_ID_2 = str(uuid4())
+PLAN_ID_1 = str(uuid4())
+PLAN_ID_2 = str(uuid4())
 
-BUDGETS: list[dict[str, Any]] = [
+PLANS: list[dict[str, Any]] = [
     {
-        "id": BUDGET_ID_1,
-        "name": "Budget 1",
+        "id": PLAN_ID_1,
+        "name": "Plan 1",
         "currency_format": {
             "currency_symbol": "$",
             "decimal_digits": 2,
@@ -30,8 +30,8 @@ BUDGETS: list[dict[str, Any]] = [
         },
     },
     {
-        "id": BUDGET_ID_2,
-        "name": "Budget 2",
+        "id": PLAN_ID_2,
+        "name": "Plan 2",
         "currency_format": {
             "currency_symbol": "$",
             "decimal_digits": 2,
@@ -49,8 +49,8 @@ SERVER_KNOWLEDGE_1 = 107667
 SERVER_KNOWLEDGE_2 = 107668
 
 LKOS = {
-    BUDGET_ID_1: SERVER_KNOWLEDGE_1,
-    BUDGET_ID_2: SERVER_KNOWLEDGE_2,
+    PLAN_ID_1: SERVER_KNOWLEDGE_1,
+    PLAN_ID_2: SERVER_KNOWLEDGE_2,
 }
 
 ACCOUNT_ID_1 = str(uuid4())
@@ -280,7 +280,7 @@ def strip_nones(d: dict[str, Any]) -> dict[str, Any]:
 
 TOKEN = f"token-{uuid4()}"
 EXAMPLE_ENDPOINT_RE = re.compile(".+/example$")
-BUDGETS_ENDPOINT_RE = re.compile(".+/budgets$")
+PLANS_ENDPOINT_RE = re.compile(".+/plans$")
 ACCOUNTS_ENDPOINT_RE = re.compile(".+/accounts$")
 CATEGORIES_ENDPOINT_RE = re.compile(".+/categories$")
 PAYEES_ENDPOINT_RE = re.compile(".+/payees$")
