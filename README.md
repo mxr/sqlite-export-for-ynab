@@ -75,7 +75,7 @@ To get the top 5 payees by spending per plan, you could do:
 WITH
 ranked_payees AS (
     SELECT
-        pl."name" AS plan_name
+        pl.name AS plan_name
         , t.payee_name AS payee
         , SUM(t.amount_major) AS net_spent
         , ROW_NUMBER() OVER (
@@ -114,12 +114,12 @@ To get duplicate payees, or payees with no transactions:
 
 ```sql
 SELECT DISTINCT
-    pl."name" AS "plan"
-    , dupes."name" AS payee
+    pl.name AS "plan"
+    , dupes.name AS payee
 FROM (
     SELECT DISTINCT
         p.plan_id
-        , p."name"
+        , p.name
     FROM payees AS p
     LEFT JOIN flat_transactions AS ft
         ON
@@ -134,18 +134,18 @@ FROM (
         AND ft.payee_id IS NULL
         AND sft.payee_id IS NULL
         AND p.transfer_account_id IS NULL
-        AND p."name" != 'Reconciliation Balance Adjustment'
-        AND p."name" != 'Manual Balance Adjustment'
+        AND p.name != 'Reconciliation Balance Adjustment'
+        AND p.name != 'Manual Balance Adjustment'
         AND NOT p.deleted
 
     UNION ALL
 
     SELECT
         plan_id
-        , "name"
+        , name
     FROM payees
     WHERE NOT deleted
-    GROUP BY plan_id, "name"
+    GROUP BY plan_id, name
     HAVING COUNT(*) > 1
 
 ) AS dupes
@@ -168,7 +168,7 @@ FROM (
     FROM flat_transactions
     WHERE
         category_name = 'Apps'
-        AND SUBSTR(`date`, 1, 7) = SUBSTR(DATE(), 1, 7)
+        AND SUBSTR("date", 1, 7) = SUBSTR(DATE(), 1, 7)
     UNION ALL
     SELECT
         plan_id
