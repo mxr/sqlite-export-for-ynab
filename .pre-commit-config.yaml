@@ -41,7 +41,7 @@ repos:
   - id: doccmd
     name: doccmd-sqlfluff
     args: [--no-pad-file, --language, sql, --command, sqlfluff fix --dialect sqlite]
-    additional_dependencies: [--index-url, https://pypi.org/simple, git+https://github.com/sqlfluff/sqlfluff.git@a77b81232936d03b148f934e2719922605946292]
+    additional_dependencies: [git+https://github.com/sqlfluff/sqlfluff.git@a77b81232936d03b148f934e2719922605946292]
 - repo: https://github.com/pre-commit/mirrors-mypy
   rev: v1.19.1
   hooks:
