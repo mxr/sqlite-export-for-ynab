@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS account_periodic_values (
     , plan_id TEXT
     , account_id TEXT
     , amount INT
-    , PRIMARY KEY (date, name, plan_id, account_id)
+    , PRIMARY KEY ("date", name, plan_id, account_id)
     , FOREIGN KEY (plan_id) REFERENCES plans (id)
     , FOREIGN KEY (account_id) REFERENCES accounts (id)
 )
@@ -159,7 +159,7 @@ SELECT
     , t.account_name
     , t.approved
     , t.cleared
-    , t.date
+    , t."date"
     , t.debt_transaction_type
     , t.flag_color
     , t.flag_name

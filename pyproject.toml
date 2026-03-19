@@ -49,3 +49,6 @@ capitalisation_policy = 'upper'
 [tool.sqlfluff.rules.convention.terminator]
 multiline_newline = true
 require_final_semicolon = true
+
+[tool.sqlfluff.rules.references.quoting]
+prefer_quoted_keywords = true
