@@ -142,10 +142,10 @@ FROM (
 
     SELECT
         plan_id
-        , "name"
+        , name
     FROM payees
     WHERE NOT deleted
-    GROUP BY plan_id, "name"
+    GROUP BY plan_id, name
     HAVING COUNT(*) > 1
 
 ) AS dupes
@@ -168,7 +168,7 @@ FROM (
     FROM flat_transactions
     WHERE
         category_name = 'Apps'
-        AND SUBSTR(`date`, 1, 7) = SUBSTR(DATE(), 1, 7)
+        AND SUBSTR("date", 1, 7) = SUBSTR(DATE(), 1, 7)
     UNION ALL
     SELECT
         plan_id
