@@ -69,7 +69,7 @@ You can issue queries with typical SQLite tools. *`sqlite-export-for-ynab` delib
 
 ### Sample Queries
 
-You can run the queries from this README using a tool like [`mdq`](https://github.com/yshavit/mdq). For example: 
+You can run the queries from this README using a tool like [`mdq`](https://github.com/yshavit/mdq). For example:
 
 ```console
 $ mdq '```sql dupes' path/to/sqlite-export-for-ynab/README.md -o plain | sqlite3 path/to/sqlite-export-for-ynab/db.sqlite
