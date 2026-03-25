@@ -202,7 +202,8 @@ To estimate taxable interest for a given year[^1]:
 --   @tax_rate
 --   @year
 --   @plan_id (optional, defaults to output for all plans)
---   @estimated_additional_interest (optional, estimated interest not in YNAB such as investment income)
+--   @estimated_additional_interest (optional,
+--      estimated interest not in YNAB such as investment income)
 --   @interest_payee_name (optional, defaults to Interest)
 --
 -- Example with only required params:
@@ -231,7 +232,7 @@ WITH interest_by_account AS (
         AND payee_name = COALESCE(NULLIF(@interest_payee_name, ''), 'Interest')
         AND SUBSTR("date", 1, 4) = CAST(@year AS TEXT)
         AND (COALESCE(@plan_id, '') = '' OR plan_id = @plan_id)
-    GROUP BY 1, 2
+    GROUP BY plan_id, account_name
     -- Common 1099-INT reporting threshold; confirm with actual tax documents
     HAVING total >= 10
 )
@@ -244,7 +245,7 @@ WITH interest_by_account AS (
     FROM plans
     LEFT JOIN interest_by_account ON plans.id = interest_by_account.plan_id
     WHERE COALESCE(@plan_id, '') = '' OR plans.id = @plan_id
-    GROUP BY 1, 2
+    GROUP BY plan_id, plan_name
 )
 
 , ranked_interest AS (
@@ -261,7 +262,7 @@ SELECT
     , ROUND(interest_in_ynab, 2) AS interest_in_ynab
     , ROUND(
         CASE
-            WHEN row_num <> 1 THEN interest_in_ynab
+            WHEN row_num != 1 THEN interest_in_ynab
             WHEN
                 interest_in_ynab
                 + CAST(COALESCE(@estimated_additional_interest, 0) AS REAL)
@@ -278,7 +279,7 @@ SELECT
         ELSE ROUND(
             (
                 CASE
-                    WHEN row_num <> 1 THEN interest_in_ynab
+                    WHEN row_num != 1 THEN interest_in_ynab
                     WHEN
                         interest_in_ynab
                         + CAST(
