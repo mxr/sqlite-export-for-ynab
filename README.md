@@ -32,7 +32,7 @@ $ sqlite-export-for-ynab
 
 Running it again will pull only data that changed since the last pull (this is done with [Delta Requests](https://api.ynab.com/#deltas)). If you want to wipe the DB and pull all data again use the `--full-refresh` flag.
 
-You can specify the DB path with the following options
+<a id="db-path"></a>You can specify the DB path with the following options
 1. The `--db` flag.
 1. The `XDG_DATA_HOME` variable (see the [XDG Base Directory Specification](https://specifications.freedesktop.org/basedir-spec/latest/index.html)). In that case the DB is saved in `"${XDG_DATA_HOME}"/sqlite-export-for-ynab/db.sqlite`.
 1. If neither is set, the DB is saved in `~/.local/share/sqlite-export-for-ynab/db.sqlite`.
@@ -68,6 +68,15 @@ The relations are defined in [create-relations.sql](sqlite_export_for_ynab/ddl/c
 You can issue queries with typical SQLite tools. *`sqlite-export-for-ynab` deliberately does not implement a SQL REPL.*
 
 ### Sample Queries
+
+You can run the queries from this README using a tool like [`mdq`](https://github.com/yshavit/mdq). For example:
+
+```console
+$ mdq '```sql dupes' path/to/sqlite-export-for-ynab/README.md -o plain \
+    | sqlite3 path/to/sqlite-export-for-ynab/db.sqlite
+```
+
+The DB path is documented [above](#db-path).
 
 To get the top 5 payees by spending per plan, you could do:
 
@@ -185,3 +194,104 @@ FROM (
 )
 ;
 ```
+
+To estimate taxable interest for a given year[^1]:
+
+```sql
+-- Parameters expected by this query:
+--   @tax_rate
+--   @year
+--   @plan_id (optional, defaults to output for all plans)
+--   @estimated_additional_interest (optional,
+--      estimated interest not in YNAB such as investment income)
+--   @interest_reporting_threshold (optional, defaults to the $10
+--      common threshold, but confirm with actual documents)
+--   @interest_payee_name (optional, defaults to Interest)
+--
+-- Example with only required params:
+-- sqlite3 -header -box path/to/db.sqlite3 \
+--   -cmd '.parameter init' \
+--   -cmd ".parameter set @tax_rate 0.25" \
+--   -cmd ".parameter set @year 2025" \
+--   < query.sql
+--
+-- Example with all params:
+--   -cmd ".parameter set @tax_rate 0.25" \
+--   -cmd ".parameter set @year 2025" \
+--   -cmd ".parameter set @estimated_additional_interest 250.00" \
+--   -cmd ".parameter set @interest_reporting_threshold 10" \
+--   -cmd ".parameter set @interest_payee_name Interest" \
+--   -cmd ".parameter set @plan_id your-plan-id" \
+--   < query.sql
+
+WITH interest_by_account AS (
+    SELECT
+        plan_id
+        , account_name
+        , SUM(-amount_major) AS total
+    FROM flat_transactions
+    WHERE
+        TRUE
+        AND payee_name = COALESCE(NULLIF(@interest_payee_name, ''), 'Interest')
+        AND SUBSTR("date", 1, 4) = CAST(@year AS TEXT)
+        AND (COALESCE(@plan_id, '') = '' OR plan_id = @plan_id)
+    GROUP BY plan_id, account_name
+    HAVING total >= CAST(COALESCE(@interest_reporting_threshold, 10) AS REAL)
+)
+
+, interest_by_plan AS (
+    SELECT
+        plans.id AS plan_id
+        , plans.name AS plan_name
+        , COALESCE(SUM(interest_by_account.total), 0) AS interest_in_ynab
+    FROM plans
+    LEFT JOIN interest_by_account ON plans.id = interest_by_account.plan_id
+    WHERE COALESCE(@plan_id, '') = '' OR plans.id = @plan_id
+    GROUP BY plan_id, plan_name
+)
+
+, ranked_interest AS (
+    SELECT
+        plan_id
+        , plan_name
+        , interest_in_ynab
+        , interest_in_ynab
+        + CAST(COALESCE(@estimated_additional_interest, 0) AS REAL)
+            AS interest_with_estimate
+        , ROW_NUMBER() OVER (ORDER BY plan_name, plan_id) AS row_num
+    FROM interest_by_plan
+)
+
+, estimated_interest AS (
+    SELECT
+        plan_id
+        , plan_name
+        , interest_in_ynab
+        -- Additional interest is per-tax-return not per-YNAB-plan. Only add
+        -- additional interest to one plan's output to avoid double counting.
+        , CASE
+            WHEN row_num != 1 THEN interest_in_ynab
+            WHEN
+                interest_with_estimate
+                < CAST(COALESCE(@interest_reporting_threshold, 10) AS REAL)
+                THEN 0
+            ELSE interest_with_estimate
+        END AS estimated_total_taxable_interest
+    FROM ranked_interest
+)
+
+SELECT
+    plan_name AS "plan"
+    , ROUND(interest_in_ynab, 2) AS interest_in_ynab
+    , ROUND(estimated_total_taxable_interest, 2)
+        AS estimated_total_taxable_interest
+    , ROUND(
+        estimated_total_taxable_interest * CAST(NULLIF(@tax_rate, '') AS REAL)
+        , 2
+    ) AS estimated_tax_liability
+FROM estimated_interest
+ORDER BY plan_name, plan_id
+;
+```
+
+[^1]: This query is a rough estimate based on YNAB data and optional user inputs. It is not financial advice, tax advice, or a substitute for Forms 1099-INT, brokerage statements, bank records, or guidance from a qualified professional.
