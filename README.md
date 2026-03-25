@@ -231,7 +231,7 @@ WITH interest_by_account AS (
         AND SUBSTR(date, 1, 4) = CAST(@year AS TEXT)
         AND (COALESCE(@plan_id, '') = '' OR plan_id = @plan_id)
     GROUP BY 1, 2
-    HAVING total >= 10 -- 1099 usually isn't sent for amounts under $10
+    HAVING total >= 10 -- Common 1099-INT reporting threshold; confirm with actual tax documents
 ),
 interest_by_plan AS (
     SELECT
