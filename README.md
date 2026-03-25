@@ -72,10 +72,11 @@ You can issue queries with typical SQLite tools. *`sqlite-export-for-ynab` delib
 You can run the queries from this README using a tool like [`mdq`](https://github.com/yshavit/mdq). For example:
 
 ```console
-$ mdq '```sql dupes' path/to/sqlite-export-for-ynab/README.md -o plain | sqlite3 path/to/sqlite-export-for-ynab/db.sqlite
+$ mdq '```sql dupes' path/to/sqlite-export-for-ynab/README.md -o plain \
+    | sqlite3 path/to/sqlite-export-for-ynab/db.sqlite
 ```
 
-The DB path is documented [here](#db-path).
+The DB path is documented [above](#db-path).
 
 To get the top 5 payees by spending per plan, you could do:
 
