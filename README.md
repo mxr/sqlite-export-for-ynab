@@ -204,6 +204,8 @@ To estimate taxable interest for a given year[^1]:
 --   @plan_id (optional, defaults to output for all plans)
 --   @estimated_additional_interest (optional,
 --      estimated interest not in YNAB such as investment income)
+--   @interest_reporting_threshold (optional, defaults to the $10
+--      common threshold, but confirm with actual documents)
 --   @interest_payee_name (optional, defaults to Interest)
 --
 -- Example with only required params:
@@ -217,6 +219,7 @@ To estimate taxable interest for a given year[^1]:
 --   -cmd ".parameter set @tax_rate 0.25" \
 --   -cmd ".parameter set @year 2025" \
 --   -cmd ".parameter set @estimated_additional_interest 250.00" \
+--   -cmd ".parameter set @interest_reporting_threshold 10" \
 --   -cmd ".parameter set @interest_payee_name Interest" \
 --   -cmd ".parameter set @plan_id your-plan-id" \
 --   < query.sql
@@ -233,8 +236,7 @@ WITH interest_by_account AS (
         AND SUBSTR("date", 1, 4) = CAST(@year AS TEXT)
         AND (COALESCE(@plan_id, '') = '' OR plan_id = @plan_id)
     GROUP BY plan_id, account_name
-    -- Common 1099-INT reporting threshold; confirm with actual tax documents
-    HAVING total >= 10
+    HAVING total >= CAST(COALESCE(@interest_reporting_threshold, 10) AS REAL)
 )
 
 , interest_by_plan AS (
@@ -253,51 +255,41 @@ WITH interest_by_account AS (
         plan_id
         , plan_name
         , interest_in_ynab
+        , interest_in_ynab
+        + CAST(COALESCE(@estimated_additional_interest, 0) AS REAL)
+            AS interest_with_estimate
         , ROW_NUMBER() OVER (ORDER BY plan_name, plan_id) AS row_num
     FROM interest_by_plan
+)
+
+, estimated_interest AS (
+    SELECT
+        plan_id
+        , plan_name
+        , interest_in_ynab
+        -- Additional interest is per-tax-return not per-YNAB-plan. Only add
+        -- additional interest to one plan's output to avoid double counting.
+        , CASE
+            WHEN row_num != 1 THEN interest_in_ynab
+            WHEN
+                interest_with_estimate
+                < CAST(COALESCE(@interest_reporting_threshold, 10) AS REAL)
+                THEN 0
+            ELSE interest_with_estimate
+        END AS estimated_total_taxable_interest
+    FROM ranked_interest
 )
 
 SELECT
     plan_name AS "plan"
     , ROUND(interest_in_ynab, 2) AS interest_in_ynab
+    , ROUND(estimated_total_taxable_interest, 2)
+        AS estimated_total_taxable_interest
     , ROUND(
-        CASE
-            WHEN row_num != 1 THEN interest_in_ynab
-            WHEN
-                interest_in_ynab
-                + CAST(COALESCE(@estimated_additional_interest, 0) AS REAL)
-                < 10
-                THEN 0
-            ELSE
-                interest_in_ynab
-                + CAST(COALESCE(@estimated_additional_interest, 0) AS REAL)
-        END
+        estimated_total_taxable_interest * CAST(NULLIF(@tax_rate, '') AS REAL)
         , 2
-    ) AS estimated_total_taxable_interest
-    , CASE
-        WHEN NULLIF(@tax_rate, '') IS NULL THEN NULL
-        ELSE ROUND(
-            (
-                CASE
-                    WHEN row_num != 1 THEN interest_in_ynab
-                    WHEN
-                        interest_in_ynab
-                        + CAST(
-                            COALESCE(@estimated_additional_interest, 0) AS REAL
-                        )
-                        < 10
-                        THEN 0
-                    ELSE
-                        interest_in_ynab
-                        + CAST(
-                            COALESCE(@estimated_additional_interest, 0) AS REAL
-                        )
-                END
-            ) * CAST(@tax_rate AS REAL)
-            , 2
-        )
-    END AS estimated_tax_liability
-FROM ranked_interest
+    ) AS estimated_tax_liability
+FROM estimated_interest
 ORDER BY plan_name, plan_id
 ;
 ```
