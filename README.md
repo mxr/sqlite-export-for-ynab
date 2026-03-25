@@ -222,61 +222,83 @@ To estimate taxable interest for a given year[^1]:
 
 WITH interest_by_account AS (
     SELECT
-        plan_id,
-        account_name,
-        SUM(-amount_major) AS total
+        plan_id
+        , account_name
+        , SUM(-amount_major) AS total
     FROM flat_transactions
-    WHERE TRUE
+    WHERE
+        TRUE
         AND payee_name = COALESCE(NULLIF(@interest_payee_name, ''), 'Interest')
-        AND SUBSTR(date, 1, 4) = CAST(@year AS TEXT)
+        AND SUBSTR("date", 1, 4) = CAST(@year AS TEXT)
         AND (COALESCE(@plan_id, '') = '' OR plan_id = @plan_id)
     GROUP BY 1, 2
-    HAVING total >= 10 -- Common 1099-INT reporting threshold; confirm with actual tax documents
-),
-interest_by_plan AS (
+    -- Common 1099-INT reporting threshold; confirm with actual tax documents
+    HAVING total >= 10
+)
+
+, interest_by_plan AS (
     SELECT
-        plans.id AS plan_id,
-        plans.name AS plan_name,
-        COALESCE(SUM(interest_by_account.total), 0) AS interest_in_ynab
+        plans.id AS plan_id
+        , plans.name AS plan_name
+        , COALESCE(SUM(interest_by_account.total), 0) AS interest_in_ynab
     FROM plans
-    LEFT JOIN interest_by_account ON interest_by_account.plan_id = plans.id
+    LEFT JOIN interest_by_account ON plans.id = interest_by_account.plan_id
     WHERE COALESCE(@plan_id, '') = '' OR plans.id = @plan_id
     GROUP BY 1, 2
-),
-ranked_interest AS (
+)
+
+, ranked_interest AS (
     SELECT
-        plan_id,
-        plan_name,
-        interest_in_ynab,
-        ROW_NUMBER() OVER (ORDER BY plan_name, plan_id) AS row_num
+        plan_id
+        , plan_name
+        , interest_in_ynab
+        , ROW_NUMBER() OVER (ORDER BY plan_name, plan_id) AS row_num
     FROM interest_by_plan
 )
+
 SELECT
-    plan_name AS "plan",
-    ROUND(interest_in_ynab, 2) AS interest_in_ynab,
-    ROUND(
+    plan_name AS "plan"
+    , ROUND(interest_in_ynab, 2) AS interest_in_ynab
+    , ROUND(
         CASE
             WHEN row_num <> 1 THEN interest_in_ynab
-            WHEN interest_in_ynab + CAST(COALESCE(@estimated_additional_interest, 0) AS REAL) < 10 THEN 0
-            ELSE interest_in_ynab + CAST(COALESCE(@estimated_additional_interest, 0) AS REAL)
-        END,
-        2
-    ) AS estimated_total_taxable_interest,
-    CASE
+            WHEN
+                interest_in_ynab
+                + CAST(COALESCE(@estimated_additional_interest, 0) AS REAL)
+                < 10
+                THEN 0
+            ELSE
+                interest_in_ynab
+                + CAST(COALESCE(@estimated_additional_interest, 0) AS REAL)
+        END
+        , 2
+    ) AS estimated_total_taxable_interest
+    , CASE
         WHEN NULLIF(@tax_rate, '') IS NULL THEN NULL
         ELSE ROUND(
             (
                 CASE
                     WHEN row_num <> 1 THEN interest_in_ynab
-                    WHEN interest_in_ynab + CAST(COALESCE(@estimated_additional_interest, 0) AS REAL) < 10 THEN 0
-                    ELSE interest_in_ynab + CAST(COALESCE(@estimated_additional_interest, 0) AS REAL)
+                    WHEN
+                        interest_in_ynab
+                        + CAST(
+                            COALESCE(@estimated_additional_interest, 0) AS REAL
+                        )
+                        < 10
+                        THEN 0
+                    ELSE
+                        interest_in_ynab
+                        + CAST(
+                            COALESCE(@estimated_additional_interest, 0) AS REAL
+                        )
                 END
-            ) * CAST(@tax_rate AS REAL),
-            2
+            ) * CAST(@tax_rate AS REAL)
+            , 2
         )
     END AS estimated_tax_liability
 FROM ranked_interest
-ORDER BY plan_name, plan_id;
+ORDER BY plan_name, plan_id
+;
 ```
 
 [^1]: This query is a rough estimate based on YNAB data and optional user inputs. It is not financial advice, tax advice, or a substitute for Forms 1099-INT, brokerage statements, bank records, or guidance from a qualified professional.
