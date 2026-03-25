@@ -252,7 +252,7 @@ ranked_interest AS (
     FROM interest_by_plan
 )
 SELECT
-    plan_name AS plan,
+    plan_name AS "plan",
     ROUND(interest_in_ynab, 2) AS interest_in_ynab,
     ROUND(
         CASE
