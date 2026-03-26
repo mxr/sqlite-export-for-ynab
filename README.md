@@ -81,41 +81,27 @@ The DB path is documented [above](#db-path).
 To get the top 5 payees by spending per plan, you could do:
 
 ```sql
-WITH
-ranked_payees AS (
+WITH ranked_payees AS (
     SELECT
         pl.name AS plan_name
         , t.payee_name AS payee
         , SUM(t.amount_major) AS net_spent
-        , ROW_NUMBER() OVER (
-            PARTITION BY
-                pl.id
-            ORDER BY
-                SUM(t.amount) ASC
-        ) AS rnk
-    FROM
-        flat_transactions AS t
-    INNER JOIN plans AS pl
-        ON t.plan_id = pl.id
+        , ROW_NUMBER()
+            OVER (PARTITION BY pl.id ORDER BY SUM(t.amount) ASC)
+            AS rnk
+    FROM flat_transactions AS t INNER JOIN plans AS pl ON t.plan_id = pl.id
     WHERE
-        t.payee_name != 'Starting Balance'
-        AND t.transfer_account_id IS NULL
-    GROUP BY
-        pl.id
-        , t.payee_id
+        t.payee_name != 'Starting Balance' AND t.transfer_account_id IS NULL
+    GROUP BY pl.id, t.payee_id
 )
 
 SELECT
     plan_name
     , payee
     , net_spent
-FROM
-    ranked_payees
-WHERE
-    rnk <= 5
-ORDER BY
-    plan_name ASC
-    , net_spent DESC
+FROM ranked_payees
+WHERE rnk <= 5
+ORDER BY plan_name ASC, net_spent DESC
 ;
 ```
 
@@ -130,14 +116,12 @@ FROM (
         p.plan_id
         , p.name
     FROM payees AS p
-    LEFT JOIN flat_transactions AS ft
-        ON
-            p.plan_id = ft.plan_id
-            AND p.id = ft.payee_id
-    LEFT JOIN scheduled_flat_transactions AS sft
-        ON
-            p.plan_id = sft.plan_id
-            AND p.id = sft.payee_id
+    LEFT JOIN
+        flat_transactions AS ft
+        ON p.plan_id = ft.plan_id AND p.id = ft.payee_id
+    LEFT JOIN
+        scheduled_flat_transactions AS sft
+        ON p.plan_id = sft.plan_id AND p.id = sft.payee_id
     WHERE
         TRUE
         AND ft.payee_id IS NULL
@@ -146,9 +130,7 @@ FROM (
         AND p.name != 'Reconciliation Balance Adjustment'
         AND p.name != 'Manual Balance Adjustment'
         AND NOT p.deleted
-
     UNION ALL
-
     SELECT
         plan_id
         , name
@@ -156,10 +138,8 @@ FROM (
     WHERE NOT deleted
     GROUP BY plan_id, name
     HAVING COUNT(*) > 1
-
 ) AS dupes
-INNER JOIN plans AS pl
-    ON dupes.plan_id = pl.id
+INNER JOIN plans AS pl ON dupes.plan_id = pl.id
 ORDER BY "plan", payee
 ;
 ```
@@ -270,8 +250,7 @@ WITH interest_by_account AS (
         -- Additional interest is per-tax-return not per-YNAB-plan. Only add
         -- additional interest to one plan's output to avoid double counting.
         , CASE
-            WHEN row_num != 1 THEN interest_in_ynab
-            WHEN
+            WHEN row_num != 1 THEN interest_in_ynab WHEN
                 interest_with_estimate
                 < CAST(COALESCE(@interest_reporting_threshold, 10) AS REAL)
                 THEN 0
