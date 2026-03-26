@@ -250,7 +250,8 @@ WITH interest_by_account AS (
         -- Additional interest is per-tax-return not per-YNAB-plan. Only add
         -- additional interest to one plan's output to avoid double counting.
         , CASE
-            WHEN row_num != 1 THEN interest_in_ynab WHEN
+            WHEN row_num != 1 THEN interest_in_ynab
+            WHEN
                 interest_with_estimate
                 < CAST(COALESCE(@interest_reporting_threshold, 10) AS REAL)
                 THEN 0
