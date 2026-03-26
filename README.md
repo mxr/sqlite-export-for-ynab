@@ -302,7 +302,8 @@ WITH params AS (
 )
 
 , validation AS (
-    SELECT 'Set @account_name_like' AS error FROM params AS p
+    SELECT 'Set @account_name_like' AS error
+    FROM params AS p
     WHERE p.account_name_like = ''
     UNION ALL
     SELECT
@@ -312,7 +313,8 @@ WITH params AS (
     WHERE p.include_category_groups != '' AND p.exclude_category_groups != ''
 )
 
-SELECT v.error AS error_message FROM validation AS v
+SELECT v.error AS error_message
+FROM validation AS v
 WHERE v.error IS NOT NULL
 ;
 
@@ -334,7 +336,8 @@ WITH params AS (
 )
 
 , validation_errors AS (
-    SELECT 'Set @account_name_like' AS error FROM validation AS v
+    SELECT 'Set @account_name_like' AS error
+    FROM validation AS v
     WHERE v.account_name_like = ''
     UNION ALL
     SELECT
@@ -350,7 +353,10 @@ WITH params AS (
         , v.include_category_groups
         , v.exclude_category_groups
     FROM validation AS v
-    WHERE NOT EXISTS (SELECT 1 FROM validation_errors)
+    WHERE NOT EXISTS (
+        SELECT 1
+        FROM validation_errors
+    )
 )
 
 , matched_accounts AS (

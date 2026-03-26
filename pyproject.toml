@@ -34,6 +34,9 @@ extend-select = [
 line_position = "leading"
 spacing_before = "touch"
 
+[tool.sqlfluff.layout.type.from_clause]
+keyword_line_position = "leading"
+
 [tool.sqlfluff.rules.capitalisation.functions]
 extended_capitalisation_policy = 'upper'
 
