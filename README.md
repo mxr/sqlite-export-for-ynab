@@ -209,7 +209,7 @@ To estimate taxable interest for a given year[^1]:
 --   @interest_payee_name (optional, defaults to Interest)
 --
 -- Example with only required params:
--- sqlite3 -header -box path/to/db.sqlite3 \
+-- sqlite3 -header -box path/to/db.sqlite \
 --   -cmd '.parameter init' \
 --   -cmd ".parameter set @tax_rate 0.25" \
 --   -cmd ".parameter set @year 2025" \
@@ -291,6 +291,147 @@ SELECT
     ) AS estimated_tax_liability
 FROM estimated_interest
 ORDER BY plan_name, plan_id
+;
+```
+
+To compare assigned category values to a given account's balance:
+
+```sql
+-- Parameters expected by this query:
+--   @account_name_like (required, the account name to match against)
+--   @plan_id (optional, defaults to output for all matching plans)
+--   @include_category_groups
+--     (optional, comma-separated category-group names to include;
+--     exclusive with @exclude_category_groups)
+--   @exclude_category_groups
+--     (optional, comma-separated category-group names to exclude;
+--     exclusive with @include_category_groups)
+--
+-- Example:
+-- sqlite -header -box path/to/db.sqlite \
+--   -cmd '.parameter init' \
+--   -cmd ".parameter set @account_name_like %Savings%" \
+--   -cmd ".parameter set @include_category_groups 'Home,Food'" \
+--   < query.sql
+WITH params AS (
+    SELECT
+        TRIM(COALESCE(@account_name_like, '')) AS account_name_like
+        , TRIM(COALESCE(@include_category_groups, ''))
+            AS include_category_groups
+        , TRIM(COALESCE(@exclude_category_groups, ''))
+            AS exclude_category_groups
+)
+
+, validation AS (
+    SELECT 'Set @account_name_like' AS error FROM params AS p
+    WHERE p.account_name_like = ''
+    UNION ALL
+    SELECT
+        'Set only one of @include_category_groups'
+        || ' or @exclude_category_groups' AS error
+    FROM params AS p
+    WHERE p.include_category_groups != '' AND p.exclude_category_groups != ''
+)
+
+SELECT v.error AS error_message FROM validation AS v
+WHERE v.error IS NOT NULL
+;
+
+WITH params AS (
+    SELECT
+        TRIM(COALESCE(@account_name_like, '')) AS account_name_like
+        , TRIM(COALESCE(@include_category_groups, ''))
+            AS include_category_groups
+        , TRIM(COALESCE(@exclude_category_groups, ''))
+            AS exclude_category_groups
+)
+
+, validation AS (
+    SELECT
+        p.account_name_like
+        , p.include_category_groups
+        , p.exclude_category_groups
+    FROM params AS p
+)
+
+, validation_errors AS (
+    SELECT 'Set @account_name_like' AS error FROM validation AS v
+    WHERE v.account_name_like = ''
+    UNION ALL
+    SELECT
+        'Set only one of @include_category_groups'
+        || ' or @exclude_category_groups' AS error
+    FROM validation AS v
+    WHERE v.include_category_groups != '' AND v.exclude_category_groups != ''
+)
+
+, valid_params AS (
+    SELECT
+        v.account_name_like
+        , v.include_category_groups
+        , v.exclude_category_groups
+    FROM validation AS v
+    WHERE NOT EXISTS (SELECT 1 FROM validation_errors)
+)
+
+, matched_accounts AS (
+    SELECT
+        p.id AS plan_id
+        , p.name AS plan_name
+        , a.name AS account_name
+        , a.cleared_balance / 1000.0 AS account_amount
+    FROM plans AS p
+    INNER JOIN accounts AS a ON p.id = a.plan_id
+    CROSS JOIN valid_params AS v
+    WHERE
+        TRUE
+        AND NOT a.deleted
+        AND a.name LIKE v.account_name_like
+        AND (COALESCE(@plan_id, '') = '' OR p.id = @plan_id)
+)
+
+, category_totals AS (
+    SELECT
+        c.plan_id
+        , COALESCE(SUM(c.balance), 0) / 1000.0 AS total
+    FROM categories AS c CROSS JOIN valid_params AS v
+    WHERE
+        TRUE
+        AND NOT c.deleted
+        AND c.category_group_name != 'Credit Card Payments'
+        AND c.category_group_name != 'Internal Master Category'
+        AND (
+            v.include_category_groups = ''
+            OR INSTR(
+                ','
+                || LOWER(REPLACE(v.include_category_groups, ', ', ','))
+                || ','
+                , ',' || LOWER(c.category_group_name) || ','
+            )
+            > 0
+        )
+        AND (
+            v.exclude_category_groups = ''
+            OR INSTR(
+                ','
+                || LOWER(REPLACE(v.exclude_category_groups, ', ', ','))
+                || ','
+                , ',' || LOWER(c.category_group_name) || ','
+            )
+            = 0
+        )
+        AND (COALESCE(@plan_id, '') = '' OR c.plan_id = @plan_id)
+    GROUP BY c.plan_id
+)
+
+SELECT
+    ma.plan_name AS "plan"
+    , ma.account_name AS account
+    , ROUND(COALESCE(ct.total, 0), 2) AS total
+    , ROUND(ma.account_amount - COALESCE(ct.total, 0), 2) AS excess
+FROM matched_accounts AS ma
+LEFT JOIN category_totals AS ct ON ma.plan_id = ct.plan_id
+ORDER BY "plan", account
 ;
 ```
 
