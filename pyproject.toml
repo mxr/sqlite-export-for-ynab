@@ -37,6 +37,9 @@ spacing_before = "touch"
 [tool.sqlfluff.layout.type.from_clause]
 keyword_line_position = "leading"
 
+[tool.sqlfluff.layout.type.when_clause]
+keyword_line_position = "leading"
+
 [tool.sqlfluff.rules.capitalisation.functions]
 extended_capitalisation_policy = 'upper'
 
