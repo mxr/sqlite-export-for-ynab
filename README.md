@@ -294,7 +294,7 @@ ORDER BY plan_name, plan_id
 ;
 ```
 
-To map compare assigned category values to a given account's balance:
+To compare assigned category values to a given account's balance:
 
 ```sql
 -- Parameters expected by this query:
