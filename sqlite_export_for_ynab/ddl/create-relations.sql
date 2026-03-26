@@ -172,9 +172,11 @@ SELECT
     , COALESCE(st.id, t.id) AS id
     , COALESCE(st.amount, t.amount) AS amount
     , COALESCE(st.amount, t.amount) / -1000.0 AS amount_major
-    , CASE WHEN st.id IS NULL THEN t.category_id ELSE st.category_id END
+    , CASE
+        WHEN st.id IS NULL THEN t.category_id ELSE st.category_id END
         AS category_id
-    , CASE WHEN st.id IS NULL THEN t.category_name ELSE st.category_name END
+    , CASE
+        WHEN st.id IS NULL THEN t.category_name ELSE st.category_name END
         AS category_name
     , COALESCE(NULLIF(st.memo, ''), NULLIF(t.memo, '')) AS memo
     , COALESCE(st.payee_id, t.payee_id) AS payee_id
@@ -194,7 +196,9 @@ INNER JOIN categories AS c
     ON (
         t.plan_id = c.plan_id
         AND c.id
-        = CASE WHEN st.id IS NULL THEN t.category_id ELSE st.category_id END
+        = CASE
+            WHEN st.id IS NULL THEN t.category_id ELSE st.category_id
+        END
     )
 WHERE
     TRUE
@@ -267,9 +271,11 @@ SELECT
     , COALESCE(st.id, t.id) AS id
     , COALESCE(st.amount, t.amount) AS amount
     , COALESCE(st.amount, t.amount) / -1000.0 AS amount_major
-    , CASE WHEN st.id IS NULL THEN t.category_id ELSE st.category_id END
+    , CASE
+        WHEN st.id IS NULL THEN t.category_id ELSE st.category_id END
         AS category_id
-    , CASE WHEN st.id IS NULL THEN t.category_name ELSE st.category_name END
+    , CASE
+        WHEN st.id IS NULL THEN t.category_name ELSE st.category_name END
         AS category_name
     , COALESCE(NULLIF(st.memo, ''), NULLIF(t.memo, '')) AS memo
     , COALESCE(st.payee_id, t.payee_id) AS payee_id
@@ -286,7 +292,9 @@ INNER JOIN categories AS c
     ON (
         t.plan_id = c.plan_id
         AND c.id
-        = CASE WHEN st.id IS NULL THEN t.category_id ELSE st.category_id END
+        = CASE
+            WHEN st.id IS NULL THEN t.category_id ELSE st.category_id
+        END
     )
 WHERE
     TRUE
