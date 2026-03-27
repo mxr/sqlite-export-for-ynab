@@ -262,12 +262,12 @@ WITH interest_by_account AS (
 
 SELECT
     plan_name AS "plan"
-    , ROUND(interest_in_ynab, 2) AS interest_in_ynab
-    , ROUND(estimated_total_taxable_interest, 2)
+    , PRINTF('%.2f', interest_in_ynab) AS interest_in_ynab
+    , PRINTF('%.2f', estimated_total_taxable_interest)
         AS estimated_total_taxable_interest
-    , ROUND(
-        estimated_total_taxable_interest * CAST(NULLIF(@tax_rate, '') AS REAL)
-        , 2
+    , PRINTF(
+        '%.2f'
+        , estimated_total_taxable_interest * CAST(NULLIF(@tax_rate, '') AS REAL)
     ) AS estimated_tax_liability
 FROM estimated_interest
 ORDER BY plan_name, plan_id
@@ -413,8 +413,8 @@ WITH params AS (
 SELECT
     ma.plan_name AS "plan"
     , ma.account_name AS account
-    , ROUND(COALESCE(ct.total, 0), 2) AS total
-    , ROUND(ma.account_amount - COALESCE(ct.total, 0), 2) AS excess
+    , PRINTF('%.2f', COALESCE(ct.total, 0)) AS total
+    , PRINTF('%.2f', ma.account_amount - COALESCE(ct.total, 0)) AS excess
 FROM matched_accounts AS ma
 LEFT JOIN category_totals AS ct ON ma.plan_id = ct.plan_id
 ORDER BY "plan", account
