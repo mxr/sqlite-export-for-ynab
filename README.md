@@ -108,29 +108,61 @@ ORDER BY plan_name ASC, net_spent DESC
 To get duplicate payees, or payees with no transactions:
 
 ```sql
-SELECT DISTINCT
+WITH used_payees AS (
+    SELECT
+        plan_id
+        , payee_id
+    FROM transactions
+    WHERE
+        TRUE
+        AND payee_id IS NOT NULL
+        AND NOT deleted
+    UNION
+    SELECT
+        plan_id
+        , payee_id
+    FROM subtransactions
+    WHERE
+        TRUE
+        AND payee_id IS NOT NULL
+        AND NOT deleted
+    UNION
+    SELECT
+        plan_id
+        , payee_id
+    FROM scheduled_transactions
+    WHERE
+        TRUE
+        AND payee_id IS NOT NULL
+        AND NOT deleted
+    UNION
+    SELECT
+        plan_id
+        , payee_id
+    FROM scheduled_subtransactions
+    WHERE
+        TRUE
+        AND payee_id IS NOT NULL
+        AND NOT deleted
+)
+
+SELECT
     pl.name AS "plan"
     , dupes.name AS payee
 FROM (
-    SELECT DISTINCT
+    SELECT
         p.plan_id
         , p.name
     FROM payees AS p
-    LEFT JOIN
-        flat_transactions AS ft
-        ON p.plan_id = ft.plan_id AND p.id = ft.payee_id
-    LEFT JOIN
-        scheduled_flat_transactions AS sft
-        ON p.plan_id = sft.plan_id AND p.id = sft.payee_id
+    LEFT JOIN used_payees AS up ON p.plan_id = up.plan_id AND p.id = up.payee_id
     WHERE
         TRUE
-        AND ft.payee_id IS NULL
-        AND sft.payee_id IS NULL
+        AND up.payee_id IS NULL
         AND p.transfer_account_id IS NULL
         AND p.name != 'Reconciliation Balance Adjustment'
         AND p.name != 'Manual Balance Adjustment'
         AND NOT p.deleted
-    UNION ALL
+    UNION
     SELECT
         plan_id
         , name
