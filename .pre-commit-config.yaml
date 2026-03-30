@@ -36,7 +36,7 @@ repos:
   - id: sqlfluff-fix
     args: [--dialect, sqlite]
 - repo: https://github.com/adamtheturtle/doccmd-pre-commit
-  rev: v2026.3.2
+  rev: v2026.3.26.2
   hooks:
   - id: doccmd
     name: doccmd-sqlfluff
