@@ -16,7 +16,11 @@ CREATE TABLE IF NOT EXISTS accounts (
     id TEXT PRIMARY KEY
     , plan_id TEXT
     , balance INT
+    , balance_formatted TEXT
+    , balance_currency REAL
     , cleared_balance INT
+    , cleared_balance_formatted TEXT
+    , cleared_balance_currency REAL
     , closed BOOLEAN
     , debt_original_balance INT
     , deleted BOOLEAN
@@ -29,6 +33,8 @@ CREATE TABLE IF NOT EXISTS accounts (
     , transfer_payee_id TEXT
     , type TEXT
     , uncleared_balance INT
+    , uncleared_balance_formatted TEXT
+    , uncleared_balance_currency REAL
     , FOREIGN KEY (plan_id) REFERENCES plans (id)
 )
 ;
@@ -65,8 +71,14 @@ CREATE TABLE IF NOT EXISTS categories (
     , original_category_group_id TEXT
     , note TEXT
     , budgeted INT
+    , budgeted_formatted TEXT
+    , budgeted_currency REAL
     , activity INT
+    , activity_formatted TEXT
+    , activity_currency REAL
     , balance INT
+    , balance_formatted TEXT
+    , balance_currency REAL
     , goal_type TEXT
     , goal_needs_whole_amount BOOLEAN
     , goal_day INT
@@ -75,13 +87,21 @@ CREATE TABLE IF NOT EXISTS categories (
     , goal_creation_month TEXT
     , goal_snoozed_at TEXT
     , goal_target INT
+    , goal_target_formatted TEXT
+    , goal_target_currency REAL
     , goal_target_date TEXT
     , goal_target_month TEXT
     , goal_percentage_complete INT
     , goal_months_to_budget INT
     , goal_under_funded INT
+    , goal_under_funded_formatted TEXT
+    , goal_under_funded_currency REAL
     , goal_overall_funded INT
+    , goal_overall_funded_formatted TEXT
+    , goal_overall_funded_currency REAL
     , goal_overall_left INT
+    , goal_overall_left_formatted TEXT
+    , goal_overall_left_currency REAL
     , deleted BOOLEAN
     , FOREIGN KEY (plan_id) REFERENCES plans (id)
     , FOREIGN KEY (category_group_id) REFERENCES category_groups (id)
@@ -104,6 +124,8 @@ CREATE TABLE IF NOT EXISTS transactions (
     , account_id TEXT
     , account_name TEXT
     , amount INT
+    , amount_formatted TEXT
+    , amount_currency REAL
     , approved BOOLEAN
     , category_id TEXT
     , category_name TEXT
@@ -133,6 +155,8 @@ CREATE TABLE IF NOT EXISTS subtransactions (
     id TEXT PRIMARY KEY
     , plan_id TEXT
     , amount INT
+    , amount_formatted TEXT
+    , amount_currency REAL
     , category_id TEXT
     , category_name TEXT
     , deleted BOOLEAN
@@ -171,7 +195,8 @@ SELECT
     , c.category_group_name
     , COALESCE(st.id, t.id) AS id
     , COALESCE(st.amount, t.amount) AS amount
-    , COALESCE(st.amount, t.amount) / -1000.0 AS amount_major
+    , COALESCE(st.amount_formatted, t.amount_formatted) AS amount_formatted
+    , COALESCE(st.amount_currency, t.amount_currency) AS amount_currency
     , CASE
         WHEN st.id IS NULL THEN t.category_id ELSE st.category_id END
         AS category_id
@@ -211,6 +236,8 @@ CREATE TABLE IF NOT EXISTS scheduled_transactions (
     , account_id TEXT
     , account_name TEXT
     , amount INT
+    , amount_formatted TEXT
+    , amount_currency REAL
     , category_id TEXT
     , category_name TEXT
     , date_first TEXT
@@ -236,6 +263,8 @@ CREATE TABLE IF NOT EXISTS scheduled_subtransactions (
     , plan_id TEXT
     , scheduled_transaction_id TEXT
     , amount INT
+    , amount_formatted TEXT
+    , amount_currency REAL
     , memo TEXT
     , payee_id TEXT
     , payee_name TEXT
@@ -270,7 +299,8 @@ SELECT
     , COALESCE(st.payee_name, t.payee_name) AS payee_name
     , COALESCE(st.id, t.id) AS id
     , COALESCE(st.amount, t.amount) AS amount
-    , COALESCE(st.amount, t.amount) / -1000.0 AS amount_major
+    , COALESCE(st.amount_formatted, t.amount_formatted) AS amount_formatted
+    , COALESCE(st.amount_currency, t.amount_currency) AS amount_currency
     , CASE
         WHEN st.id IS NULL THEN t.category_id ELSE st.category_id END
         AS category_id
