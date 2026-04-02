@@ -446,7 +446,7 @@ SELECT
     ma.plan_name AS "plan"
     , ma.account_name AS account
     , PRINTF('%.2f', COALESCE(ct.total, 0)) AS total
-    , PRINTF('%.2f', ma.account_amount - COALESCE(ct.total, 0)) AS excess
+    , PRINTF('%.2f', COALESCE(ct.total, 0) - ma.account_amount) AS excess
 FROM matched_accounts AS ma
 LEFT JOIN category_totals AS ct ON ma.plan_id = ct.plan_id
 ORDER BY "plan", account
