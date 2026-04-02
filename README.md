@@ -61,7 +61,7 @@ The relations are defined in [create-relations.sql](sqlite_export_for_ynab/ddl/c
 
 1. Some objects are pulled out into their own tables so they can be more cleanly modeled in SQLite (ex: subtransactions, loan account periodic values).
 1. Foreign keys are added as needed (ex: plan ID, transaction ID) so data across plans remains separate.
-1. Two new views called `flat_transactions` and `scheduled_flat_transactions`. These allow you to query split and non-split transactions easily, without needing to also query `subtransactions` and `scheduled_subtransactions` respectively. They also include fields to improve quality of life (ex: `amount_major` to convert from [YNAB's milliunits](https://api.ynab.com/#formats) to [major units](https://en.wikipedia.org/wiki/ISO_4217) i.e. dollars) and filter out deleted transactions/subtransactions.
+1. Two new views called `flat_transactions` and `scheduled_flat_transactions`. These allow you to query split and non-split transactions easily, without needing to also query `subtransactions` and `scheduled_subtransactions` respectively. They also filter out deleted transactions/subtransactions and project payee/category fields to make querying more ergonomic.
 
 ## Querying
 
@@ -85,7 +85,7 @@ WITH ranked_payees AS (
     SELECT
         pl.name AS plan_name
         , t.payee_name AS payee
-        , SUM(t.amount_major) AS net_spent
+        , SUM(t.amount_currency) AS net_spent
         , ROW_NUMBER()
             OVER (PARTITION BY pl.id ORDER BY SUM(t.amount) ASC)
             AS rnk
@@ -181,11 +181,11 @@ To count the spend for a category (ex: "Apps") between this month and the next 1
 ```sql
 SELECT
     plan_id
-    , SUM(amount_major) AS amount_major
+    , SUM(amount_currency) AS amount_currency
 FROM (
     SELECT
         plan_id
-        , amount_major
+        , amount_currency
     FROM flat_transactions
     WHERE
         category_name = 'Apps'
@@ -193,12 +193,12 @@ FROM (
     UNION ALL
     SELECT
         plan_id
-        , amount_major * (
+        , amount_currency * (
             CASE
                 WHEN frequency = 'monthly' THEN 11
                 ELSE 1 -- assumes yearly
             END
-        ) AS amount_major
+        ) AS amount_currency
     FROM scheduled_flat_transactions
     WHERE
         category_name = 'Apps'
@@ -240,7 +240,7 @@ WITH interest_by_account AS (
     SELECT
         plan_id
         , account_name
-        , SUM(-amount_major) AS total
+        , SUM(-amount_currency) AS total
     FROM flat_transactions
     WHERE
         TRUE
