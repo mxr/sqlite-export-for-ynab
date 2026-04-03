@@ -2,8 +2,17 @@ name: main
 
 on:
   pull_request:
+    paths: &project_files
+    - .github/workflows/**
+    - '**/*.py'
+    - '**/*.sql'
+    - '**/*.toml'
+    - '**/*requirements*.txt'
+    - '**/setup.cfg'
+    - setup.py
   push:
     branches: [main]
+    paths: *project_files
 
 jobs:
   main:
