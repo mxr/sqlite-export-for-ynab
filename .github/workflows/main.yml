@@ -2,24 +2,36 @@ name: main
 
 on:
   pull_request:
-    paths: &project_files
-    - .github/workflows/**
-    - '**/*.py'
-    - '**/*.sql'
-    - '**/*.toml'
-    - '**/*requirements*.txt'
-    - '**/setup.cfg'
-    - setup.py
   push:
     branches: [main]
-    paths: *project_files
 
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      project_files: ${{ steps.filter.outputs.project_files }}
+    steps:
+    - uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4.0.1
+      id: filter
+      with:
+        filters: |
+          project_files:
+            - .github/workflows/**
+            - '**/*.py'
+            - '**/*.sql'
+            - '**/*.toml'
+            - '**/*requirements*.txt'
+            - '**/setup.cfg'
+            - setup.py
   main:
+    needs: [changes]
+    if: needs.changes.outputs.project_files == 'true'
     uses: asottile/workflows/.github/workflows/tox.yml@adfec6a1ccb5d6b189aa153676d4f0743afa21c1 # v1.11.0
     with:
       env: '["py312", "py313", "py314", "pypy7.3.20"]' # https://github.com/actions/runner-images/blob/4847d9e554d1ad62acec5c5bddfc6175fe1bef4e/images/ubuntu/Ubuntu2204-Readme.md#pypy
   main-win:
+    needs: [changes]
+    if: needs.changes.outputs.project_files == 'true'
     uses: asottile/workflows/.github/workflows/tox.yml@adfec6a1ccb5d6b189aa153676d4f0743afa21c1 # v1.11.0
     with:
       env: '["py312"]'
