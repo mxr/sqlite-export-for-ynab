@@ -24,16 +24,40 @@ jobs:
             - '**/*requirements*.txt'
             - '**/setup.cfg'
             - setup.py
-  main:
+  main-real:
     needs: [changes]
     if: needs.changes.outputs.project_files == 'true'
     uses: asottile/workflows/.github/workflows/tox.yml@adfec6a1ccb5d6b189aa153676d4f0743afa21c1 # v1.11.0
     with:
       env: '["py312", "py313", "py314", "pypy7.3.20"]' # https://github.com/actions/runner-images/blob/4847d9e554d1ad62acec5c5bddfc6175fe1bef4e/images/ubuntu/Ubuntu2204-Readme.md#pypy
-  main-win:
+  main:
+    needs: [changes, main-real]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+    - run: |
+        if [ "${{ needs.changes.outputs.project_files }}" != "true" ]; then
+          exit 0
+        fi
+        if [ "${{ needs.main-real.result }}" != "success" ]; then
+          exit 1
+        fi
+  main-win-real:
     needs: [changes]
     if: needs.changes.outputs.project_files == 'true'
     uses: asottile/workflows/.github/workflows/tox.yml@adfec6a1ccb5d6b189aa153676d4f0743afa21c1 # v1.11.0
     with:
       env: '["py312"]'
       os: windows-latest
+  main-win:
+    needs: [changes, main-win-real]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+    - run: |
+        if [ "${{ needs.changes.outputs.project_files }}" != "true" ]; then
+          exit 0
+        fi
+        if [ "${{ needs.main-win-real.result }}" != "success" ]; then
+          exit 1
+        fi
