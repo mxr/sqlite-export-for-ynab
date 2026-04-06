@@ -328,10 +328,70 @@ To compare assigned category values to a given account's balance:
 WITH params AS (
     SELECT
         TRIM(COALESCE(@account_name_like, '')) AS account_name_like
+        , TRIM(COALESCE(@plan_id, '')) AS plan_id
         , TRIM(COALESCE(@include_category_groups, ''))
             AS include_category_groups
         , TRIM(COALESCE(@exclude_category_groups, ''))
             AS exclude_category_groups
+)
+
+, scoped_plans AS (
+    SELECT
+        p.id
+        , p.name
+    FROM plans AS p
+    CROSS JOIN params AS prm
+    WHERE prm.plan_id = '' OR p.id = prm.plan_id
+)
+
+, split_include_category_groups (value, rest) AS (
+    SELECT
+        ''
+        , prm.include_category_groups || ','
+    FROM params AS prm
+    UNION ALL
+    SELECT
+        TRIM(SUBSTR(rest, 1, INSTR(rest, ',') - 1))
+        , SUBSTR(rest, INSTR(rest, ',') + 1)
+    FROM split_include_category_groups
+    WHERE rest != ''
+)
+
+, include_category_groups AS (
+    SELECT value AS name
+    FROM split_include_category_groups
+    WHERE value != ''
+)
+
+, split_exclude_category_groups (value, rest) AS (
+    SELECT
+        ''
+        , prm.exclude_category_groups || ','
+    FROM params AS prm
+    UNION ALL
+    SELECT
+        TRIM(SUBSTR(rest, 1, INSTR(rest, ',') - 1))
+        , SUBSTR(rest, INSTR(rest, ',') + 1)
+    FROM split_exclude_category_groups
+    WHERE rest != ''
+)
+
+, exclude_category_groups AS (
+    SELECT value AS name
+    FROM split_exclude_category_groups
+    WHERE value != ''
+)
+
+, matching_accounts AS (
+    SELECT
+        sp.id AS plan_id
+        , sp.name AS plan_name
+        , COUNT(*) AS matches
+    FROM scoped_plans AS sp
+    INNER JOIN accounts AS a ON sp.id = a.plan_id
+    CROSS JOIN params AS prm
+    WHERE NOT a.deleted AND a.name LIKE prm.account_name_like
+    GROUP BY sp.id, sp.name
 )
 
 , validation AS (
@@ -344,6 +404,56 @@ WITH params AS (
         || ' or @exclude_category_groups' AS error
     FROM params AS p
     WHERE p.include_category_groups != '' AND p.exclude_category_groups != ''
+    UNION ALL
+    SELECT 'No plan matched @plan_id' AS error
+    FROM params AS prm
+    WHERE
+        prm.plan_id != '' AND NOT EXISTS (
+            SELECT 1
+            FROM scoped_plans
+        )
+    UNION ALL
+    SELECT 'No account names matched @account_name_like' AS error
+    FROM params AS p
+    WHERE
+        p.account_name_like != '' AND NOT EXISTS (
+            SELECT 1
+            FROM matching_accounts
+        )
+    UNION ALL
+    SELECT
+        'Matched more than 1 account in plan: '
+        || ma.plan_name AS error
+    FROM matching_accounts AS ma
+    WHERE ma.matches > 1
+    UNION ALL
+    SELECT
+        'Unknown include category group in plan '
+        || sp.name
+        || ': '
+        || icg.name AS error
+    FROM scoped_plans AS sp
+    CROSS JOIN include_category_groups AS icg
+    LEFT JOIN category_groups AS cg
+        ON
+            sp.id = cg.plan_id
+            AND NOT COALESCE(cg.deleted, 0)
+            AND LOWER(cg.name) = LOWER(icg.name)
+    WHERE cg.id IS NULL
+    UNION ALL
+    SELECT
+        'Unknown exclude category group in plan '
+        || sp.name
+        || ': '
+        || ecg.name AS error
+    FROM scoped_plans AS sp
+    CROSS JOIN exclude_category_groups AS ecg
+    LEFT JOIN category_groups AS cg
+        ON
+            sp.id = cg.plan_id
+            AND NOT COALESCE(cg.deleted, 0)
+            AND LOWER(cg.name) = LOWER(ecg.name)
+    WHERE cg.id IS NULL
 )
 
 SELECT v.error AS error_message
@@ -354,15 +464,76 @@ WHERE v.error IS NOT NULL
 WITH params AS (
     SELECT
         TRIM(COALESCE(@account_name_like, '')) AS account_name_like
+        , TRIM(COALESCE(@plan_id, '')) AS plan_id
         , TRIM(COALESCE(@include_category_groups, ''))
             AS include_category_groups
         , TRIM(COALESCE(@exclude_category_groups, ''))
             AS exclude_category_groups
 )
 
+, scoped_plans AS (
+    SELECT
+        p.id
+        , p.name
+    FROM plans AS p
+    CROSS JOIN params AS prm
+    WHERE prm.plan_id = '' OR p.id = prm.plan_id
+)
+
+, split_include_category_groups (value, rest) AS (
+    SELECT
+        ''
+        , prm.include_category_groups || ','
+    FROM params AS prm
+    UNION ALL
+    SELECT
+        TRIM(SUBSTR(rest, 1, INSTR(rest, ',') - 1))
+        , SUBSTR(rest, INSTR(rest, ',') + 1)
+    FROM split_include_category_groups
+    WHERE rest != ''
+)
+
+, include_category_groups AS (
+    SELECT value AS name
+    FROM split_include_category_groups
+    WHERE value != ''
+)
+
+, split_exclude_category_groups (value, rest) AS (
+    SELECT
+        ''
+        , prm.exclude_category_groups || ','
+    FROM params AS prm
+    UNION ALL
+    SELECT
+        TRIM(SUBSTR(rest, 1, INSTR(rest, ',') - 1))
+        , SUBSTR(rest, INSTR(rest, ',') + 1)
+    FROM split_exclude_category_groups
+    WHERE rest != ''
+)
+
+, exclude_category_groups AS (
+    SELECT value AS name
+    FROM split_exclude_category_groups
+    WHERE value != ''
+)
+
+, matching_accounts AS (
+    SELECT
+        sp.id AS plan_id
+        , sp.name AS plan_name
+        , COUNT(*) AS matches
+    FROM scoped_plans AS sp
+    INNER JOIN accounts AS a ON sp.id = a.plan_id
+    CROSS JOIN params AS prm
+    WHERE NOT a.deleted AND a.name LIKE prm.account_name_like
+    GROUP BY sp.id, sp.name
+)
+
 , validation AS (
     SELECT
         p.account_name_like
+        , p.plan_id
         , p.include_category_groups
         , p.exclude_category_groups
     FROM params AS p
@@ -378,11 +549,62 @@ WITH params AS (
         || ' or @exclude_category_groups' AS error
     FROM validation AS v
     WHERE v.include_category_groups != '' AND v.exclude_category_groups != ''
+    UNION ALL
+    SELECT 'No plan matched @plan_id' AS error
+    FROM validation AS v
+    WHERE
+        v.plan_id != '' AND NOT EXISTS (
+            SELECT 1
+            FROM scoped_plans
+        )
+    UNION ALL
+    SELECT 'No account names matched @account_name_like' AS error
+    FROM validation AS v
+    WHERE
+        v.account_name_like != '' AND NOT EXISTS (
+            SELECT 1
+            FROM matching_accounts
+        )
+    UNION ALL
+    SELECT
+        'Matched more than 1 account in plan: '
+        || ma.plan_name AS error
+    FROM matching_accounts AS ma
+    WHERE ma.matches > 1
+    UNION ALL
+    SELECT
+        'Unknown include category group in plan '
+        || sp.name
+        || ': '
+        || icg.name AS error
+    FROM scoped_plans AS sp
+    CROSS JOIN include_category_groups AS icg
+    LEFT JOIN category_groups AS cg
+        ON
+            sp.id = cg.plan_id
+            AND NOT COALESCE(cg.deleted, 0)
+            AND LOWER(cg.name) = LOWER(icg.name)
+    WHERE cg.id IS NULL
+    UNION ALL
+    SELECT
+        'Unknown exclude category group in plan '
+        || sp.name
+        || ': '
+        || ecg.name AS error
+    FROM scoped_plans AS sp
+    CROSS JOIN exclude_category_groups AS ecg
+    LEFT JOIN category_groups AS cg
+        ON
+            sp.id = cg.plan_id
+            AND NOT COALESCE(cg.deleted, 0)
+            AND LOWER(cg.name) = LOWER(ecg.name)
+    WHERE cg.id IS NULL
 )
 
 , valid_params AS (
     SELECT
         v.account_name_like
+        , v.plan_id
         , v.include_category_groups
         , v.exclude_category_groups
     FROM validation AS v
@@ -405,7 +627,7 @@ WITH params AS (
         TRUE
         AND NOT a.deleted
         AND a.name LIKE v.account_name_like
-        AND (COALESCE(@plan_id, '') = '' OR p.id = @plan_id)
+        AND (v.plan_id = '' OR p.id = v.plan_id)
 )
 
 , category_totals AS (
@@ -420,25 +642,21 @@ WITH params AS (
         AND c.category_group_name != 'Internal Master Category'
         AND (
             v.include_category_groups = ''
-            OR INSTR(
-                ','
-                || LOWER(REPLACE(v.include_category_groups, ', ', ','))
-                || ','
-                , ',' || LOWER(c.category_group_name) || ','
+            OR EXISTS (
+                SELECT 1
+                FROM include_category_groups AS icg
+                WHERE LOWER(icg.name) = LOWER(c.category_group_name)
             )
-            > 0
         )
         AND (
             v.exclude_category_groups = ''
-            OR INSTR(
-                ','
-                || LOWER(REPLACE(v.exclude_category_groups, ', ', ','))
-                || ','
-                , ',' || LOWER(c.category_group_name) || ','
+            OR NOT EXISTS (
+                SELECT 1
+                FROM exclude_category_groups AS ecg
+                WHERE LOWER(ecg.name) = LOWER(c.category_group_name)
             )
-            = 0
         )
-        AND (COALESCE(@plan_id, '') = '' OR c.plan_id = @plan_id)
+        AND (v.plan_id = '' OR c.plan_id = v.plan_id)
     GROUP BY c.plan_id
 )
 
