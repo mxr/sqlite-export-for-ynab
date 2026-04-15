@@ -106,7 +106,7 @@ async def sync(token: str, db: Path, full_refresh: bool) -> None:
         db.parent.mkdir(parents=True, exist_ok=True)
 
     with sqlite3.connect(db) as con:
-        con.row_factory = _row_factory
+        con.row_factory = sqlite3.Row
         cur = con.cursor()
 
         if full_refresh:
@@ -183,10 +183,6 @@ async def sync(token: str, db: Path, full_refresh: bool) -> None:
                     cur, plan_id, sched_txn_data["scheduled_transactions"]
                 )
             print("Done")
-
-
-def _row_factory(c: sqlite3.Cursor, row: tuple[Any, ...]) -> dict[str, Any]:
-    return {d[0]: r for d, r in zip(c.description, row, strict=True)}
 
 
 def contents(filename: str) -> str:
