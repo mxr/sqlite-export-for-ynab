@@ -50,7 +50,19 @@ _ENV_TOKEN = "YNAB_PERSONAL_ACCESS_TOKEN"
 _PACKAGE = "sqlite-export-for-ynab"
 
 
-async def async_main(argv: Sequence[str] | None = None) -> int:
+def resolve_token(token_override: str | None = None) -> str:
+    token = token_override or os.environ.get(_ENV_TOKEN)
+    if token:
+        return token
+
+    raise ValueError(
+        f"Must set YNAB access token as {_ENV_TOKEN!r} environment variable or pass token_override directly. See https://api.ynab.com/#personal-access-tokens"
+    )
+
+
+async def async_main(
+    argv: Sequence[str] | None = None, *, token_override: str | None = None
+) -> int:
     parser = argparse.ArgumentParser(prog=_PACKAGE)
     parser.add_argument(
         "--db",
@@ -71,13 +83,7 @@ async def async_main(argv: Sequence[str] | None = None) -> int:
     db: Path = args.db
     full_refresh: bool = args.full_refresh
 
-    token = os.environ.get(_ENV_TOKEN)
-    if not token:
-        raise ValueError(
-            f"Must set YNAB access token as {_ENV_TOKEN!r} "
-            "environment variable. See "
-            "https://api.ynab.com/#personal-access-tokens"
-        )
+    token = resolve_token(token_override)
 
     await sync(token, db, full_refresh)
 
@@ -530,5 +536,7 @@ class YnabClient:
         raise AssertionError("unreachable")
 
 
-def main(argv: Sequence[str] | None = None) -> int:
-    return asyncio.run(async_main(argv))
+def main(
+    argv: Sequence[str] | None = None, *, token_override: str | None = None
+) -> int:
+    return asyncio.run(async_main(argv, token_override=token_override))
