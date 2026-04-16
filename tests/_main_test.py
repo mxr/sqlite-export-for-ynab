@@ -576,7 +576,7 @@ def test_main_ok(sync, tmp_path, monkeypatch):
     monkeypatch.setenv(_ENV_TOKEN, TOKEN)
 
     ret = main(("--db", str(tmp_path / "db.sqlite")))
-    sync.assert_called()
+    sync.assert_called_once_with(TOKEN, tmp_path / "db.sqlite", False, quiet=False)
     assert ret == 0
 
 
@@ -593,7 +593,19 @@ def test_main_uses_token_override(sync, tmp_path, monkeypatch):
 
     ret = main(("--db", str(tmp_path / "db.sqlite")), token_override="override-token")
 
-    sync.assert_called_once_with("override-token", tmp_path / "db.sqlite", False)
+    sync.assert_called_once_with(
+        "override-token", tmp_path / "db.sqlite", False, quiet=False
+    )
+    assert ret == 0
+
+
+@patch("sqlite_export_for_ynab._main.sync")
+def test_main_quiet(sync, tmp_path, monkeypatch):
+    monkeypatch.setenv(_ENV_TOKEN, TOKEN)
+
+    ret = main(("--db", str(tmp_path / "db.sqlite"), "--quiet"))
+
+    sync.assert_called_once_with(TOKEN, tmp_path / "db.sqlite", False, quiet=True)
     assert ret == 0
 
 
@@ -652,6 +664,54 @@ async def test_sync_no_data(tmp_path, mock_aioresponses):
         con.executescript(contents("create-relations.sql"))
 
     await sync(TOKEN, db, False)
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures(mock_aioresponses.__name__)
+async def test_sync_no_data_quiet(tmp_path, mock_aioresponses, capsys):
+    mock_aioresponses.get(
+        PLANS_ENDPOINT_RE, body=json.dumps({"data": {"plans": PLANS}})
+    )
+    mock_aioresponses.get(
+        ACCOUNTS_ENDPOINT_RE,
+        body=json.dumps({"data": {"accounts": []}}),
+        repeat=True,
+    )
+    mock_aioresponses.get(
+        CATEGORIES_ENDPOINT_RE,
+        body=json.dumps({"data": {"category_groups": []}}),
+        repeat=True,
+    )
+    mock_aioresponses.get(
+        PAYEES_ENDPOINT_RE, body=json.dumps({"data": {"payees": []}}), repeat=True
+    )
+    mock_aioresponses.get(
+        TRANSACTIONS_ENDPOINT_RE,
+        body=json.dumps(
+            {
+                "data": {
+                    "transactions": [],
+                    "server_knowledge": SERVER_KNOWLEDGE_1,
+                }
+            }
+        ),
+        repeat=True,
+    )
+    mock_aioresponses.get(
+        SCHEDULED_TRANSACTIONS_ENDPOINT_RE,
+        body=json.dumps({"data": {"scheduled_transactions": []}}),
+        repeat=True,
+    )
+
+    db = tmp_path / "db.sqlite"
+    with sqlite3.connect(db) as con:
+        con.executescript(contents("create-relations.sql"))
+
+    await sync(TOKEN, db, False, quiet=True)
+
+    out, err = capsys.readouterr()
+    assert out == ""
+    assert err == ""
 
 
 @pytest.mark.asyncio
