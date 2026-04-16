@@ -27,6 +27,7 @@ from sqlite_export_for_ynab._main import insert_scheduled_transactions
 from sqlite_export_for_ynab._main import insert_transactions
 from sqlite_export_for_ynab._main import main
 from sqlite_export_for_ynab._main import ProgressYnabClient
+from sqlite_export_for_ynab._main import resolve_token
 from sqlite_export_for_ynab._main import sync
 from sqlite_export_for_ynab._main import YnabClient
 from testing.fixtures import ACCOUNT_ID_1
@@ -584,6 +585,28 @@ def test_main_no_token(tmp_path, monkeypatch):
 
     with pytest.raises(ValueError):
         main(("--db", str(tmp_path / "db.sqlite")))
+
+
+@patch("sqlite_export_for_ynab._main.sync")
+def test_main_uses_token_override(sync, tmp_path, monkeypatch):
+    monkeypatch.delenv(_ENV_TOKEN, raising=False)
+
+    ret = main(("--db", str(tmp_path / "db.sqlite")), token_override="override-token")
+
+    sync.assert_called_once_with("override-token", tmp_path / "db.sqlite", False)
+    assert ret == 0
+
+
+def test_resolve_token_override(monkeypatch):
+    monkeypatch.delenv(_ENV_TOKEN, raising=False)
+
+    assert resolve_token("override-token") == "override-token"
+
+
+def test_resolve_token_env(monkeypatch):
+    monkeypatch.setenv(_ENV_TOKEN, TOKEN)
+
+    assert resolve_token() == TOKEN
 
 
 @pytest.mark.asyncio
