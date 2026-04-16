@@ -31,6 +31,7 @@ $ sqlite-export-for-ynab
 ```
 
 Running it again will pull only data that changed since the last pull (this is done with [Delta Requests](https://api.ynab.com/#deltas)). If you want to wipe the DB and pull all data again use the `--full-refresh` flag.
+Pass `--quiet` to suppress all CLI output, including progress bars.
 
 <a id="db-path"></a>You can specify the DB path with the following options
 1. The `--db` flag.
