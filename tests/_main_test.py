@@ -106,7 +106,7 @@ def test_get_last_knowledge_of_server(cur):
 def test_insert_plans(cur):
     insert_plans(cur, PLANS, LKOS)
     cur.execute("SELECT * FROM plans ORDER BY name")
-    assert cur.fetchall() == [
+    assert [strip_nones(d) for d in cur.fetchall()] == [
         {
             "id": PLAN_ID_1,
             "name": PLANS[0]["name"],
@@ -170,7 +170,7 @@ def test_insert_accounts(cur):
     ]
 
     cur.execute("SELECT * FROM account_periodic_values ORDER BY name")
-    assert cur.fetchall() == [
+    assert [strip_nones(d) for d in cur.fetchall()] == [
         {
             "account_id": ACCOUNT_ID_1,
             "plan_id": PLAN_ID_1,

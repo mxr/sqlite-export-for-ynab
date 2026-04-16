@@ -8,7 +8,6 @@ from uuid import uuid4
 import pytest
 from aioresponses import aioresponses
 
-from sqlite_export_for_ynab._main import _row_factory
 from sqlite_export_for_ynab._main import contents
 
 PLAN_ID_1 = str(uuid4())
@@ -326,7 +325,7 @@ SCHEDULED_TRANSACTIONS: list[dict[str, Any]] = [
 @pytest.fixture
 def cur():
     with sqlite3.connect(":memory:") as con:
-        con.row_factory = _row_factory
+        con.row_factory = sqlite3.Row
         cursor = con.cursor()
         cursor.executescript(contents("create-relations.sql"))
         yield cursor
@@ -338,8 +337,8 @@ def mock_aioresponses():
         yield m
 
 
-def strip_nones(d: dict[str, Any]) -> dict[str, Any]:
-    return {k: v for k, v in d.items() if v is not None}
+def strip_nones(d: sqlite3.Row) -> dict[str, Any]:
+    return {k: v for k, v in dict(d).items() if v is not None}
 
 
 TOKEN = f"token-{uuid4()}"
