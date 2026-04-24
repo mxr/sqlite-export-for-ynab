@@ -181,7 +181,6 @@ SELECT
     , t.plan_id
     , t.account_id
     , t.account_name
-    , t.approved
     , t.cleared
     , t."date"
     , t.debt_transaction_type
@@ -227,6 +226,7 @@ INNER JOIN categories AS c
     )
 WHERE
     TRUE
+    AND t.approved
     AND NOT COALESCE(st.deleted, t.deleted)
 ;
 

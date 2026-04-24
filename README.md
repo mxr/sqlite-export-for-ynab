@@ -62,7 +62,7 @@ The relations are defined in [create-relations.sql](sqlite_export_for_ynab/ddl/c
 
 1. Some objects are pulled out into their own tables so they can be more cleanly modeled in SQLite (ex: subtransactions, loan account periodic values).
 1. Foreign keys are added as needed (ex: plan ID, transaction ID) so data across plans remains separate.
-1. Two new views called `flat_transactions` and `scheduled_flat_transactions`. These allow you to query split and non-split transactions easily, without needing to also query `subtransactions` and `scheduled_subtransactions` respectively. They also filter out deleted transactions/subtransactions and project payee/category fields to make querying more ergonomic.
+1. Two new views called `flat_transactions` and `scheduled_flat_transactions`. These allow you to query split and non-split transactions easily, without needing to also query `subtransactions` and `scheduled_subtransactions` respectively. They also filter out deleted/unapproved transactions/subtransactions and project payee/category fields to make querying more ergonomic.
 
 ## Querying
 
@@ -116,6 +116,7 @@ WITH used_payees AS (
     FROM transactions
     WHERE
         TRUE
+        AND approved
         AND payee_id IS NOT NULL
         AND NOT deleted
     UNION

@@ -314,6 +314,7 @@ def test_insert_transactions(cur):
             "amount": -10000,
             "amount_formatted": "$10.00",
             "amount_currency": 10.0,
+            "approved": 1,
             "category_id": CATEGORY_ID_3,
             "category_name": CATEGORY_NAME_3,
             "deleted": False,
@@ -325,6 +326,7 @@ def test_insert_transactions(cur):
             "amount": -15000,
             "amount_formatted": "$15.00",
             "amount_currency": 15.0,
+            "approved": 1,
             "category_id": CATEGORY_ID_2,
             "category_name": CATEGORY_NAME_2,
             "deleted": True,
@@ -336,6 +338,7 @@ def test_insert_transactions(cur):
             "amount": -19000,
             "amount_formatted": "$19.00",
             "amount_currency": 19.0,
+            "approved": 0,
             "category_id": CATEGORY_ID_4,
             "category_name": CATEGORY_NAME_4,
             "deleted": False,
@@ -370,19 +373,6 @@ def test_insert_transactions(cur):
 
     cur.execute("SELECT * FROM flat_transactions ORDER BY amount")
     assert [strip_nones(d) for d in cur.fetchall()] == [
-        {
-            "transaction_id": TRANSACTION_ID_3,
-            "plan_id": PLAN_ID_1,
-            "date": "2024-03-01",
-            "id": TRANSACTION_ID_3,
-            "amount": -19000,
-            "amount_formatted": "$19.00",
-            "amount_currency": 19.0,
-            "category_id": CATEGORY_ID_4,
-            "category_name": CATEGORY_NAME_4,
-            "category_group_id": CATEGORY_GROUP_ID_2,
-            "category_group_name": CATEGORY_GROUP_NAME_2,
-        },
         {
             "transaction_id": TRANSACTION_ID_1,
             "subtransaction_id": SUBTRANSACTION_ID_1,
