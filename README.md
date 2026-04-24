@@ -92,9 +92,7 @@ WITH ranked_payees AS (
             AS rnk
     FROM flat_transactions AS t INNER JOIN plans AS pl ON t.plan_id = pl.id
     WHERE
-        TRUE
-        AND t.payee_name != 'Starting Balance'
-        AND t.transfer_account_id IS NULL
+        t.payee_name != 'Starting Balance' AND t.transfer_account_id IS NULL
     GROUP BY pl.id, t.payee_id
 )
 
@@ -192,9 +190,7 @@ FROM (
         , amount_currency
     FROM flat_transactions
     WHERE
-        TRUE
-        AND approved
-        AND category_name = 'Apps'
+        category_name = 'Apps'
         AND SUBSTR("date", 1, 7) = SUBSTR(DATE(), 1, 7)
     UNION ALL
     SELECT
@@ -250,7 +246,6 @@ WITH interest_by_account AS (
     FROM flat_transactions
     WHERE
         TRUE
-        AND approved
         AND payee_name = COALESCE(NULLIF(@interest_payee_name, ''), 'Interest')
         AND SUBSTR("date", 1, 4) = CAST(@year AS TEXT)
         AND (COALESCE(@plan_id, '') = '' OR plan_id = @plan_id)
