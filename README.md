@@ -62,7 +62,7 @@ The relations are defined in [create-relations.sql](sqlite_export_for_ynab/ddl/c
 
 1. Some objects are pulled out into their own tables so they can be more cleanly modeled in SQLite (ex: subtransactions, loan account periodic values).
 1. Foreign keys are added as needed (ex: plan ID, transaction ID) so data across plans remains separate.
-1. Two new views called `flat_transactions` and `scheduled_flat_transactions`. These allow you to query split and non-split transactions easily, without needing to also query `subtransactions` and `scheduled_subtransactions` respectively. They also filter out deleted transactions/subtransactions and project payee/category fields to make querying more ergonomic.
+1. Two new views called `flat_transactions` and `scheduled_flat_transactions`. These allow you to query split and non-split transactions easily, without needing to also query `subtransactions` and `scheduled_subtransactions` respectively. They also filter out deleted/unapproved transactions/subtransactions and project payee/category fields to make querying more ergonomic.
 
 ## Querying
 
@@ -92,7 +92,9 @@ WITH ranked_payees AS (
             AS rnk
     FROM flat_transactions AS t INNER JOIN plans AS pl ON t.plan_id = pl.id
     WHERE
-        t.payee_name != 'Starting Balance' AND t.transfer_account_id IS NULL
+        TRUE
+        AND t.payee_name != 'Starting Balance'
+        AND t.transfer_account_id IS NULL
     GROUP BY pl.id, t.payee_id
 )
 
@@ -116,6 +118,7 @@ WITH used_payees AS (
     FROM transactions
     WHERE
         TRUE
+        AND approved
         AND payee_id IS NOT NULL
         AND NOT deleted
     UNION
@@ -189,7 +192,9 @@ FROM (
         , amount_currency
     FROM flat_transactions
     WHERE
-        category_name = 'Apps'
+        TRUE
+        AND approved
+        AND category_name = 'Apps'
         AND SUBSTR("date", 1, 7) = SUBSTR(DATE(), 1, 7)
     UNION ALL
     SELECT
@@ -245,6 +250,7 @@ WITH interest_by_account AS (
     FROM flat_transactions
     WHERE
         TRUE
+        AND approved
         AND payee_name = COALESCE(NULLIF(@interest_payee_name, ''), 'Interest')
         AND SUBSTR("date", 1, 4) = CAST(@year AS TEXT)
         AND (COALESCE(@plan_id, '') = '' OR plan_id = @plan_id)
