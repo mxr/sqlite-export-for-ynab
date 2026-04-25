@@ -145,6 +145,15 @@ CATEGORY_GROUPS: list[dict[str, Any]] = [
                 "activity_currency": 1.0,
                 "budgeted_formatted": "$10.25",
                 "budgeted_currency": 10.25,
+                "goal_target_formatted": None,
+                "goal_target_currency": None,
+                "goal_under_funded_formatted": None,
+                "goal_under_funded_currency": None,
+                "goal_overall_funded_formatted": None,
+                "goal_overall_funded_currency": None,
+                "goal_overall_left_formatted": None,
+                "goal_overall_left_currency": None,
+                "goal_target_date": None,
             },
         ],
     },
@@ -163,6 +172,15 @@ CATEGORY_GROUPS: list[dict[str, Any]] = [
                 "activity_currency": 7.5,
                 "budgeted_formatted": "$15.00",
                 "budgeted_currency": 15.0,
+                "goal_target_formatted": None,
+                "goal_target_currency": None,
+                "goal_under_funded_formatted": None,
+                "goal_under_funded_currency": None,
+                "goal_overall_funded_formatted": None,
+                "goal_overall_funded_currency": None,
+                "goal_overall_left_formatted": None,
+                "goal_overall_left_currency": None,
+                "goal_target_date": None,
             },
             {
                 "id": CATEGORY_ID_4,
@@ -175,6 +193,15 @@ CATEGORY_GROUPS: list[dict[str, Any]] = [
                 "activity_currency": 19.0,
                 "budgeted_formatted": "$20.00",
                 "budgeted_currency": 20.0,
+                "goal_target_formatted": None,
+                "goal_target_currency": None,
+                "goal_under_funded_formatted": None,
+                "goal_under_funded_currency": None,
+                "goal_overall_funded_formatted": None,
+                "goal_overall_funded_currency": None,
+                "goal_overall_left_formatted": None,
+                "goal_overall_left_currency": None,
+                "goal_target_date": None,
             },
         ],
     },
@@ -327,11 +354,16 @@ SCHEDULED_TRANSACTIONS: list[dict[str, Any]] = [
 
 
 @pytest_asyncio.fixture
-async def cur():
+async def con():
     async with aiosqlite.connect(":memory:") as con:
         con.row_factory = aiosqlite.Row
-        cursor = await con.cursor()
-        await cursor.executescript(contents("create-relations.sql"))
+        await con.executescript(contents("create-relations.sql"))
+        yield con
+
+
+@pytest_asyncio.fixture
+async def cur(con):
+    async with con.cursor() as cursor:
         yield cursor
 
 
