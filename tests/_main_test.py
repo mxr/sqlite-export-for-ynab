@@ -302,6 +302,30 @@ async def test_insert_category_groups(con):
 
 @pytest.mark.usefixtures(con.__name__)
 @pytest.mark.asyncio
+async def test_insert_category_group_without_categories(con):
+    category_group = {
+        "id": CATEGORY_GROUP_ID_1,
+        "name": CATEGORY_GROUP_NAME_1,
+        "categories": [],
+    }
+
+    await insert_category_groups(con, PLAN_ID_1, [category_group])
+
+    assert [
+        strip_nones(d)
+        for d in await fetchall(con, "SELECT * FROM category_groups ORDER BY name")
+    ] == [
+        {
+            "id": CATEGORY_GROUP_ID_1,
+            "name": CATEGORY_GROUP_NAME_1,
+            "plan_id": PLAN_ID_1,
+        },
+    ]
+    assert not await fetchall(con, "SELECT * FROM categories")
+
+
+@pytest.mark.usefixtures(con.__name__)
+@pytest.mark.asyncio
 async def test_insert_payees(con):
     await insert_payees(con, PLAN_ID_1, [])
     assert not await fetchall(con, "SELECT * FROM payees")
