@@ -40,6 +40,14 @@ _EntryTable = (
     | Literal["scheduled_transactions"]
     | Literal["scheduled_subtransactions"]
 )
+_Endpoint = (
+    Literal["accounts"]
+    | Literal["categories"]
+    | Literal["payees"]
+    | Literal["transactions"]
+    | Literal["scheduled_transactions"]
+)
+_ENDPOINTS = tuple(lit.__args__[0] for lit in _Endpoint.__args__)
 _ALL_RELATIONS = frozenset(
     ("plans", "flat_transactions", "scheduled_flat_transactions")
     + tuple(lit.__args__[0] for lit in _EntryTable.__args__)
@@ -144,29 +152,29 @@ async def sync(
         _print("Fetching plan data...", quiet=quiet)
         lkos = get_last_knowledge_of_server(cur)
         async with aiohttp.ClientSession() as session:
-            with tldm(desc="Plan Data", total=len(plans) * 5, disable=quiet) as pbar:
+            with tldm(
+                desc="Plan Data", total=len(plans) * len(_ENDPOINTS), disable=quiet
+            ) as pbar:
                 yc = ProgressYnabClient(YnabClient(token, session), pbar)
 
-                account_jobs = jobs(yc, "accounts", plan_ids, lkos)
-                cat_jobs = jobs(yc, "categories", plan_ids, lkos)
-                payee_jobs = jobs(yc, "payees", plan_ids, lkos)
-                txn_jobs = jobs(yc, "transactions", plan_ids, lkos)
-                sched_txn_jobs = jobs(yc, "scheduled_transactions", plan_ids, lkos)
-
-                data = await asyncio.gather(
-                    *account_jobs, *cat_jobs, *payee_jobs, *txn_jobs, *sched_txn_jobs
+                endpoint_data = dict(
+                    zip(
+                        _ENDPOINTS,
+                        await asyncio.gather(
+                            *(
+                                asyncio.gather(*jobs(yc, endpoint, plan_ids, lkos))
+                                for endpoint in _ENDPOINTS
+                            )
+                        ),
+                        strict=True,
+                    )
                 )
 
-            la = len(account_jobs)
-            lc = len(cat_jobs)
-            lp = len(payee_jobs)
-            lt = len(txn_jobs)
-
-            all_account_data = data[:la]
-            all_cat_data = data[la : la + lc]
-            all_payee_data = data[la + lc : la + lc + lp]
-            all_txn_data = data[la + lc + lp : la + lc + lp + lt]
-            all_sched_txn_data = data[la + lc + lp + lt :]
+            all_account_data = endpoint_data["accounts"]
+            all_cat_data = endpoint_data["categories"]
+            all_payee_data = endpoint_data["payees"]
+            all_txn_data = endpoint_data["transactions"]
+            all_sched_txn_data = endpoint_data["scheduled_transactions"]
 
             new_lkos = {
                 plan_id: transaction_data["server_knowledge"]
@@ -502,13 +510,7 @@ def insert_entry(
 
 def jobs(
     yc: SupportsYnabClient,
-    endpoint: (
-        Literal["accounts"]
-        | Literal["categories"]
-        | Literal["payees"]
-        | Literal["transactions"]
-        | Literal["scheduled_transactions"]
-    ),
+    endpoint: _Endpoint,
     plan_ids: list[str],
     lkos: dict[str, int],
 ) -> list[Awaitable[dict[str, Any]]]:
