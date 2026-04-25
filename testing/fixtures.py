@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import re
-import sqlite3
 from typing import Any
 from uuid import uuid4
 
+import aiosqlite
 import pytest
+import pytest_asyncio
 from aioresponses import aioresponses
 
 from sqlite_export_for_ynab._main import contents
@@ -325,12 +326,12 @@ SCHEDULED_TRANSACTIONS: list[dict[str, Any]] = [
 ]
 
 
-@pytest.fixture
-def cur():
-    with sqlite3.connect(":memory:") as con:
-        con.row_factory = sqlite3.Row
-        cursor = con.cursor()
-        cursor.executescript(contents("create-relations.sql"))
+@pytest_asyncio.fixture
+async def cur():
+    async with aiosqlite.connect(":memory:") as con:
+        con.row_factory = aiosqlite.Row
+        cursor = await con.cursor()
+        await cursor.executescript(contents("create-relations.sql"))
         yield cursor
 
 
@@ -340,7 +341,7 @@ def mock_aioresponses():
         yield m
 
 
-def strip_nones(d: sqlite3.Row) -> dict[str, Any]:
+def strip_nones(d: aiosqlite.Row) -> dict[str, Any]:
     return {k: v for k, v in dict(d).items() if v is not None}
 
 
