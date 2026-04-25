@@ -4,10 +4,10 @@ import argparse
 import asyncio
 import json
 import os
-import sqlite3
 from dataclasses import dataclass
 from importlib import resources
 from importlib.metadata import version
+from itertools import batched
 from pathlib import Path
 from typing import Any
 from typing import ClassVar
@@ -20,6 +20,7 @@ from urllib.parse import urljoin
 from urllib.parse import urlunparse
 
 import aiohttp
+import aiosqlite
 from tldm import tldm
 
 from sqlite_export_for_ynab import ddl
@@ -56,6 +57,8 @@ _ALL_RELATIONS = frozenset(
 _ENV_TOKEN = "YNAB_PERSONAL_ACCESS_TOKEN"
 
 _PACKAGE = "sqlite-export-for-ynab"
+
+_BATCH_SIZE = 100
 
 
 def resolve_token(token_override: str | None = None) -> str:
@@ -132,25 +135,27 @@ async def sync(
     if not db.exists():
         db.parent.mkdir(parents=True, exist_ok=True)
 
-    with sqlite3.connect(db) as con:
-        con.row_factory = sqlite3.Row
-        cur = con.cursor()
+    async with aiosqlite.connect(db) as con:
+        con.row_factory = aiosqlite.Row
 
         if full_refresh:
             _print("Dropping relations...", quiet=quiet)
-            cur.executescript(contents("drop-relations.sql"))
-            con.commit()
+            async with con.cursor() as cur:
+                await cur.executescript(contents("drop-relations.sql"))
+            await con.commit()
             _print("Done", quiet=quiet)
 
-        relations = get_relations(cur)
-        if relations != _ALL_RELATIONS:
-            _print("Recreating relations...", quiet=quiet)
-            cur.executescript(contents("create-relations.sql"))
-            con.commit()
-            _print("Done", quiet=quiet)
+        async with con.cursor() as cur:
+            relations = await get_relations(cur)
+            if relations != _ALL_RELATIONS:
+                _print("Recreating relations...", quiet=quiet)
+                await cur.executescript(contents("create-relations.sql"))
+                await con.commit()
+                _print("Done", quiet=quiet)
 
         _print("Fetching plan data...", quiet=quiet)
-        lkos = get_last_knowledge_of_server(cur)
+        async with con.cursor() as cur:
+            lkos = await get_last_knowledge_of_server(cur)
         async with aiohttp.ClientSession() as session:
             with tldm(
                 desc="Plan Data", total=len(plans) * len(_ENDPOINTS), disable=quiet
@@ -194,23 +199,58 @@ async def sync(
             _print("No new data fetched", quiet=quiet)
         else:
             _print("Inserting plan data...", quiet=quiet)
-            insert_plans(cur, plans, new_lkos)
-            for plan_id, account_data in zip(plan_ids, all_account_data, strict=True):
-                insert_accounts(cur, plan_id, account_data["accounts"], quiet=quiet)
-            for plan_id, cat_data in zip(plan_ids, all_cat_data, strict=True):
-                insert_category_groups(
-                    cur, plan_id, cat_data["category_groups"], quiet=quiet
-                )
-            for plan_id, payee_data in zip(plan_ids, all_payee_data, strict=True):
-                insert_payees(cur, plan_id, payee_data["payees"], quiet=quiet)
-            for plan_id, txn_data in zip(plan_ids, all_txn_data, strict=True):
-                insert_transactions(cur, plan_id, txn_data["transactions"], quiet=quiet)
-            for plan_id, sched_txn_data in zip(
-                plan_ids, all_sched_txn_data, strict=True
-            ):
-                insert_scheduled_transactions(
-                    cur, plan_id, sched_txn_data["scheduled_transactions"], quiet=quiet
-                )
+            await insert_plans(con, plans, new_lkos)
+            await asyncio.gather(
+                *(
+                    insert_accounts(
+                        con,
+                        plan_id,
+                        account_data["accounts"],
+                        quiet=quiet,
+                    )
+                    for plan_id, account_data in zip(
+                        plan_ids, all_account_data, strict=True
+                    )
+                ),
+                *(
+                    insert_category_groups(
+                        con,
+                        plan_id,
+                        cat_data["category_groups"],
+                        quiet=quiet,
+                    )
+                    for plan_id, cat_data in zip(plan_ids, all_cat_data, strict=True)
+                ),
+                *(
+                    insert_payees(con, plan_id, payee_data["payees"], quiet=quiet)
+                    for plan_id, payee_data in zip(
+                        plan_ids, all_payee_data, strict=True
+                    )
+                ),
+            )
+            await asyncio.gather(
+                *(
+                    insert_transactions(
+                        con,
+                        plan_id,
+                        txn_data["transactions"],
+                        quiet=quiet,
+                    )
+                    for plan_id, txn_data in zip(plan_ids, all_txn_data, strict=True)
+                ),
+                *(
+                    insert_scheduled_transactions(
+                        con,
+                        plan_id,
+                        sched_txn_data["scheduled_transactions"],
+                        quiet=quiet,
+                    )
+                    for plan_id, sched_txn_data in zip(
+                        plan_ids, all_sched_txn_data, strict=True
+                    )
+                ),
+            )
+            await con.commit()
             _print("Done", quiet=quiet)
 
 
@@ -218,58 +258,56 @@ def contents(filename: str) -> str:
     return (resources.files(ddl) / filename).read_text()
 
 
-def get_relations(cur: sqlite3.Cursor) -> set[str]:
-    return {
-        t["name"]
-        for t in cur.execute(
-            "SELECT name FROM sqlite_master WHERE type='table' OR type='view'"
-        ).fetchall()
-    }
-
-
-def get_last_knowledge_of_server(cur: sqlite3.Cursor) -> dict[str, int]:
-    return {
-        r["id"]: r["last_knowledge_of_server"]
-        for r in cur.execute(
-            "SELECT id, last_knowledge_of_server FROM plans",
-        ).fetchall()
-    }
-
-
-def insert_plans(
-    cur: sqlite3.Cursor, plans: list[dict[str, Any]], lkos: dict[str, int]
-) -> None:
-    cur.executemany(
-        """
-        INSERT OR REPLACE INTO plans (
-            id
-            , name
-            , currency_format_currency_symbol
-            , currency_format_decimal_digits
-            , currency_format_decimal_separator
-            , currency_format_display_symbol
-            , currency_format_group_separator
-            , currency_format_iso_code
-            , currency_format_symbol_first
-            , last_knowledge_of_server
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """,
-        (
-            (
-                plan_id := plan["id"],
-                plan["name"],
-                plan["currency_format"]["currency_symbol"],
-                plan["currency_format"]["decimal_digits"],
-                plan["currency_format"]["decimal_separator"],
-                plan["currency_format"]["display_symbol"],
-                plan["currency_format"]["group_separator"],
-                plan["currency_format"]["iso_code"],
-                plan["currency_format"]["symbol_first"],
-                lkos[plan_id],
-            )
-            for plan in plans
-        ),
+async def get_relations(cur: aiosqlite.Cursor) -> set[str]:
+    await cur.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' OR type='view'"
     )
+    return {t["name"] for t in await cur.fetchall()}
+
+
+async def get_last_knowledge_of_server(cur: aiosqlite.Cursor) -> dict[str, int]:
+    await cur.execute(
+        "SELECT id, last_knowledge_of_server FROM plans",
+    )
+    return {r["id"]: r["last_knowledge_of_server"] for r in await cur.fetchall()}
+
+
+async def insert_plans(
+    con: aiosqlite.Connection, plans: list[dict[str, Any]], lkos: dict[str, int]
+) -> None:
+    async with con.cursor() as cur:
+        for plan_batch in batched(plans, _BATCH_SIZE):
+            await cur.executemany(
+                """
+                INSERT OR REPLACE INTO plans (
+                    id
+                    , name
+                    , currency_format_currency_symbol
+                    , currency_format_decimal_digits
+                    , currency_format_decimal_separator
+                    , currency_format_display_symbol
+                    , currency_format_group_separator
+                    , currency_format_iso_code
+                    , currency_format_symbol_first
+                    , last_knowledge_of_server
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    (
+                        plan_id := plan["id"],
+                        plan["name"],
+                        plan["currency_format"]["currency_symbol"],
+                        plan["currency_format"]["decimal_digits"],
+                        plan["currency_format"]["decimal_separator"],
+                        plan["currency_format"]["display_symbol"],
+                        plan["currency_format"]["group_separator"],
+                        plan["currency_format"]["iso_code"],
+                        plan["currency_format"]["symbol_first"],
+                        lkos[plan_id],
+                    )
+                    for plan in plan_batch
+                ),
+            )
 
 
 _LOAN_ACCOUNT_PERIODIC_VALUES = frozenset(
@@ -277,8 +315,8 @@ _LOAN_ACCOUNT_PERIODIC_VALUES = frozenset(
 )
 
 
-def insert_accounts(
-    cur: sqlite3.Cursor,
+async def insert_accounts(
+    con: aiosqlite.Connection,
     plan_id: str,
     accounts: list[dict[str, Any]],
     *,
@@ -302,8 +340,8 @@ def insert_accounts(
         for account in accounts
     ]
 
-    return insert_nested_entries(
-        cur,
+    await insert_nested_entries(
+        con,
         plan_id,
         updated_accounts,
         "Accounts",
@@ -314,15 +352,15 @@ def insert_accounts(
     )
 
 
-def insert_category_groups(
-    cur: sqlite3.Cursor,
+async def insert_category_groups(
+    con: aiosqlite.Connection,
     plan_id: str,
     category_groups: list[dict[str, Any]],
     *,
     quiet: bool = False,
 ) -> None:
-    return insert_nested_entries(
-        cur,
+    await insert_nested_entries(
+        con,
         plan_id,
         category_groups,
         "Categories",
@@ -333,8 +371,8 @@ def insert_category_groups(
     )
 
 
-def insert_payees(
-    cur: sqlite3.Cursor,
+async def insert_payees(
+    con: aiosqlite.Connection,
     plan_id: str,
     payees: list[dict[str, Any]],
     *,
@@ -343,19 +381,19 @@ def insert_payees(
     if not payees:
         return
 
-    for payee in tldm(payees, desc="Payees", disable=quiet):
-        insert_entry(cur, "payees", plan_id, payee)
+    with tldm(total=len(payees), desc="Payees", disable=quiet) as pbar:
+        await insert_entries(con, "payees", plan_id, payees, pbar)
 
 
-def insert_transactions(
-    cur: sqlite3.Cursor,
+async def insert_transactions(
+    con: aiosqlite.Connection,
     plan_id: str,
     transactions: list[dict[str, Any]],
     *,
     quiet: bool = False,
 ) -> None:
-    return insert_nested_entries(
-        cur,
+    await insert_nested_entries(
+        con,
         plan_id,
         transactions,
         "Transactions",
@@ -366,15 +404,15 @@ def insert_transactions(
     )
 
 
-def insert_scheduled_transactions(
-    cur: sqlite3.Cursor,
+async def insert_scheduled_transactions(
+    con: aiosqlite.Connection,
     plan_id: str,
     scheduled_transactions: list[dict[str, Any]],
     *,
     quiet: bool = False,
 ) -> None:
-    return insert_nested_entries(
-        cur,
+    await insert_nested_entries(
+        con,
         plan_id,
         scheduled_transactions,
         "Scheduled Transactions",
@@ -386,8 +424,8 @@ def insert_scheduled_transactions(
 
 
 @overload
-def insert_nested_entries(
-    cur: sqlite3.Cursor,
+async def insert_nested_entries(
+    con: aiosqlite.Connection,
     plan_id: str,
     entries: list[dict[str, Any]],
     desc: Literal["Accounts"],
@@ -400,8 +438,8 @@ def insert_nested_entries(
 
 
 @overload
-def insert_nested_entries(
-    cur: sqlite3.Cursor,
+async def insert_nested_entries(
+    con: aiosqlite.Connection,
     plan_id: str,
     entries: list[dict[str, Any]],
     desc: Literal["Categories"],
@@ -414,8 +452,8 @@ def insert_nested_entries(
 
 
 @overload
-def insert_nested_entries(
-    cur: sqlite3.Cursor,
+async def insert_nested_entries(
+    con: aiosqlite.Connection,
     plan_id: str,
     entries: list[dict[str, Any]],
     desc: Literal["Transactions"],
@@ -428,8 +466,8 @@ def insert_nested_entries(
 
 
 @overload
-def insert_nested_entries(
-    cur: sqlite3.Cursor,
+async def insert_nested_entries(
+    con: aiosqlite.Connection,
     plan_id: str,
     entries: list[dict[str, Any]],
     desc: Literal["Scheduled Transactions"],
@@ -441,8 +479,8 @@ def insert_nested_entries(
 ) -> None: ...
 
 
-def insert_nested_entries(
-    cur: sqlite3.Cursor,
+async def insert_nested_entries(
+    con: aiosqlite.Connection,
     plan_id: str,
     entries: list[dict[str, Any]],
     desc: (
@@ -479,33 +517,46 @@ def insert_nested_entries(
         desc=desc,
         disable=quiet,
     ) as pbar:
-        for entry in entries:
-            insert_entry(
-                cur,
-                entries_name,
-                plan_id,
-                {k: v for k, v in entry.items() if k != subentries_name},
-            )
-            pbar.update()
+        await insert_entries(
+            con,
+            entries_name,
+            plan_id,
+            [
+                {k: v for k, v in entry.items() if k != subentries_name}
+                for entry in entries
+            ],
+            pbar,
+        )
+        await insert_entries(
+            con,
+            subentries_table_name,
+            plan_id,
+            [subentry for entry in entries for subentry in entry[subentries_name]],
+            pbar,
+        )
 
-            for subentry in entry[subentries_name]:
-                insert_entry(cur, subentries_table_name, plan_id, subentry)
-                pbar.update()
 
-
-def insert_entry(
-    cur: sqlite3.Cursor,
+async def insert_entries(
+    con: aiosqlite.Connection,
     table: _EntryTable,
     plan_id: str,
-    entry: dict[str, Any],
+    entries: list[dict[str, Any]],
+    pbar: tldm[Never],
 ) -> None:
-    ekeys, evalues = zip(*entry.items(), strict=True)
-    keys, values = ekeys + ("plan_id",), evalues + (plan_id,)
+    if not entries:
+        return
 
-    cur.execute(
-        f"INSERT OR REPLACE INTO {table} ({', '.join(keys)}) VALUES ({', '.join('?' * len(values))})",
-        values,
-    )
+    entry_keys = tuple(entries[0])
+    sql = f"INSERT OR REPLACE INTO {table} ({', '.join(entry_keys + ('plan_id',))}) VALUES ({', '.join('?' * (len(entry_keys) + 1))})"
+
+    async with con.cursor() as cur:
+        for entry_batch in batched(entries, _BATCH_SIZE):
+            values_batch = [
+                tuple(entry[key] for key in entry_keys) + (plan_id,)
+                for entry in entry_batch
+            ]
+            await cur.executemany(sql, values_batch)
+            pbar.update(len(values_batch))
 
 
 def jobs(
