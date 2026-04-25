@@ -25,7 +25,7 @@ from tldm import tldm
 from sqlite_export_for_ynab import ddl
 
 if TYPE_CHECKING:
-    from collections.abc import Awaitable, Sequence
+    from collections.abc import Awaitable, Callable, Sequence
     from typing import Never
 
 
@@ -186,33 +186,79 @@ async def sync(
             _print("No new data fetched", quiet=quiet)
         else:
             _print("Inserting plan data...", quiet=quiet)
-            await insert_plans(cur, plans, new_lkos)
-            for plan_id, account_data in zip(plan_ids, all_account_data, strict=True):
-                await insert_accounts(
-                    cur, plan_id, account_data["accounts"], quiet=quiet
-                )
-            for plan_id, cat_data in zip(plan_ids, all_cat_data, strict=True):
-                await insert_category_groups(
-                    cur, plan_id, cat_data["category_groups"], quiet=quiet
-                )
-            for plan_id, payee_data in zip(plan_ids, all_payee_data, strict=True):
-                await insert_payees(cur, plan_id, payee_data["payees"], quiet=quiet)
-            for plan_id, txn_data in zip(plan_ids, all_txn_data, strict=True):
-                await insert_transactions(
-                    cur, plan_id, txn_data["transactions"], quiet=quiet
-                )
-            for plan_id, sched_txn_data in zip(
-                plan_ids, all_sched_txn_data, strict=True
-            ):
-                await insert_scheduled_transactions(
-                    cur, plan_id, sched_txn_data["scheduled_transactions"], quiet=quiet
-                )
+            await insert_with_cursor(con, insert_plans, plans, new_lkos)
+            await asyncio.gather(
+                *(
+                    insert_with_cursor(
+                        con,
+                        insert_accounts,
+                        plan_id,
+                        account_data["accounts"],
+                        quiet=quiet,
+                    )
+                    for plan_id, account_data in zip(
+                        plan_ids, all_account_data, strict=True
+                    )
+                ),
+                *(
+                    insert_with_cursor(
+                        con,
+                        insert_category_groups,
+                        plan_id,
+                        cat_data["category_groups"],
+                        quiet=quiet,
+                    )
+                    for plan_id, cat_data in zip(plan_ids, all_cat_data, strict=True)
+                ),
+                *(
+                    insert_with_cursor(
+                        con, insert_payees, plan_id, payee_data["payees"], quiet=quiet
+                    )
+                    for plan_id, payee_data in zip(
+                        plan_ids, all_payee_data, strict=True
+                    )
+                ),
+            )
+            await asyncio.gather(
+                *(
+                    insert_with_cursor(
+                        con,
+                        insert_transactions,
+                        plan_id,
+                        txn_data["transactions"],
+                        quiet=quiet,
+                    )
+                    for plan_id, txn_data in zip(plan_ids, all_txn_data, strict=True)
+                ),
+                *(
+                    insert_with_cursor(
+                        con,
+                        insert_scheduled_transactions,
+                        plan_id,
+                        sched_txn_data["scheduled_transactions"],
+                        quiet=quiet,
+                    )
+                    for plan_id, sched_txn_data in zip(
+                        plan_ids, all_sched_txn_data, strict=True
+                    )
+                ),
+            )
             await con.commit()
             _print("Done", quiet=quiet)
 
 
 def contents(filename: str) -> str:
     return (resources.files(ddl) / filename).read_text()
+
+
+async def insert_with_cursor(
+    con: aiosqlite.Connection,
+    insert: Callable[..., Awaitable[None]],
+    *args: Any,
+    **kwargs: Any,
+) -> None:
+    async with con.cursor() as cur:
+        await insert(cur, *args, **kwargs)
 
 
 async def get_relations(cur: aiosqlite.Cursor) -> set[str]:
@@ -472,7 +518,8 @@ async def insert_nested_entries(
         desc=desc,
         disable=quiet,
     ) as pbar:
-        for entry in entries:
+
+        async def insert_one(entry: dict[str, Any]) -> None:
             await insert_entry(
                 cur,
                 entries_name,
@@ -481,9 +528,15 @@ async def insert_nested_entries(
             )
             pbar.update()
 
-            for subentry in entry[subentries_name]:
+            async def insert_subentry(subentry: dict[str, Any]) -> None:
                 await insert_entry(cur, subentries_table_name, plan_id, subentry)
                 pbar.update()
+
+            await asyncio.gather(
+                *(insert_subentry(subentry) for subentry in entry[subentries_name])
+            )
+
+        await asyncio.gather(*(insert_one(entry) for entry in entries))
 
 
 async def insert_entry(
