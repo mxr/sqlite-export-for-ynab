@@ -25,7 +25,6 @@ from tldm import tldm
 
 from sqlite_export_for_ynab import ddl
 
-
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Sequence
     from typing import Never
@@ -49,7 +48,7 @@ _Endpoint = (
     | Literal["transactions"]
     | Literal["scheduled_transactions"]
 )
-_ENDPOINTS: tuple[_Endpoint, ...] = tuple(lit.__args__[0] for lit in _Endpoint.__args__)
+_ENDPOINTS = tuple(lit.__args__[0] for lit in _Endpoint.__args__)
 _ALL_RELATIONS = frozenset(
     ("plans", "flat_transactions", "scheduled_flat_transactions")
     + tuple(lit.__args__[0] for lit in _EntryTable.__args__)
@@ -181,6 +180,7 @@ async def sync(
             all_payee_data = endpoint_data["payees"]
             all_txn_data = endpoint_data["transactions"]
             all_sched_txn_data = endpoint_data["scheduled_transactions"]
+
             new_lkos = {
                 plan_id: transaction_data["server_knowledge"]
                 for plan_id, transaction_data in zip(
