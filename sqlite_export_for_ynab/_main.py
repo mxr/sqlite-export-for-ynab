@@ -5,6 +5,7 @@ import asyncio
 import json
 import os
 from contextlib import asynccontextmanager
+from contextlib import contextmanager
 from dataclasses import dataclass
 from importlib import resources
 from importlib.metadata import version
@@ -23,13 +24,17 @@ from urllib.parse import urlunparse
 import aiohttp
 import aiosqlite
 from aiopathlib import AsyncPath
-from tldm import tldm
+from rich.progress import BarColumn
+from rich.progress import MofNCompleteColumn
+from rich.progress import Progress
+from rich.progress import TaskID
+from rich.progress import TextColumn
+from rich.progress import TimeElapsedColumn
 
 from sqlite_export_for_ynab import ddl
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator, Awaitable, Sequence
-    from typing import Never
+    from collections.abc import AsyncIterator, Awaitable, Iterator, Sequence
 
 
 _EntryTable = (
@@ -61,6 +66,13 @@ _ENV_TOKEN = "YNAB_PERSONAL_ACCESS_TOKEN"
 _PACKAGE = "sqlite-export-for-ynab"
 
 _BATCH_SIZE = 100
+
+_PROGRESS_COLUMNS = (
+    TextColumn("[progress.description]{task.description}"),
+    BarColumn(),
+    MofNCompleteColumn(),
+    TimeElapsedColumn(),
+)
 
 
 def resolve_token(token_override: str | None = None) -> str:
@@ -129,14 +141,27 @@ def _print(message: str, *, quiet: bool) -> None:
 @dataclass
 class _Context:
     session: aiohttp.ClientSession
+    progress: Progress
     con: aiosqlite.Connection
 
 
 @asynccontextmanager
-async def _context(db: Path) -> AsyncIterator[_Context]:
+async def _context(db: Path, *, quiet: bool) -> AsyncIterator[_Context]:
+    progress = Progress(*_PROGRESS_COLUMNS, disable=quiet)
     async with aiohttp.ClientSession() as session, aiosqlite.connect(db) as con:
         con.row_factory = aiosqlite.Row
-        yield _Context(session, con)
+        yield _Context(session, progress, con)
+
+
+@contextmanager
+def _progress(context: _Context) -> Iterator[None]:
+    context.progress.start()
+    try:
+        yield
+    finally:
+        context.progress.stop()
+        for task_id in context.progress.task_ids:
+            context.progress.remove_task(task_id)
 
 
 async def sync(
@@ -144,7 +169,7 @@ async def sync(
 ) -> None:
     await AsyncPath(db).parent.mkdir(parents=True, exist_ok=True)
 
-    async with _context(db) as context:
+    async with _context(db, quiet=quiet) as context:
         plans = (await YnabClient(token, context.session)("plans"))["plans"]
 
         plan_ids = [plan["id"] for plan in plans]
@@ -167,10 +192,14 @@ async def sync(
         _print("Fetching plan data...", quiet=quiet)
         async with context.con.cursor() as cur:
             lkos = await get_last_knowledge_of_server(cur)
-        with tldm(
-            desc="Plan Data", total=len(plans) * len(_ENDPOINTS), disable=quiet
-        ) as pbar:
-            yc = ProgressYnabClient(YnabClient(token, context.session), pbar)
+        with _progress(context):
+            yc = ProgressYnabClient(
+                YnabClient(token, context.session),
+                context,
+                context.progress.add_task(
+                    "Plan Data", total=len(plans) * len(_ENDPOINTS)
+                ),
+            )
 
             endpoint_data = dict(
                 zip(
@@ -207,19 +236,19 @@ async def sync(
             _print("No new data fetched", quiet=quiet)
         else:
             _print("Inserting plan data...", quiet=quiet)
-            await insert_plan_data(
-                context,
-                plans,
-                plan_ids,
-                all_account_data,
-                all_cat_data,
-                all_payee_data,
-                all_txn_data,
-                all_sched_txn_data,
-                new_lkos,
-                quiet,
-            )
-            await context.con.commit()
+            with _progress(context):
+                await insert_plan_data(
+                    context,
+                    plans,
+                    plan_ids,
+                    all_account_data,
+                    all_cat_data,
+                    all_payee_data,
+                    all_txn_data,
+                    all_sched_txn_data,
+                    new_lkos,
+                )
+                await context.con.commit()
             _print("Done", quiet=quiet)
 
 
@@ -251,49 +280,30 @@ async def insert_plan_data(
     all_txn_data: list[dict[str, Any]],
     all_sched_txn_data: list[dict[str, Any]],
     new_lkos: dict[str, int],
-    quiet: bool,
 ) -> None:
     await insert_plans(context, plans, new_lkos)
     await asyncio.gather(
         *(
-            insert_accounts(
-                context,
-                plan_id,
-                account_data["accounts"],
-                quiet,
-            )
+            insert_accounts(context, plan_id, account_data["accounts"])
             for plan_id, account_data in zip(plan_ids, all_account_data, strict=True)
         ),
         *(
-            insert_category_groups(
-                context,
-                plan_id,
-                cat_data["category_groups"],
-                quiet,
-            )
+            insert_category_groups(context, plan_id, cat_data["category_groups"])
             for plan_id, cat_data in zip(plan_ids, all_cat_data, strict=True)
         ),
         *(
-            insert_payees(context, plan_id, payee_data["payees"], quiet)
+            insert_payees(context, plan_id, payee_data["payees"])
             for plan_id, payee_data in zip(plan_ids, all_payee_data, strict=True)
         ),
     )
     await asyncio.gather(
         *(
-            insert_transactions(
-                context,
-                plan_id,
-                txn_data["transactions"],
-                quiet,
-            )
+            insert_transactions(context, plan_id, txn_data["transactions"])
             for plan_id, txn_data in zip(plan_ids, all_txn_data, strict=True)
         ),
         *(
             insert_scheduled_transactions(
-                context,
-                plan_id,
-                sched_txn_data["scheduled_transactions"],
-                quiet,
+                context, plan_id, sched_txn_data["scheduled_transactions"]
             )
             for plan_id, sched_txn_data in zip(
                 plan_ids, all_sched_txn_data, strict=True
@@ -349,7 +359,6 @@ async def insert_accounts(
     context: _Context,
     plan_id: str,
     accounts: list[dict[str, Any]],
-    quiet: bool,
 ) -> None:
     # YNAB's LoanAccountPeriodValues are untyped dicts so we need to turn them into a more standard sub-entry view
     updated_accounts = [
@@ -377,7 +386,6 @@ async def insert_accounts(
         "accounts",
         "account_periodic_values",
         "account_periodic_values",
-        quiet,
     )
 
 
@@ -385,7 +393,6 @@ async def insert_category_groups(
     context: _Context,
     plan_id: str,
     category_groups: list[dict[str, Any]],
-    quiet: bool,
 ) -> None:
     await insert_nested_entries(
         context,
@@ -395,7 +402,6 @@ async def insert_category_groups(
         "category_groups",
         "categories",
         "categories",
-        quiet,
     )
 
 
@@ -403,20 +409,18 @@ async def insert_payees(
     context: _Context,
     plan_id: str,
     payees: list[dict[str, Any]],
-    quiet: bool,
 ) -> None:
     if not payees:
         return
 
-    with tldm(total=len(payees), desc="Payees", disable=quiet) as pbar:
-        await insert_entries(context, "payees", plan_id, payees, pbar)
+    task_id = context.progress.add_task("Payees", total=len(payees))
+    await insert_entries(context, "payees", plan_id, payees, task_id)
 
 
 async def insert_transactions(
     context: _Context,
     plan_id: str,
     transactions: list[dict[str, Any]],
-    quiet: bool,
 ) -> None:
     await insert_nested_entries(
         context,
@@ -426,7 +430,6 @@ async def insert_transactions(
         "transactions",
         "subtransactions",
         "subtransactions",
-        quiet,
     )
 
 
@@ -434,7 +437,6 @@ async def insert_scheduled_transactions(
     context: _Context,
     plan_id: str,
     scheduled_transactions: list[dict[str, Any]],
-    quiet: bool,
 ) -> None:
     await insert_nested_entries(
         context,
@@ -444,7 +446,6 @@ async def insert_scheduled_transactions(
         "scheduled_transactions",
         "subtransactions",
         "scheduled_subtransactions",
-        quiet,
     )
 
 
@@ -457,7 +458,6 @@ async def insert_nested_entries(
     entries_name: Literal["accounts"],
     subentries_name: Literal["account_periodic_values"],
     subentries_table_name: Literal["account_periodic_values"],
-    quiet: bool,
 ) -> None: ...
 
 
@@ -470,7 +470,6 @@ async def insert_nested_entries(
     entries_name: Literal["category_groups"],
     subentries_name: Literal["categories"],
     subentries_table_name: Literal["categories"],
-    quiet: bool,
 ) -> None: ...
 
 
@@ -483,7 +482,6 @@ async def insert_nested_entries(
     entries_name: Literal["transactions"],
     subentries_name: Literal["subtransactions"],
     subentries_table_name: Literal["subtransactions"],
-    quiet: bool,
 ) -> None: ...
 
 
@@ -496,7 +494,6 @@ async def insert_nested_entries(
     entries_name: Literal["scheduled_transactions"],
     subentries_name: Literal["subtransactions"],
     subentries_table_name: Literal["scheduled_subtransactions"],
-    quiet: bool,
 ) -> None: ...
 
 
@@ -527,33 +524,27 @@ async def insert_nested_entries(
         | Literal["subtransactions"]
         | Literal["scheduled_subtransactions"]
     ),
-    quiet: bool,
 ) -> None:
     if not entries:
         return
 
-    with tldm(
-        total=sum(1 + len(e[subentries_name]) for e in entries),
-        desc=desc,
-        disable=quiet,
-    ) as pbar:
-        await insert_entries(
-            context,
-            entries_name,
-            plan_id,
-            [
-                {k: v for k, v in entry.items() if k != subentries_name}
-                for entry in entries
-            ],
-            pbar,
-        )
-        await insert_entries(
-            context,
-            subentries_table_name,
-            plan_id,
-            [subentry for entry in entries for subentry in entry[subentries_name]],
-            pbar,
-        )
+    task_id = context.progress.add_task(
+        desc, total=sum(1 + len(e[subentries_name]) for e in entries)
+    )
+    await insert_entries(
+        context,
+        entries_name,
+        plan_id,
+        [{k: v for k, v in entry.items() if k != subentries_name} for entry in entries],
+        task_id,
+    )
+    await insert_entries(
+        context,
+        subentries_table_name,
+        plan_id,
+        [subentry for entry in entries for subentry in entry[subentries_name]],
+        task_id,
+    )
 
 
 async def insert_entries(
@@ -561,7 +552,7 @@ async def insert_entries(
     table: _EntryTable,
     plan_id: str,
     entries: list[dict[str, Any]],
-    pbar: tldm[Never],
+    task_id: TaskID,
 ) -> None:
     if not entries:
         return
@@ -576,7 +567,7 @@ async def insert_entries(
                 for entry in entry_batch
             ]
             await cur.executemany(sql, values_batch)
-            pbar.update(len(values_batch))
+            context.progress.update(task_id, advance=len(values_batch))
 
 
 def jobs(
@@ -600,7 +591,8 @@ class SupportsYnabClient(Protocol):
 @dataclass
 class ProgressYnabClient:
     yc: YnabClient
-    pbar: tldm[Never]
+    context: _Context
+    task_id: TaskID
 
     async def __call__(
         self, path: str, last_knowledge_of_server: int | None = None
@@ -608,7 +600,7 @@ class ProgressYnabClient:
         try:
             return await self.yc(path, last_knowledge_of_server)
         finally:
-            self.pbar.update()
+            self.context.progress.update(self.task_id, advance=1)
 
 
 @dataclass
