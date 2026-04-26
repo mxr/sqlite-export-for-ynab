@@ -5,6 +5,7 @@ import asyncio
 import json
 import os
 from contextlib import asynccontextmanager
+from contextlib import contextmanager
 from dataclasses import dataclass
 from importlib import resources
 from importlib.metadata import version
@@ -33,7 +34,7 @@ from rich.progress import TimeElapsedColumn
 from sqlite_export_for_ynab import ddl
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator, Awaitable, Sequence
+    from collections.abc import AsyncIterator, Awaitable, Iterator, Sequence
 
 
 _EntryTable = (
@@ -146,16 +147,21 @@ class _Context:
 
 @asynccontextmanager
 async def _context(db: Path, *, quiet: bool) -> AsyncIterator[_Context]:
-    with Progress(*_PROGRESS_COLUMNS, disable=quiet) as progress:
-        async with aiohttp.ClientSession() as session, aiosqlite.connect(db) as con:
-            con.row_factory = aiosqlite.Row
-            yield _Context(session, progress, con)
+    progress = Progress(*_PROGRESS_COLUMNS, disable=quiet)
+    async with aiohttp.ClientSession() as session, aiosqlite.connect(db) as con:
+        con.row_factory = aiosqlite.Row
+        yield _Context(session, progress, con)
 
 
-def _finish_progress(context: _Context) -> None:
-    context.progress.stop()
-    for task_id in context.progress.task_ids:
-        context.progress.remove_task(task_id)
+@contextmanager
+def _progress(context: _Context) -> Iterator[None]:
+    context.progress.start()
+    try:
+        yield
+    finally:
+        context.progress.stop()
+        for task_id in context.progress.task_ids:
+            context.progress.remove_task(task_id)
 
 
 async def sync(
@@ -186,25 +192,27 @@ async def sync(
         _print("Fetching plan data...", quiet=quiet)
         async with context.con.cursor() as cur:
             lkos = await get_last_knowledge_of_server(cur)
-        task_id = context.progress.add_task(
-            "Plan Data", total=len(plans) * len(_ENDPOINTS)
-        )
-        yc = ProgressYnabClient(YnabClient(token, context.session), context, task_id)
-
-        endpoint_data = dict(
-            zip(
-                _ENDPOINTS,
-                await asyncio.gather(
-                    *(
-                        asyncio.gather(*jobs(yc, endpoint, plan_ids, lkos))
-                        for endpoint in _ENDPOINTS
-                    )
-                ),
-                strict=True,
+        with _progress(context):
+            task_id = context.progress.add_task(
+                "Plan Data", total=len(plans) * len(_ENDPOINTS)
             )
-        )
+            yc = ProgressYnabClient(
+                YnabClient(token, context.session), context, task_id
+            )
 
-        _finish_progress(context)
+            endpoint_data = dict(
+                zip(
+                    _ENDPOINTS,
+                    await asyncio.gather(
+                        *(
+                            asyncio.gather(*jobs(yc, endpoint, plan_ids, lkos))
+                            for endpoint in _ENDPOINTS
+                        )
+                    ),
+                    strict=True,
+                )
+            )
+
         all_account_data = endpoint_data["accounts"]
         all_cat_data = endpoint_data["categories"]
         all_payee_data = endpoint_data["payees"]
@@ -227,20 +235,19 @@ async def sync(
             _print("No new data fetched", quiet=quiet)
         else:
             _print("Inserting plan data...", quiet=quiet)
-            context.progress.start()
-            await insert_plan_data(
-                context,
-                plans,
-                plan_ids,
-                all_account_data,
-                all_cat_data,
-                all_payee_data,
-                all_txn_data,
-                all_sched_txn_data,
-                new_lkos,
-            )
-            await context.con.commit()
-            _finish_progress(context)
+            with _progress(context):
+                await insert_plan_data(
+                    context,
+                    plans,
+                    plan_ids,
+                    all_account_data,
+                    all_cat_data,
+                    all_payee_data,
+                    all_txn_data,
+                    all_sched_txn_data,
+                    new_lkos,
+                )
+                await context.con.commit()
             _print("Done", quiet=quiet)
 
 
