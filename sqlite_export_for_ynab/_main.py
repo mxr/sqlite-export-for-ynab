@@ -23,8 +23,12 @@ from urllib.parse import urlunparse
 import aiohttp
 import aiosqlite
 from aiopathlib import AsyncPath
+from rich.progress import BarColumn
+from rich.progress import MofNCompleteColumn
 from rich.progress import Progress
 from rich.progress import TaskID
+from rich.progress import TextColumn
+from rich.progress import TimeElapsedColumn
 
 from sqlite_export_for_ynab import ddl
 
@@ -61,6 +65,13 @@ _ENV_TOKEN = "YNAB_PERSONAL_ACCESS_TOKEN"
 _PACKAGE = "sqlite-export-for-ynab"
 
 _BATCH_SIZE = 100
+
+_PROGRESS_COLUMNS = (
+    TextColumn("[progress.description]{task.description}"),
+    BarColumn(),
+    MofNCompleteColumn(),
+    TimeElapsedColumn(),
+)
 
 
 def resolve_token(token_override: str | None = None) -> str:
@@ -135,10 +146,16 @@ class _Context:
 
 @asynccontextmanager
 async def _context(db: Path, *, quiet: bool) -> AsyncIterator[_Context]:
-    with Progress(disable=quiet) as progress:
+    with Progress(*_PROGRESS_COLUMNS, disable=quiet) as progress:
         async with aiohttp.ClientSession() as session, aiosqlite.connect(db) as con:
             con.row_factory = aiosqlite.Row
             yield _Context(session, progress, con)
+
+
+def _finish_progress(context: _Context) -> None:
+    context.progress.stop()
+    for task_id in context.progress.task_ids:
+        context.progress.remove_task(task_id)
 
 
 async def sync(
@@ -187,6 +204,7 @@ async def sync(
             )
         )
 
+        _finish_progress(context)
         all_account_data = endpoint_data["accounts"]
         all_cat_data = endpoint_data["categories"]
         all_payee_data = endpoint_data["payees"]
@@ -209,6 +227,7 @@ async def sync(
             _print("No new data fetched", quiet=quiet)
         else:
             _print("Inserting plan data...", quiet=quiet)
+            context.progress.start()
             await insert_plan_data(
                 context,
                 plans,
@@ -221,6 +240,7 @@ async def sync(
                 new_lkos,
             )
             await context.con.commit()
+            _finish_progress(context)
             _print("Done", quiet=quiet)
 
 

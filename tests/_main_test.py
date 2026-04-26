@@ -18,6 +18,7 @@ from sqlite_export_for_ynab._main import _ALL_RELATIONS
 from sqlite_export_for_ynab._main import _Context
 from sqlite_export_for_ynab._main import _ENV_TOKEN
 from sqlite_export_for_ynab._main import _PACKAGE
+from sqlite_export_for_ynab._main import _PROGRESS_COLUMNS
 from sqlite_export_for_ynab._main import contents
 from sqlite_export_for_ynab._main import get_last_knowledge_of_server
 from sqlite_export_for_ynab._main import get_relations
@@ -89,7 +90,7 @@ async def fetchall(con, query):
 
 @pytest_asyncio.fixture
 async def context():
-    with Progress(disable=True) as progress:
+    with Progress(*_PROGRESS_COLUMNS, disable=True) as progress:
         async with (
             aiohttp.ClientSession(loop=asyncio.get_event_loop()) as session,
             aiosqlite.connect(":memory:") as con,
