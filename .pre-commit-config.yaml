@@ -46,4 +46,5 @@ repos:
   rev: v1.20.1
   hooks:
   - id: mypy
+    additional_dependencies: [aiopathlib]
     language_version: python3.12
