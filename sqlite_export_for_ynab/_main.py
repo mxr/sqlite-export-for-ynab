@@ -193,11 +193,12 @@ async def sync(
         async with context.con.cursor() as cur:
             lkos = await get_last_knowledge_of_server(cur)
         with _progress(context):
-            task_id = context.progress.add_task(
-                "Plan Data", total=len(plans) * len(_ENDPOINTS)
-            )
             yc = ProgressYnabClient(
-                YnabClient(token, context.session), context, task_id
+                YnabClient(token, context.session),
+                context,
+                context.progress.add_task(
+                    "Plan Data", total=len(plans) * len(_ENDPOINTS)
+                ),
             )
 
             endpoint_data = dict(
