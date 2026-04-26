@@ -9,11 +9,13 @@ from unittest.mock import patch
 import aiohttp
 import aiosqlite
 import pytest
+import pytest_asyncio
 from aiohttp.http_exceptions import HttpProcessingError
 from tldm import tldm
 
 from sqlite_export_for_ynab import default_db_path
 from sqlite_export_for_ynab._main import _ALL_RELATIONS
+from sqlite_export_for_ynab._main import _Context
 from sqlite_export_for_ynab._main import _ENV_TOKEN
 from sqlite_export_for_ynab._main import _PACKAGE
 from sqlite_export_for_ynab._main import contents
@@ -49,8 +51,6 @@ from testing.fixtures import CATEGORY_NAME_1
 from testing.fixtures import CATEGORY_NAME_2
 from testing.fixtures import CATEGORY_NAME_3
 from testing.fixtures import CATEGORY_NAME_4
-from testing.fixtures import con
-from testing.fixtures import cur
 from testing.fixtures import EXAMPLE_ENDPOINT_RE
 from testing.fixtures import LKOS
 from testing.fixtures import mock_aioresponses
@@ -81,8 +81,19 @@ from testing.fixtures import TRANSACTIONS
 from testing.fixtures import TRANSACTIONS_ENDPOINT_RE
 
 
-async def fetchall(con, query):
-    async with con.cursor() as cur:
+@pytest_asyncio.fixture
+async def context():
+    async with (
+        aiohttp.ClientSession(loop=asyncio.get_event_loop()) as session,
+        aiosqlite.connect(":memory:") as con,
+    ):
+        con.row_factory = aiosqlite.Row
+        await con.executescript(await contents("create-relations.sql"))
+        yield _Context(session, con)
+
+
+async def fetchall(context, query):
+    async with context.con.cursor() as cur:
         await cur.execute(query)
         return await cur.fetchall()
 
@@ -99,26 +110,25 @@ def test_default_db_path(monkeypatch, xdg_data_home, expected_prefix):
     assert default_db_path() == expected_prefix / "sqlite-export-for-ynab" / "db.sqlite"
 
 
-@pytest.mark.usefixtures(cur.__name__)
 @pytest.mark.asyncio
-async def test_get_relations(cur):
-    assert await get_relations(cur) == _ALL_RELATIONS
+async def test_get_relations(context):
+    async with context.con.cursor() as cur:
+        assert await get_relations(cur) == _ALL_RELATIONS
 
 
-@pytest.mark.usefixtures(con.__name__)
 @pytest.mark.asyncio
-async def test_get_last_knowledge_of_server(con):
-    await insert_plans(con, PLANS, LKOS)
-    async with con.cursor() as cur:
+async def test_get_last_knowledge_of_server(context):
+    await insert_plans(context, PLANS, LKOS)
+    async with context.con.cursor() as cur:
         assert await get_last_knowledge_of_server(cur) == LKOS
 
 
-@pytest.mark.usefixtures(con.__name__)
 @pytest.mark.asyncio
-async def test_insert_plans(con):
-    await insert_plans(con, PLANS, LKOS)
+async def test_insert_plans(context):
+    await insert_plans(context, PLANS, LKOS)
     assert [
-        strip_nones(d) for d in await fetchall(con, "SELECT * FROM plans ORDER BY name")
+        strip_nones(d)
+        for d in await fetchall(context, "SELECT * FROM plans ORDER BY name")
     ] == [
         {
             "id": PLAN_ID_1,
@@ -147,17 +157,16 @@ async def test_insert_plans(con):
     ]
 
 
-@pytest.mark.usefixtures(con.__name__)
 @pytest.mark.asyncio
-async def test_insert_accounts(con):
-    await insert_accounts(con, PLAN_ID_1, [])
-    assert not await fetchall(con, "SELECT * FROM accounts")
-    assert not await fetchall(con, "SELECT * FROM account_periodic_values")
+async def test_insert_accounts(context):
+    await insert_accounts(context, PLAN_ID_1, [], False)
+    assert not await fetchall(context, "SELECT * FROM accounts")
+    assert not await fetchall(context, "SELECT * FROM account_periodic_values")
 
-    await insert_accounts(con, PLAN_ID_1, ACCOUNTS)
+    await insert_accounts(context, PLAN_ID_1, ACCOUNTS, False)
     assert [
         strip_nones(d)
-        for d in await fetchall(con, "SELECT * FROM accounts ORDER BY name")
+        for d in await fetchall(context, "SELECT * FROM accounts ORDER BY name")
     ] == [
         {
             "id": ACCOUNT_ID_1,
@@ -188,7 +197,7 @@ async def test_insert_accounts(con):
     assert [
         strip_nones(d)
         for d in await fetchall(
-            con, "SELECT * FROM account_periodic_values ORDER BY name"
+            context, "SELECT * FROM account_periodic_values ORDER BY name"
         )
     ] == [
         {
@@ -208,17 +217,16 @@ async def test_insert_accounts(con):
     ]
 
 
-@pytest.mark.usefixtures(con.__name__)
 @pytest.mark.asyncio
-async def test_insert_category_groups(con):
-    await insert_category_groups(con, PLAN_ID_1, [])
-    assert not await fetchall(con, "SELECT * FROM category_groups")
-    assert not await fetchall(con, "SELECT * FROM categories")
+async def test_insert_category_groups(context):
+    await insert_category_groups(context, PLAN_ID_1, [], False)
+    assert not await fetchall(context, "SELECT * FROM category_groups")
+    assert not await fetchall(context, "SELECT * FROM categories")
 
-    await insert_category_groups(con, PLAN_ID_1, CATEGORY_GROUPS)
+    await insert_category_groups(context, PLAN_ID_1, CATEGORY_GROUPS, False)
     assert [
         strip_nones(d)
-        for d in await fetchall(con, "SELECT * FROM category_groups ORDER BY name")
+        for d in await fetchall(context, "SELECT * FROM category_groups ORDER BY name")
     ] == [
         {
             "id": CATEGORY_GROUP_ID_1,
@@ -234,7 +242,7 @@ async def test_insert_category_groups(con):
 
     assert [
         strip_nones(d)
-        for d in await fetchall(con, "SELECT * FROM categories ORDER BY name")
+        for d in await fetchall(context, "SELECT * FROM categories ORDER BY name")
     ] == [
         {
             "id": CATEGORY_ID_1,
@@ -300,20 +308,19 @@ async def test_insert_category_groups(con):
     ]
 
 
-@pytest.mark.usefixtures(con.__name__)
 @pytest.mark.asyncio
-async def test_insert_category_group_without_categories(con):
+async def test_insert_category_group_without_categories(context):
     category_group = {
         "id": CATEGORY_GROUP_ID_1,
         "name": CATEGORY_GROUP_NAME_1,
         "categories": [],
     }
 
-    await insert_category_groups(con, PLAN_ID_1, [category_group])
+    await insert_category_groups(context, PLAN_ID_1, [category_group], False)
 
     assert [
         strip_nones(d)
-        for d in await fetchall(con, "SELECT * FROM category_groups ORDER BY name")
+        for d in await fetchall(context, "SELECT * FROM category_groups ORDER BY name")
     ] == [
         {
             "id": CATEGORY_GROUP_ID_1,
@@ -321,19 +328,18 @@ async def test_insert_category_group_without_categories(con):
             "plan_id": PLAN_ID_1,
         },
     ]
-    assert not await fetchall(con, "SELECT * FROM categories")
+    assert not await fetchall(context, "SELECT * FROM categories")
 
 
-@pytest.mark.usefixtures(con.__name__)
 @pytest.mark.asyncio
-async def test_insert_payees(con):
-    await insert_payees(con, PLAN_ID_1, [])
-    assert not await fetchall(con, "SELECT * FROM payees")
+async def test_insert_payees(context):
+    await insert_payees(context, PLAN_ID_1, [], False)
+    assert not await fetchall(context, "SELECT * FROM payees")
 
-    await insert_payees(con, PLAN_ID_1, PAYEES)
+    await insert_payees(context, PLAN_ID_1, PAYEES, False)
     assert [
         strip_nones(d)
-        for d in await fetchall(con, "SELECT * FROM payees ORDER BY name")
+        for d in await fetchall(context, "SELECT * FROM payees ORDER BY name")
     ] == [
         {
             "id": PAYEE_ID_1,
@@ -348,18 +354,17 @@ async def test_insert_payees(con):
     ]
 
 
-@pytest.mark.usefixtures(con.__name__)
 @pytest.mark.asyncio
-async def test_insert_transactions(con):
-    await insert_transactions(con, PLAN_ID_1, [])
-    assert not await fetchall(con, "SELECT * FROM transactions")
-    assert not await fetchall(con, "SELECT * FROM subtransactions")
+async def test_insert_transactions(context):
+    await insert_transactions(context, PLAN_ID_1, [], False)
+    assert not await fetchall(context, "SELECT * FROM transactions")
+    assert not await fetchall(context, "SELECT * FROM subtransactions")
 
-    await insert_category_groups(con, PLAN_ID_1, CATEGORY_GROUPS)
-    await insert_transactions(con, PLAN_ID_1, TRANSACTIONS)
+    await insert_category_groups(context, PLAN_ID_1, CATEGORY_GROUPS, False)
+    await insert_transactions(context, PLAN_ID_1, TRANSACTIONS, False)
     assert [
         strip_nones(d)
-        for d in await fetchall(con, "SELECT * FROM transactions ORDER BY date")
+        for d in await fetchall(context, "SELECT * FROM transactions ORDER BY date")
     ] == [
         {
             "id": TRANSACTION_ID_1,
@@ -401,7 +406,9 @@ async def test_insert_transactions(con):
 
     assert [
         strip_nones(d)
-        for d in await fetchall(con, "SELECT * FROM subtransactions ORDER BY amount")
+        for d in await fetchall(
+            context, "SELECT * FROM subtransactions ORDER BY amount"
+        )
     ] == [
         {
             "id": SUBTRANSACTION_ID_1,
@@ -429,7 +436,9 @@ async def test_insert_transactions(con):
 
     assert [
         strip_nones(d)
-        for d in await fetchall(con, "SELECT * FROM flat_transactions ORDER BY amount")
+        for d in await fetchall(
+            context, "SELECT * FROM flat_transactions ORDER BY amount"
+        )
     ] == [
         {
             "transaction_id": TRANSACTION_ID_1,
@@ -462,19 +471,20 @@ async def test_insert_transactions(con):
     ]
 
 
-@pytest.mark.usefixtures(con.__name__)
 @pytest.mark.asyncio
-async def test_insert_scheduled_transactions(con):
-    await insert_scheduled_transactions(con, PLAN_ID_1, [])
-    assert not await fetchall(con, "SELECT * FROM scheduled_transactions")
-    assert not await fetchall(con, "SELECT * FROM scheduled_subtransactions")
+async def test_insert_scheduled_transactions(context):
+    await insert_scheduled_transactions(context, PLAN_ID_1, [], False)
+    assert not await fetchall(context, "SELECT * FROM scheduled_transactions")
+    assert not await fetchall(context, "SELECT * FROM scheduled_subtransactions")
 
-    await insert_category_groups(con, PLAN_ID_1, CATEGORY_GROUPS)
-    await insert_scheduled_transactions(con, PLAN_ID_1, SCHEDULED_TRANSACTIONS)
+    await insert_category_groups(context, PLAN_ID_1, CATEGORY_GROUPS, False)
+    await insert_scheduled_transactions(
+        context, PLAN_ID_1, SCHEDULED_TRANSACTIONS, False
+    )
     assert [
         strip_nones(d)
         for d in await fetchall(
-            con, "SELECT * FROM scheduled_transactions ORDER BY amount"
+            context, "SELECT * FROM scheduled_transactions ORDER BY amount"
         )
     ] == [
         {
@@ -515,7 +525,7 @@ async def test_insert_scheduled_transactions(con):
     assert [
         strip_nones(d)
         for d in await fetchall(
-            con, "SELECT * FROM scheduled_subtransactions ORDER BY amount"
+            context, "SELECT * FROM scheduled_subtransactions ORDER BY amount"
         )
     ] == [
         {
@@ -545,7 +555,7 @@ async def test_insert_scheduled_transactions(con):
     assert [
         strip_nones(d)
         for d in await fetchall(
-            con, "SELECT * FROM scheduled_flat_transactions ORDER BY amount"
+            context, "SELECT * FROM scheduled_flat_transactions ORDER BY amount"
         )
     ] == [
         {

@@ -2,14 +2,14 @@ from __future__ import annotations
 
 import re
 from typing import Any
+from typing import TYPE_CHECKING
 from uuid import uuid4
 
-import aiosqlite
 import pytest
-import pytest_asyncio
 from aioresponses import aioresponses
 
-from sqlite_export_for_ynab._main import contents
+if TYPE_CHECKING:
+    import aiosqlite
 
 PLAN_ID_1 = str(uuid4())
 PLAN_ID_2 = str(uuid4())
@@ -351,20 +351,6 @@ SCHEDULED_TRANSACTIONS: list[dict[str, Any]] = [
         "subtransactions": [],
     },
 ]
-
-
-@pytest_asyncio.fixture
-async def con():
-    async with aiosqlite.connect(":memory:") as con:
-        con.row_factory = aiosqlite.Row
-        await con.executescript(await contents("create-relations.sql"))
-        yield con
-
-
-@pytest_asyncio.fixture
-async def cur(con):
-    async with con.cursor() as cursor:
-        yield cursor
 
 
 @pytest.fixture
