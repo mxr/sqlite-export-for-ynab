@@ -199,56 +199,17 @@ async def sync(
             _print("No new data fetched", quiet=quiet)
         else:
             _print("Inserting plan data...", quiet=quiet)
-            await insert_plans(con, plans, new_lkos)
-            await asyncio.gather(
-                *(
-                    insert_accounts(
-                        con,
-                        plan_id,
-                        account_data["accounts"],
-                        quiet=quiet,
-                    )
-                    for plan_id, account_data in zip(
-                        plan_ids, all_account_data, strict=True
-                    )
-                ),
-                *(
-                    insert_category_groups(
-                        con,
-                        plan_id,
-                        cat_data["category_groups"],
-                        quiet=quiet,
-                    )
-                    for plan_id, cat_data in zip(plan_ids, all_cat_data, strict=True)
-                ),
-                *(
-                    insert_payees(con, plan_id, payee_data["payees"], quiet=quiet)
-                    for plan_id, payee_data in zip(
-                        plan_ids, all_payee_data, strict=True
-                    )
-                ),
-            )
-            await asyncio.gather(
-                *(
-                    insert_transactions(
-                        con,
-                        plan_id,
-                        txn_data["transactions"],
-                        quiet=quiet,
-                    )
-                    for plan_id, txn_data in zip(plan_ids, all_txn_data, strict=True)
-                ),
-                *(
-                    insert_scheduled_transactions(
-                        con,
-                        plan_id,
-                        sched_txn_data["scheduled_transactions"],
-                        quiet=quiet,
-                    )
-                    for plan_id, sched_txn_data in zip(
-                        plan_ids, all_sched_txn_data, strict=True
-                    )
-                ),
+            await insert_plan_data(
+                con,
+                plans,
+                plan_ids,
+                all_account_data,
+                all_cat_data,
+                all_payee_data,
+                all_txn_data,
+                all_sched_txn_data,
+                new_lkos,
+                quiet=quiet,
             )
             await con.commit()
             _print("Done", quiet=quiet)
@@ -270,6 +231,68 @@ async def get_last_knowledge_of_server(cur: aiosqlite.Cursor) -> dict[str, int]:
         "SELECT id, last_knowledge_of_server FROM plans",
     )
     return {r["id"]: r["last_knowledge_of_server"] for r in await cur.fetchall()}
+
+
+async def insert_plan_data(
+    con: aiosqlite.Connection,
+    plans: list[dict[str, Any]],
+    plan_ids: list[str],
+    all_account_data: list[dict[str, Any]],
+    all_cat_data: list[dict[str, Any]],
+    all_payee_data: list[dict[str, Any]],
+    all_txn_data: list[dict[str, Any]],
+    all_sched_txn_data: list[dict[str, Any]],
+    new_lkos: dict[str, int],
+    *,
+    quiet: bool,
+) -> None:
+    await insert_plans(con, plans, new_lkos)
+    await asyncio.gather(
+        *(
+            insert_accounts(
+                con,
+                plan_id,
+                account_data["accounts"],
+                quiet=quiet,
+            )
+            for plan_id, account_data in zip(plan_ids, all_account_data, strict=True)
+        ),
+        *(
+            insert_category_groups(
+                con,
+                plan_id,
+                cat_data["category_groups"],
+                quiet=quiet,
+            )
+            for plan_id, cat_data in zip(plan_ids, all_cat_data, strict=True)
+        ),
+        *(
+            insert_payees(con, plan_id, payee_data["payees"], quiet=quiet)
+            for plan_id, payee_data in zip(plan_ids, all_payee_data, strict=True)
+        ),
+    )
+    await asyncio.gather(
+        *(
+            insert_transactions(
+                con,
+                plan_id,
+                txn_data["transactions"],
+                quiet=quiet,
+            )
+            for plan_id, txn_data in zip(plan_ids, all_txn_data, strict=True)
+        ),
+        *(
+            insert_scheduled_transactions(
+                con,
+                plan_id,
+                sched_txn_data["scheduled_transactions"],
+                quiet=quiet,
+            )
+            for plan_id, sched_txn_data in zip(
+                plan_ids, all_sched_txn_data, strict=True
+            )
+        ),
+    )
 
 
 async def insert_plans(
