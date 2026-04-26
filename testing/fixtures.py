@@ -357,7 +357,7 @@ SCHEDULED_TRANSACTIONS: list[dict[str, Any]] = [
 async def con():
     async with aiosqlite.connect(":memory:") as con:
         con.row_factory = aiosqlite.Row
-        await con.executescript(contents("create-relations.sql"))
+        await con.executescript(await contents("create-relations.sql"))
         yield con
 
 

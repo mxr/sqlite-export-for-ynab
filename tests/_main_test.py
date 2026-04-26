@@ -722,7 +722,7 @@ async def test_sync_no_data(tmp_path, mock_aioresponses):
     # create the db and tables to exercise all code branches
     db = tmp_path / "db.sqlite"
     async with aiosqlite.connect(db) as con:
-        await con.executescript(contents("create-relations.sql"))
+        await con.executescript(await contents("create-relations.sql"))
 
     await sync(TOKEN, db, False)
 
@@ -766,7 +766,7 @@ async def test_sync_no_data_quiet(tmp_path, mock_aioresponses, capsys):
 
     db = tmp_path / "db.sqlite"
     async with aiosqlite.connect(db) as con:
-        await con.executescript(contents("create-relations.sql"))
+        await con.executescript(await contents("create-relations.sql"))
 
     await sync(TOKEN, db, False, quiet=True)
 
