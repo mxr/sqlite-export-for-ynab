@@ -136,10 +136,9 @@ class _Context:
 @asynccontextmanager
 async def _context(db: Path, *, quiet: bool) -> AsyncIterator[_Context]:
     with Progress(disable=quiet) as progress:
-        async with aiohttp.ClientSession() as session:
-            async with aiosqlite.connect(db) as con:
-                con.row_factory = aiosqlite.Row
-                yield _Context(session, progress, con)
+        async with aiohttp.ClientSession() as session, aiosqlite.connect(db) as con:
+            con.row_factory = aiosqlite.Row
+            yield _Context(session, progress, con)
 
 
 async def sync(

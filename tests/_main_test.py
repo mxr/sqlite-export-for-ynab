@@ -90,11 +90,13 @@ async def fetchall(con, query):
 @pytest_asyncio.fixture
 async def context():
     with Progress(disable=True) as progress:
-        async with aiohttp.ClientSession(loop=asyncio.get_event_loop()) as session:
-            async with aiosqlite.connect(":memory:") as con:
-                con.row_factory = aiosqlite.Row
-                await con.executescript(await contents("create-relations.sql"))
-                yield _Context(session, progress, con)
+        async with (
+            aiohttp.ClientSession(loop=asyncio.get_event_loop()) as session,
+            aiosqlite.connect(":memory:") as con,
+        ):
+            con.row_factory = aiosqlite.Row
+            await con.executescript(await contents("create-relations.sql"))
+            yield _Context(session, progress, con)
 
 
 @pytest.mark.parametrize(
