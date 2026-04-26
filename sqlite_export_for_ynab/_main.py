@@ -22,6 +22,7 @@ from urllib.parse import urlunparse
 
 import aiohttp
 import aiosqlite
+from aiopathlib import AsyncPath
 from rich.progress import Progress
 from rich.progress import TaskID
 
@@ -144,8 +145,7 @@ async def _context(db: Path, *, quiet: bool) -> AsyncIterator[_Context]:
 async def sync(
     token: str, db: Path, full_refresh: bool, *, quiet: bool = False
 ) -> None:
-    if not db.exists():
-        db.parent.mkdir(parents=True, exist_ok=True)
+    await AsyncPath(db).parent.mkdir(parents=True, exist_ok=True)
 
     async with _context(db, quiet=quiet) as context:
         plans = (await YnabClient(token, context.session)("plans"))["plans"]
@@ -155,7 +155,7 @@ async def sync(
         if full_refresh:
             _print("Dropping relations...", quiet=quiet)
             async with context.con.cursor() as cur:
-                await cur.executescript(contents("drop-relations.sql"))
+                await cur.executescript(await contents("drop-relations.sql"))
             await context.con.commit()
             _print("Done", quiet=quiet)
 
@@ -163,7 +163,7 @@ async def sync(
             relations = await get_relations(cur)
             if relations != _ALL_RELATIONS:
                 _print("Recreating relations...", quiet=quiet)
-                await cur.executescript(contents("create-relations.sql"))
+                await cur.executescript(await contents("create-relations.sql"))
                 await context.con.commit()
                 _print("Done", quiet=quiet)
 
@@ -225,8 +225,8 @@ async def sync(
             _print("Done", quiet=quiet)
 
 
-def contents(filename: str) -> str:
-    return (resources.files(ddl) / filename).read_text()
+async def contents(filename: str) -> str:
+    return await AsyncPath(resources.files(ddl) / filename).read_text()
 
 
 async def get_relations(cur: aiosqlite.Cursor) -> set[str]:

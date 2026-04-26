@@ -93,7 +93,7 @@ async def context():
         async with aiohttp.ClientSession(loop=asyncio.get_event_loop()) as session:
             async with aiosqlite.connect(":memory:") as con:
                 con.row_factory = aiosqlite.Row
-                await con.executescript(contents("create-relations.sql"))
+                await con.executescript(await contents("create-relations.sql"))
                 yield _Context(session, progress, con)
 
 
@@ -732,7 +732,7 @@ async def test_sync_no_data(tmp_path, mock_aioresponses):
     # create the db and tables to exercise all code branches
     db = tmp_path / "db.sqlite"
     async with aiosqlite.connect(db) as con:
-        await con.executescript(contents("create-relations.sql"))
+        await con.executescript(await contents("create-relations.sql"))
 
     await sync(TOKEN, db, False)
 
@@ -776,7 +776,7 @@ async def test_sync_no_data_quiet(tmp_path, mock_aioresponses, capsys):
 
     db = tmp_path / "db.sqlite"
     async with aiosqlite.connect(db) as con:
-        await con.executescript(contents("create-relations.sql"))
+        await con.executescript(await contents("create-relations.sql"))
 
     await sync(TOKEN, db, False, quiet=True)
 
