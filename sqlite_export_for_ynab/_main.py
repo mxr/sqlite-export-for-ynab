@@ -4,6 +4,7 @@ import argparse
 import asyncio
 import json
 import os
+from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from importlib import resources
 from importlib.metadata import version
@@ -21,13 +22,13 @@ from urllib.parse import urlunparse
 
 import aiohttp
 import aiosqlite
-from tldm import tldm
+from rich.progress import Progress
+from rich.progress import TaskID
 
 from sqlite_export_for_ynab import ddl
 
 if TYPE_CHECKING:
-    from collections.abc import Awaitable, Sequence
-    from typing import Never
+    from collections.abc import AsyncIterator, Awaitable, Sequence
 
 
 _EntryTable = (
@@ -124,69 +125,79 @@ def _print(message: str, *, quiet: bool) -> None:
         print(message)
 
 
+@dataclass
+class _Context:
+    session: aiohttp.ClientSession
+    progress: Progress
+    con: aiosqlite.Connection
+
+
+@asynccontextmanager
+async def _context(db: Path, *, quiet: bool) -> AsyncIterator[_Context]:
+    with Progress(disable=quiet) as progress:
+        async with aiohttp.ClientSession() as session:
+            async with aiosqlite.connect(db) as con:
+                con.row_factory = aiosqlite.Row
+                yield _Context(session, progress, con)
+
+
 async def sync(
     token: str, db: Path, full_refresh: bool, *, quiet: bool = False
 ) -> None:
-    async with aiohttp.ClientSession() as session:
-        plans = (await YnabClient(token, session)("plans"))["plans"]
-
-    plan_ids = [plan["id"] for plan in plans]
-
     if not db.exists():
         db.parent.mkdir(parents=True, exist_ok=True)
 
-    async with aiosqlite.connect(db) as con:
-        con.row_factory = aiosqlite.Row
+    async with _context(db, quiet=quiet) as context:
+        plans = (await YnabClient(token, context.session)("plans"))["plans"]
+
+        plan_ids = [plan["id"] for plan in plans]
 
         if full_refresh:
             _print("Dropping relations...", quiet=quiet)
-            async with con.cursor() as cur:
+            async with context.con.cursor() as cur:
                 await cur.executescript(contents("drop-relations.sql"))
-            await con.commit()
+            await context.con.commit()
             _print("Done", quiet=quiet)
 
-        async with con.cursor() as cur:
+        async with context.con.cursor() as cur:
             relations = await get_relations(cur)
             if relations != _ALL_RELATIONS:
                 _print("Recreating relations...", quiet=quiet)
                 await cur.executescript(contents("create-relations.sql"))
-                await con.commit()
+                await context.con.commit()
                 _print("Done", quiet=quiet)
 
         _print("Fetching plan data...", quiet=quiet)
-        async with con.cursor() as cur:
+        async with context.con.cursor() as cur:
             lkos = await get_last_knowledge_of_server(cur)
-        async with aiohttp.ClientSession() as session:
-            with tldm(
-                desc="Plan Data", total=len(plans) * len(_ENDPOINTS), disable=quiet
-            ) as pbar:
-                yc = ProgressYnabClient(YnabClient(token, session), pbar)
+        task_id = context.progress.add_task(
+            "Plan Data", total=len(plans) * len(_ENDPOINTS)
+        )
+        yc = ProgressYnabClient(YnabClient(token, context.session), context, task_id)
 
-                endpoint_data = dict(
-                    zip(
-                        _ENDPOINTS,
-                        await asyncio.gather(
-                            *(
-                                asyncio.gather(*jobs(yc, endpoint, plan_ids, lkos))
-                                for endpoint in _ENDPOINTS
-                            )
-                        ),
-                        strict=True,
+        endpoint_data = dict(
+            zip(
+                _ENDPOINTS,
+                await asyncio.gather(
+                    *(
+                        asyncio.gather(*jobs(yc, endpoint, plan_ids, lkos))
+                        for endpoint in _ENDPOINTS
                     )
-                )
+                ),
+                strict=True,
+            )
+        )
 
-            all_account_data = endpoint_data["accounts"]
-            all_cat_data = endpoint_data["categories"]
-            all_payee_data = endpoint_data["payees"]
-            all_txn_data = endpoint_data["transactions"]
-            all_sched_txn_data = endpoint_data["scheduled_transactions"]
+        all_account_data = endpoint_data["accounts"]
+        all_cat_data = endpoint_data["categories"]
+        all_payee_data = endpoint_data["payees"]
+        all_txn_data = endpoint_data["transactions"]
+        all_sched_txn_data = endpoint_data["scheduled_transactions"]
 
-            new_lkos = {
-                plan_id: transaction_data["server_knowledge"]
-                for plan_id, transaction_data in zip(
-                    plan_ids, all_txn_data, strict=True
-                )
-            }
+        new_lkos = {
+            plan_id: transaction_data["server_knowledge"]
+            for plan_id, transaction_data in zip(plan_ids, all_txn_data, strict=True)
+        }
         _print("Done", quiet=quiet)
 
         if (
@@ -199,58 +210,18 @@ async def sync(
             _print("No new data fetched", quiet=quiet)
         else:
             _print("Inserting plan data...", quiet=quiet)
-            await insert_plans(con, plans, new_lkos)
-            await asyncio.gather(
-                *(
-                    insert_accounts(
-                        con,
-                        plan_id,
-                        account_data["accounts"],
-                        quiet=quiet,
-                    )
-                    for plan_id, account_data in zip(
-                        plan_ids, all_account_data, strict=True
-                    )
-                ),
-                *(
-                    insert_category_groups(
-                        con,
-                        plan_id,
-                        cat_data["category_groups"],
-                        quiet=quiet,
-                    )
-                    for plan_id, cat_data in zip(plan_ids, all_cat_data, strict=True)
-                ),
-                *(
-                    insert_payees(con, plan_id, payee_data["payees"], quiet=quiet)
-                    for plan_id, payee_data in zip(
-                        plan_ids, all_payee_data, strict=True
-                    )
-                ),
+            await insert_plan_data(
+                context,
+                plans,
+                plan_ids,
+                all_account_data,
+                all_cat_data,
+                all_payee_data,
+                all_txn_data,
+                all_sched_txn_data,
+                new_lkos,
             )
-            await asyncio.gather(
-                *(
-                    insert_transactions(
-                        con,
-                        plan_id,
-                        txn_data["transactions"],
-                        quiet=quiet,
-                    )
-                    for plan_id, txn_data in zip(plan_ids, all_txn_data, strict=True)
-                ),
-                *(
-                    insert_scheduled_transactions(
-                        con,
-                        plan_id,
-                        sched_txn_data["scheduled_transactions"],
-                        quiet=quiet,
-                    )
-                    for plan_id, sched_txn_data in zip(
-                        plan_ids, all_sched_txn_data, strict=True
-                    )
-                ),
-            )
-            await con.commit()
+            await context.con.commit()
             _print("Done", quiet=quiet)
 
 
@@ -272,10 +243,52 @@ async def get_last_knowledge_of_server(cur: aiosqlite.Cursor) -> dict[str, int]:
     return {r["id"]: r["last_knowledge_of_server"] for r in await cur.fetchall()}
 
 
-async def insert_plans(
-    con: aiosqlite.Connection, plans: list[dict[str, Any]], lkos: dict[str, int]
+async def insert_plan_data(
+    context: _Context,
+    plans: list[dict[str, Any]],
+    plan_ids: list[str],
+    all_account_data: list[dict[str, Any]],
+    all_cat_data: list[dict[str, Any]],
+    all_payee_data: list[dict[str, Any]],
+    all_txn_data: list[dict[str, Any]],
+    all_sched_txn_data: list[dict[str, Any]],
+    new_lkos: dict[str, int],
 ) -> None:
-    async with con.cursor() as cur:
+    await insert_plans(context, plans, new_lkos)
+    await asyncio.gather(
+        *(
+            insert_accounts(context, plan_id, account_data["accounts"])
+            for plan_id, account_data in zip(plan_ids, all_account_data, strict=True)
+        ),
+        *(
+            insert_category_groups(context, plan_id, cat_data["category_groups"])
+            for plan_id, cat_data in zip(plan_ids, all_cat_data, strict=True)
+        ),
+        *(
+            insert_payees(context, plan_id, payee_data["payees"])
+            for plan_id, payee_data in zip(plan_ids, all_payee_data, strict=True)
+        ),
+    )
+    await asyncio.gather(
+        *(
+            insert_transactions(context, plan_id, txn_data["transactions"])
+            for plan_id, txn_data in zip(plan_ids, all_txn_data, strict=True)
+        ),
+        *(
+            insert_scheduled_transactions(
+                context, plan_id, sched_txn_data["scheduled_transactions"]
+            )
+            for plan_id, sched_txn_data in zip(
+                plan_ids, all_sched_txn_data, strict=True
+            )
+        ),
+    )
+
+
+async def insert_plans(
+    context: _Context, plans: list[dict[str, Any]], lkos: dict[str, int]
+) -> None:
+    async with context.con.cursor() as cur:
         for plan_batch in batched(plans, _BATCH_SIZE):
             await cur.executemany(
                 """
@@ -316,11 +329,9 @@ _LOAN_ACCOUNT_PERIODIC_VALUES = frozenset(
 
 
 async def insert_accounts(
-    con: aiosqlite.Connection,
+    context: _Context,
     plan_id: str,
     accounts: list[dict[str, Any]],
-    *,
-    quiet: bool = False,
 ) -> None:
     # YNAB's LoanAccountPeriodValues are untyped dicts so we need to turn them into a more standard sub-entry view
     updated_accounts = [
@@ -341,146 +352,126 @@ async def insert_accounts(
     ]
 
     await insert_nested_entries(
-        con,
+        context,
         plan_id,
         updated_accounts,
         "Accounts",
         "accounts",
         "account_periodic_values",
         "account_periodic_values",
-        quiet=quiet,
     )
 
 
 async def insert_category_groups(
-    con: aiosqlite.Connection,
+    context: _Context,
     plan_id: str,
     category_groups: list[dict[str, Any]],
-    *,
-    quiet: bool = False,
 ) -> None:
     await insert_nested_entries(
-        con,
+        context,
         plan_id,
         category_groups,
         "Categories",
         "category_groups",
         "categories",
         "categories",
-        quiet=quiet,
     )
 
 
 async def insert_payees(
-    con: aiosqlite.Connection,
+    context: _Context,
     plan_id: str,
     payees: list[dict[str, Any]],
-    *,
-    quiet: bool = False,
 ) -> None:
     if not payees:
         return
 
-    with tldm(total=len(payees), desc="Payees", disable=quiet) as pbar:
-        await insert_entries(con, "payees", plan_id, payees, pbar)
+    task_id = context.progress.add_task("Payees", total=len(payees))
+    await insert_entries(context, "payees", plan_id, payees, task_id)
 
 
 async def insert_transactions(
-    con: aiosqlite.Connection,
+    context: _Context,
     plan_id: str,
     transactions: list[dict[str, Any]],
-    *,
-    quiet: bool = False,
 ) -> None:
     await insert_nested_entries(
-        con,
+        context,
         plan_id,
         transactions,
         "Transactions",
         "transactions",
         "subtransactions",
         "subtransactions",
-        quiet=quiet,
     )
 
 
 async def insert_scheduled_transactions(
-    con: aiosqlite.Connection,
+    context: _Context,
     plan_id: str,
     scheduled_transactions: list[dict[str, Any]],
-    *,
-    quiet: bool = False,
 ) -> None:
     await insert_nested_entries(
-        con,
+        context,
         plan_id,
         scheduled_transactions,
         "Scheduled Transactions",
         "scheduled_transactions",
         "subtransactions",
         "scheduled_subtransactions",
-        quiet=quiet,
     )
 
 
 @overload
 async def insert_nested_entries(
-    con: aiosqlite.Connection,
+    context: _Context,
     plan_id: str,
     entries: list[dict[str, Any]],
     desc: Literal["Accounts"],
     entries_name: Literal["accounts"],
     subentries_name: Literal["account_periodic_values"],
     subentries_table_name: Literal["account_periodic_values"],
-    *,
-    quiet: bool = False,
 ) -> None: ...
 
 
 @overload
 async def insert_nested_entries(
-    con: aiosqlite.Connection,
+    context: _Context,
     plan_id: str,
     entries: list[dict[str, Any]],
     desc: Literal["Categories"],
     entries_name: Literal["category_groups"],
     subentries_name: Literal["categories"],
     subentries_table_name: Literal["categories"],
-    *,
-    quiet: bool = False,
 ) -> None: ...
 
 
 @overload
 async def insert_nested_entries(
-    con: aiosqlite.Connection,
+    context: _Context,
     plan_id: str,
     entries: list[dict[str, Any]],
     desc: Literal["Transactions"],
     entries_name: Literal["transactions"],
     subentries_name: Literal["subtransactions"],
     subentries_table_name: Literal["subtransactions"],
-    *,
-    quiet: bool = False,
 ) -> None: ...
 
 
 @overload
 async def insert_nested_entries(
-    con: aiosqlite.Connection,
+    context: _Context,
     plan_id: str,
     entries: list[dict[str, Any]],
     desc: Literal["Scheduled Transactions"],
     entries_name: Literal["scheduled_transactions"],
     subentries_name: Literal["subtransactions"],
     subentries_table_name: Literal["scheduled_subtransactions"],
-    *,
-    quiet: bool = False,
 ) -> None: ...
 
 
 async def insert_nested_entries(
-    con: aiosqlite.Connection,
+    context: _Context,
     plan_id: str,
     entries: list[dict[str, Any]],
     desc: (
@@ -506,42 +497,35 @@ async def insert_nested_entries(
         | Literal["subtransactions"]
         | Literal["scheduled_subtransactions"]
     ),
-    *,
-    quiet: bool = False,
 ) -> None:
     if not entries:
         return
 
-    with tldm(
-        total=sum(1 + len(e[subentries_name]) for e in entries),
-        desc=desc,
-        disable=quiet,
-    ) as pbar:
-        await insert_entries(
-            con,
-            entries_name,
-            plan_id,
-            [
-                {k: v for k, v in entry.items() if k != subentries_name}
-                for entry in entries
-            ],
-            pbar,
-        )
-        await insert_entries(
-            con,
-            subentries_table_name,
-            plan_id,
-            [subentry for entry in entries for subentry in entry[subentries_name]],
-            pbar,
-        )
+    task_id = context.progress.add_task(
+        desc, total=sum(1 + len(e[subentries_name]) for e in entries)
+    )
+    await insert_entries(
+        context,
+        entries_name,
+        plan_id,
+        [{k: v for k, v in entry.items() if k != subentries_name} for entry in entries],
+        task_id,
+    )
+    await insert_entries(
+        context,
+        subentries_table_name,
+        plan_id,
+        [subentry for entry in entries for subentry in entry[subentries_name]],
+        task_id,
+    )
 
 
 async def insert_entries(
-    con: aiosqlite.Connection,
+    context: _Context,
     table: _EntryTable,
     plan_id: str,
     entries: list[dict[str, Any]],
-    pbar: tldm[Never],
+    task_id: TaskID,
 ) -> None:
     if not entries:
         return
@@ -549,14 +533,14 @@ async def insert_entries(
     entry_keys = tuple(entries[0])
     sql = f"INSERT OR REPLACE INTO {table} ({', '.join(entry_keys + ('plan_id',))}) VALUES ({', '.join('?' * (len(entry_keys) + 1))})"
 
-    async with con.cursor() as cur:
+    async with context.con.cursor() as cur:
         for entry_batch in batched(entries, _BATCH_SIZE):
             values_batch = [
                 tuple(entry[key] for key in entry_keys) + (plan_id,)
                 for entry in entry_batch
             ]
             await cur.executemany(sql, values_batch)
-            pbar.update(len(values_batch))
+            context.progress.update(task_id, advance=len(values_batch))
 
 
 def jobs(
@@ -580,7 +564,8 @@ class SupportsYnabClient(Protocol):
 @dataclass
 class ProgressYnabClient:
     yc: YnabClient
-    pbar: tldm[Never]
+    context: _Context
+    task_id: TaskID
 
     async def __call__(
         self, path: str, last_knowledge_of_server: int | None = None
@@ -588,7 +573,7 @@ class ProgressYnabClient:
         try:
             return await self.yc(path, last_knowledge_of_server)
         finally:
-            self.pbar.update()
+            self.context.progress.update(self.task_id, advance=1)
 
 
 @dataclass
