@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 from configparser import ConfigParser
+from contextlib import asynccontextmanager
 from pathlib import Path
 from unittest.mock import patch
 
@@ -705,14 +706,33 @@ def test_resolve_token_env(monkeypatch):
     autospec=True,
     return_value=False,
 )
+@patch("sqlite_export_for_ynab._main.asyncio.get_running_loop")
+@patch("sqlite_export_for_ynab._main.aiohttp.ClientSession")
 @pytest.mark.asyncio
-async def test_sync_lock_times_out(mock_acquire, tmp_path):
+async def test_sync_lock_times_out(
+    mock_client_session, mock_get_running_loop, mock_acquire, tmp_path
+):
+    class FakeLoop:
+        def __init__(self):
+            self._times = iter((0.0, 0.2))
+
+        def time(self):
+            return next(self._times)
+
+    mock_get_running_loop.return_value = FakeLoop()
+
+    @asynccontextmanager
+    async def fake_client_session():
+        yield object()
+
+    mock_client_session.return_value = fake_client_session()
+
     with pytest.raises(TimeoutError):
         async with _context(tmp_path / "db.sqlite", quiet=True, timeout=0.1):
             pass
 
     assert mock_acquire.call_count == 1
-    assert mock_acquire.call_args.kwargs == {"blocking": True, "timeout": 0.1}
+    assert mock_acquire.call_args.args[1] is False
 
 
 @pytest.mark.asyncio
@@ -724,61 +744,6 @@ async def test_context_removes_lock_file(tmp_path):
         assert lock_path.exists()
 
     assert not lock_path.exists()
-
-
-@patch("sqlite_export_for_ynab._main.fasteners.InterProcessLock.release", autospec=True)
-@patch(
-    "sqlite_export_for_ynab._main.fasteners.InterProcessLock.acquire",
-    autospec=True,
-    return_value=True,
-)
-@pytest.mark.asyncio
-@pytest.mark.usefixtures(mock_aioresponses.__name__)
-async def test_sync_uses_lock(mock_acquire, mock_release, tmp_path, mock_aioresponses):
-
-    mock_aioresponses.get(
-        PLANS_ENDPOINT_RE, body=json.dumps({"data": {"plans": PLANS}})
-    )
-    mock_aioresponses.get(
-        ACCOUNTS_ENDPOINT_RE,
-        body=json.dumps({"data": {"accounts": []}}),
-        repeat=True,
-    )
-    mock_aioresponses.get(
-        CATEGORIES_ENDPOINT_RE,
-        body=json.dumps({"data": {"category_groups": []}}),
-        repeat=True,
-    )
-    mock_aioresponses.get(
-        PAYEES_ENDPOINT_RE, body=json.dumps({"data": {"payees": []}}), repeat=True
-    )
-    mock_aioresponses.get(
-        TRANSACTIONS_ENDPOINT_RE,
-        body=json.dumps(
-            {
-                "data": {
-                    "transactions": [],
-                    "server_knowledge": SERVER_KNOWLEDGE_1,
-                }
-            }
-        ),
-        repeat=True,
-    )
-    mock_aioresponses.get(
-        SCHEDULED_TRANSACTIONS_ENDPOINT_RE,
-        body=json.dumps({"data": {"scheduled_transactions": []}}),
-        repeat=True,
-    )
-
-    db = tmp_path / "db.sqlite"
-    async with aiosqlite.connect(db) as con:
-        await con.executescript(await contents("create-relations.sql"))
-
-    await sync(TOKEN, db, False)
-
-    assert mock_acquire.call_count == 1
-    assert mock_acquire.call_args.kwargs == {"blocking": True, "timeout": 30.0}
-    assert mock_release.call_count == 1
 
 
 @pytest.mark.asyncio

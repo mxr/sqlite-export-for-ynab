@@ -157,11 +157,17 @@ async def _context(
     lock = fasteners.InterProcessLock(lock_path)
     async with aiohttp.ClientSession() as session, aiosqlite.connect(db) as con:
         con.row_factory = aiosqlite.Row
-        acquired = await asyncio.to_thread(lock.acquire, blocking=True, timeout=timeout)
-        if not acquired:
-            raise TimeoutError(
-                f"Timed out waiting {timeout:g} seconds for sync lock at {lock.path}"
-            )
+        loop = asyncio.get_running_loop()
+        deadline = loop.time() + timeout
+        while True:
+            acquired = await asyncio.to_thread(lock.acquire, False)
+            if acquired:
+                break
+            if loop.time() >= deadline:
+                raise TimeoutError(
+                    f"Timed out waiting {timeout:g} seconds for sync lock at {lock.path}"
+                )
+            await asyncio.sleep(0.1)
 
         try:
             yield _Context(session, progress, con, lock)
