@@ -153,7 +153,8 @@ async def _context(
     db: Path, *, quiet: bool, timeout: float = _SYNC_LOCK_TIMEOUT
 ) -> AsyncIterator[_Context]:
     progress = Progress(*_PROGRESS_COLUMNS, disable=quiet)
-    lock = fasteners.InterProcessLock(db.parent / f"{db.name}.lock")
+    lock_path = db.parent / f"{db.name}.lock"
+    lock = fasteners.InterProcessLock(lock_path)
     async with aiohttp.ClientSession() as session, aiosqlite.connect(db) as con:
         con.row_factory = aiosqlite.Row
         acquired = await asyncio.to_thread(lock.acquire, blocking=True, timeout=timeout)
@@ -165,7 +166,10 @@ async def _context(
         try:
             yield _Context(session, progress, con, lock)
         finally:
-            await asyncio.to_thread(lock.release)
+            try:
+                await asyncio.to_thread(lock.release)
+            finally:
+                await AsyncPath(lock_path).unlink(missing_ok=True)
 
 
 @contextmanager

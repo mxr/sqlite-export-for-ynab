@@ -715,6 +715,17 @@ async def test_sync_lock_times_out(mock_acquire, tmp_path):
     assert mock_acquire.call_args.kwargs == {"blocking": True, "timeout": 0.1}
 
 
+@pytest.mark.asyncio
+async def test_context_removes_lock_file(tmp_path):
+    db = tmp_path / "db.sqlite"
+    lock_path = tmp_path / "db.sqlite.lock"
+
+    async with _context(db, quiet=True):
+        assert lock_path.exists()
+
+    assert not lock_path.exists()
+
+
 @patch("sqlite_export_for_ynab._main.fasteners.InterProcessLock.release", autospec=True)
 @patch(
     "sqlite_export_for_ynab._main.fasteners.InterProcessLock.acquire",
