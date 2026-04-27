@@ -23,6 +23,7 @@ from urllib.parse import urlunparse
 
 import aiohttp
 import aiosqlite
+import fasteners
 from aiopathlib import AsyncPath
 from rich.progress import BarColumn
 from rich.progress import MofNCompleteColumn
@@ -66,6 +67,7 @@ _ENV_TOKEN = "YNAB_PERSONAL_ACCESS_TOKEN"
 _PACKAGE = "sqlite-export-for-ynab"
 
 _BATCH_SIZE = 100
+_SYNC_LOCK_TIMEOUT = 30.0
 
 _PROGRESS_COLUMNS = (
     TextColumn("[progress.description]{task.description}"),
@@ -143,14 +145,39 @@ class _Context:
     session: aiohttp.ClientSession
     progress: Progress
     con: aiosqlite.Connection
+    lock: fasteners.InterProcessLock
 
 
 @asynccontextmanager
-async def _context(db: Path, *, quiet: bool) -> AsyncIterator[_Context]:
+async def _context(
+    db: Path, *, quiet: bool, timeout: float = _SYNC_LOCK_TIMEOUT
+) -> AsyncIterator[_Context]:
     progress = Progress(*_PROGRESS_COLUMNS, disable=quiet)
+    lock_path = db.parent / f"{db.name}.lock"
+    lock = fasteners.InterProcessLock(lock_path)
     async with aiohttp.ClientSession() as session, aiosqlite.connect(db) as con:
         con.row_factory = aiosqlite.Row
-        yield _Context(session, progress, con)
+        loop = asyncio.get_running_loop()
+        deadline = loop.time() + timeout
+        _print("Acquiring lock...", quiet=quiet)
+        while True:
+            acquired = await asyncio.to_thread(lock.acquire, False)
+            if acquired:
+                _print("Done", quiet=quiet)
+                break
+            if loop.time() >= deadline:
+                raise TimeoutError(
+                    f"Timed out waiting {timeout} seconds for sync lock at {lock.path}"
+                )
+            await asyncio.sleep(0.1)
+
+        try:
+            yield _Context(session, progress, con, lock)
+        finally:
+            try:
+                await asyncio.to_thread(lock.release)
+            finally:
+                await AsyncPath(lock_path).unlink(missing_ok=True)
 
 
 @contextmanager
@@ -169,7 +196,7 @@ async def sync(
 ) -> None:
     await AsyncPath(db).parent.mkdir(parents=True, exist_ok=True)
 
-    async with _context(db, quiet=quiet) as context:
+    async with _context(db, quiet=quiet, timeout=_SYNC_LOCK_TIMEOUT) as context:
         plans = (await YnabClient(token, context.session)("plans"))["plans"]
 
         plan_ids = [plan["id"] for plan in plans]
