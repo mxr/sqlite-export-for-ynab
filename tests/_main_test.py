@@ -704,7 +704,6 @@ def test_resolve_token_env(monkeypatch):
 @patch(
     "sqlite_export_for_ynab._main.fasteners.InterProcessLock.acquire",
     autospec=True,
-    return_value=False,
 )
 @patch("sqlite_export_for_ynab._main.asyncio.get_running_loop")
 @patch("sqlite_export_for_ynab._main.aiohttp.ClientSession")
@@ -726,13 +725,55 @@ async def test_sync_lock_times_out(
         yield object()
 
     mock_client_session.return_value = fake_client_session()
+    mock_acquire.return_value = False
 
     with pytest.raises(TimeoutError):
-        async with _context(tmp_path / "db.sqlite", quiet=True, timeout=0.1):
-            pass
+        await _context(tmp_path / "db.sqlite", quiet=True, timeout=0.1).__aenter__()
 
     assert mock_acquire.call_count == 1
     assert mock_acquire.call_args.args[1] is False
+
+
+@patch(
+    "sqlite_export_for_ynab._main.fasteners.InterProcessLock.acquire",
+    autospec=True,
+)
+@patch("sqlite_export_for_ynab._main.fasteners.InterProcessLock.release", autospec=True)
+@patch("sqlite_export_for_ynab._main.asyncio.sleep")
+@patch("sqlite_export_for_ynab._main.asyncio.get_running_loop")
+@patch("sqlite_export_for_ynab._main.aiohttp.ClientSession")
+@pytest.mark.asyncio
+async def test_context_retries_after_sleep(
+    mock_client_session,
+    mock_get_running_loop,
+    mock_sleep,
+    mock_release,
+    mock_acquire,
+    tmp_path,
+):
+    class FakeLoop:
+        def __init__(self):
+            self._times = iter((0.0, 0.0, 0.2))
+
+        def time(self):
+            return next(self._times)
+
+    mock_get_running_loop.return_value = FakeLoop()
+
+    @asynccontextmanager
+    async def fake_client_session():
+        yield object()
+
+    mock_client_session.return_value = fake_client_session()
+    mock_acquire.side_effect = [False, True]
+
+    async with _context(tmp_path / "db.sqlite", quiet=True, timeout=0.1):
+        pass
+
+    assert mock_acquire.call_count == 2
+    assert mock_acquire.call_args_list[0].args[1] is False
+    assert mock_sleep.call_count == 1
+    assert mock_release.call_count == 1
 
 
 @pytest.mark.asyncio

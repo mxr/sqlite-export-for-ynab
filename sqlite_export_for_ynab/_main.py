@@ -167,7 +167,7 @@ async def _context(
                 break
             if loop.time() >= deadline:
                 raise TimeoutError(
-                    f"Timed out waiting {timeout:g} seconds for sync lock at {lock.path}"
+                    f"Timed out waiting {timeout} seconds for sync lock at {lock.path}"
                 )
             await asyncio.sleep(0.1)
 
