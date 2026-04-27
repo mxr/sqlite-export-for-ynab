@@ -159,9 +159,11 @@ async def _context(
         con.row_factory = aiosqlite.Row
         loop = asyncio.get_running_loop()
         deadline = loop.time() + timeout
+        _print("Acquiring lock...", quiet=quiet)
         while True:
             acquired = await asyncio.to_thread(lock.acquire, False)
             if acquired:
+                _print("Done", quiet=quiet)
                 break
             if loop.time() >= deadline:
                 raise TimeoutError(
