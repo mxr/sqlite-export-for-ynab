@@ -5,6 +5,8 @@ on:
   push:
     branches: [main]
 
+permissions: {}
+
 jobs:
   changes:
     runs-on: ubuntu-latest
@@ -12,6 +14,8 @@ jobs:
       project_files: ${{ steps.filter.outputs.project_files }}
     steps:
     - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      with:
+        persist-credentials: false
     - uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4.0.1
       id: filter
       with:
@@ -24,6 +28,15 @@ jobs:
             - '**/*requirements*.txt'
             - '**/setup.cfg'
             - setup.py
+  zizmor:
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+    steps:
+    - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd   # v6.0.2
+      with:
+        persist-credentials: false
+    - uses: zizmorcore/zizmor-action@b1d7e1fb5de872772f31590499237e7cce841e8e   # v0.5.3
   main-real:
     needs: [changes]
     if: needs.changes.outputs.project_files == 'true'
@@ -35,11 +48,14 @@ jobs:
     if: always()
     runs-on: ubuntu-latest
     steps:
-    - run: |
-        if [ "${{ needs.changes.outputs.project_files }}" != "true" ]; then
+    - env:
+        PROJECT_FILES: ${{ needs.changes.outputs.project_files }}
+        MAIN_REAL_RESULT: ${{ needs.main-real.result }}
+      run: |
+        if [ "$PROJECT_FILES" != "true" ]; then
           exit 0
         fi
-        if [ "${{ needs.main-real.result }}" != "success" ]; then
+        if [ "$MAIN_REAL_RESULT" != "success" ]; then
           exit 1
         fi
   main-win-real:
@@ -54,10 +70,13 @@ jobs:
     if: always()
     runs-on: ubuntu-latest
     steps:
-    - run: |
-        if [ "${{ needs.changes.outputs.project_files }}" != "true" ]; then
+    - env:
+        PROJECT_FILES: ${{ needs.changes.outputs.project_files }}
+        MAIN_WIN_REAL_RESULT: ${{ needs.main-win-real.result }}
+      run: |
+        if [ "$PROJECT_FILES" != "true" ]; then
           exit 0
         fi
-        if [ "${{ needs.main-win-real.result }}" != "success" ]; then
+        if [ "$MAIN_WIN_REAL_RESULT" != "success" ]; then
           exit 1
         fi
