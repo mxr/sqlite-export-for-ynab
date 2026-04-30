@@ -3,11 +3,13 @@ from __future__ import annotations
 import asyncio
 import json
 from configparser import ConfigParser
+from contextlib import asynccontextmanager
 from pathlib import Path
 from unittest.mock import patch
 
 import aiohttp
 import aiosqlite
+import fasteners
 import pytest
 import pytest_asyncio
 from aiohttp.http_exceptions import HttpProcessingError
@@ -16,6 +18,7 @@ from rich.progress import Progress
 from sqlite_export_for_ynab import default_db_path
 from sqlite_export_for_ynab._main import _ALL_RELATIONS
 from sqlite_export_for_ynab._main import _Context
+from sqlite_export_for_ynab._main import _context
 from sqlite_export_for_ynab._main import _ENV_TOKEN
 from sqlite_export_for_ynab._main import _PACKAGE
 from sqlite_export_for_ynab._main import _PROGRESS_COLUMNS
@@ -89,7 +92,7 @@ async def fetchall(con, query):
 
 
 @pytest_asyncio.fixture
-async def context():
+async def context(tmp_path):
     with Progress(*_PROGRESS_COLUMNS, disable=True) as progress:
         async with (
             aiohttp.ClientSession(loop=asyncio.get_event_loop()) as session,
@@ -97,7 +100,10 @@ async def context():
         ):
             con.row_factory = aiosqlite.Row
             await con.executescript(await contents("create-relations.sql"))
-            yield _Context(session, progress, con)
+            lock = fasteners.InterProcessLock(
+                tmp_path / "sqlite-export-for-ynab-test.lock"
+            )
+            yield _Context(session, progress, con, lock)
 
 
 @pytest.mark.parametrize(
@@ -693,6 +699,92 @@ def test_resolve_token_env(monkeypatch):
     monkeypatch.setenv(_ENV_TOKEN, TOKEN)
 
     assert resolve_token() == TOKEN
+
+
+@patch(
+    "sqlite_export_for_ynab._main.fasteners.InterProcessLock.acquire",
+    autospec=True,
+)
+@patch("sqlite_export_for_ynab._main.asyncio.get_running_loop")
+@patch("sqlite_export_for_ynab._main.aiohttp.ClientSession")
+@pytest.mark.asyncio
+async def test_sync_lock_times_out(
+    mock_client_session, mock_get_running_loop, mock_acquire, tmp_path
+):
+    class FakeLoop:
+        def __init__(self):
+            self._times = iter((0.0, 0.2))
+
+        def time(self):
+            return next(self._times)
+
+    mock_get_running_loop.return_value = FakeLoop()
+
+    @asynccontextmanager
+    async def fake_client_session():
+        yield object()
+
+    mock_client_session.return_value = fake_client_session()
+    mock_acquire.return_value = False
+
+    with pytest.raises(TimeoutError):
+        await _context(tmp_path / "db.sqlite", quiet=True, timeout=0.1).__aenter__()
+
+    assert mock_acquire.call_count == 1
+    assert mock_acquire.call_args.args[1] is False
+
+
+@patch(
+    "sqlite_export_for_ynab._main.fasteners.InterProcessLock.acquire",
+    autospec=True,
+)
+@patch("sqlite_export_for_ynab._main.fasteners.InterProcessLock.release", autospec=True)
+@patch("sqlite_export_for_ynab._main.asyncio.sleep")
+@patch("sqlite_export_for_ynab._main.asyncio.get_running_loop")
+@patch("sqlite_export_for_ynab._main.aiohttp.ClientSession")
+@pytest.mark.asyncio
+async def test_context_retries_after_sleep(
+    mock_client_session,
+    mock_get_running_loop,
+    mock_sleep,
+    mock_release,
+    mock_acquire,
+    tmp_path,
+):
+    class FakeLoop:
+        def __init__(self):
+            self._times = iter((0.0, 0.0, 0.2))
+
+        def time(self):
+            return next(self._times)
+
+    mock_get_running_loop.return_value = FakeLoop()
+
+    @asynccontextmanager
+    async def fake_client_session():
+        yield object()
+
+    mock_client_session.return_value = fake_client_session()
+    mock_acquire.side_effect = [False, True]
+
+    async with _context(tmp_path / "db.sqlite", quiet=True, timeout=0.1):
+        pass
+
+    assert mock_acquire.call_count == 2
+    assert mock_acquire.call_args_list[0].args[1] is False
+    assert mock_sleep.call_count == 1
+    assert mock_release.call_count == 1
+
+
+@pytest.mark.asyncio
+async def test_context_removes_lock_file(tmp_path):
+    db = tmp_path / "db.sqlite"
+    lock_path = tmp_path / "db.sqlite.lock"
+
+    async with _context(db, quiet=True):
+        assert lock_path.exists()
+
+    assert not lock_path.exists()
 
 
 @pytest.mark.asyncio
