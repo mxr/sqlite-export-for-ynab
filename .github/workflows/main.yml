@@ -48,11 +48,14 @@ jobs:
     if: always()
     runs-on: ubuntu-latest
     steps:
-    - run: |
-        if [ "${{ needs.changes.outputs.project_files }}" != "true" ]; then
+    - env:
+        PROJECT_FILES: ${{ needs.changes.outputs.project_files }}
+        MAIN_REAL_RESULT: ${{ needs.main-real.result }}
+      run: |
+        if [ "$PROJECT_FILES" != "true" ]; then
           exit 0
         fi
-        if [ "${{ needs.main-real.result }}" != "success" ]; then
+        if [ "$MAIN_REAL_RESULT" != "success" ]; then
           exit 1
         fi
   main-win-real:
@@ -67,10 +70,13 @@ jobs:
     if: always()
     runs-on: ubuntu-latest
     steps:
-    - run: |
-        if [ "${{ needs.changes.outputs.project_files }}" != "true" ]; then
+    - env:
+        PROJECT_FILES: ${{ needs.changes.outputs.project_files }}
+        MAIN_WIN_REAL_RESULT: ${{ needs.main-win-real.result }}
+      run: |
+        if [ "$PROJECT_FILES" != "true" ]; then
           exit 0
         fi
-        if [ "${{ needs.main-win-real.result }}" != "success" ]; then
+        if [ "$MAIN_WIN_REAL_RESULT" != "success" ]; then
           exit 1
         fi
