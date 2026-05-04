@@ -5,7 +5,8 @@ import asyncio
 import os
 from contextlib import asynccontextmanager
 from contextlib import contextmanager
-from dataclasses import dataclass, fields
+from dataclasses import dataclass
+from dataclasses import fields
 from importlib import resources
 from importlib.metadata import version
 from itertools import batched
@@ -171,7 +172,11 @@ class _YnabPlanData:
     scheduled_transactions: list[ScheduledTransactionDetail]
 
     def has_data(self) -> bool:
-        return any(getattr(self, field.name) for field in fields(self))
+        return any(
+            getattr(self, field.name)
+            for field in fields(self)
+            if field.name != "server_knowledge"
+        )
 
 
 @asynccontextmanager
@@ -441,7 +446,7 @@ async def insert_transactions(
         context,
         plan_id,
         # by_alias=True properly renames 'var_date' to 'date'
-        [t.model_dump(mode='json', by_alias=True) for t in transactions],
+        [t.model_dump(mode="json", by_alias=True) for t in transactions],
         "Transactions",
         "transactions",
         "subtransactions",
