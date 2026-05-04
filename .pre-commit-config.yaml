@@ -46,5 +46,5 @@ repos:
   rev: v1.20.2
   hooks:
   - id: mypy
-    additional_dependencies: [aiopathlib, rich>=14]
+    additional_dependencies: [aiopathlib, asyncio-for-ynab, rich>=14]
     language_version: python3.12

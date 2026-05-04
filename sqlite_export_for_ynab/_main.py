@@ -2,40 +2,53 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import json
 import os
 from contextlib import asynccontextmanager
 from contextlib import contextmanager
 from dataclasses import dataclass
+from dataclasses import fields
 from importlib import resources
 from importlib.metadata import version
 from itertools import batched
 from pathlib import Path
 from typing import Any
-from typing import ClassVar
 from typing import Literal
 from typing import overload
-from typing import Protocol
 from typing import TYPE_CHECKING
-from urllib.parse import urlencode
-from urllib.parse import urljoin
-from urllib.parse import urlunparse
 
-import aiohttp
 import aiosqlite
+import asyncio_for_ynab  # noqa: F401
 import fasteners
 from aiopathlib import AsyncPath
+from asyncio_for_ynab import Account
+from asyncio_for_ynab import AccountsApi
+from asyncio_for_ynab import ApiClient
+from asyncio_for_ynab import CategoriesApi
+from asyncio_for_ynab import CategoryGroupWithCategories
+from asyncio_for_ynab import Configuration
+from asyncio_for_ynab import Payee
+from asyncio_for_ynab import PayeesApi
+from asyncio_for_ynab import PlansApi
+from asyncio_for_ynab import PlanSummary
+from asyncio_for_ynab import ScheduledTransactionDetail
+from asyncio_for_ynab import ScheduledTransactionsApi
+from asyncio_for_ynab import TransactionDetail
+from asyncio_for_ynab import TransactionsApi
 from rich.progress import BarColumn
 from rich.progress import MofNCompleteColumn
 from rich.progress import Progress
 from rich.progress import TaskID
 from rich.progress import TextColumn
 from rich.progress import TimeElapsedColumn
+from tenacity import retry
+from tenacity import stop_after_attempt
 
 from sqlite_export_for_ynab import ddl
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator, Awaitable, Iterator, Sequence
+    from collections.abc import AsyncIterator
+    from collections.abc import Iterator
+    from collections.abc import Sequence
 
 
 _EntryTable = (
@@ -83,7 +96,8 @@ def resolve_token(token_override: str | None = None) -> str:
         return token
 
     raise ValueError(
-        f"Must set YNAB access token as {_ENV_TOKEN!r} environment variable or pass token_override directly. See https://api.ynab.com/#personal-access-tokens"
+        f"Must set YNAB access token as {_ENV_TOKEN!r} environment variable or pass "
+        "token_override directly. See https://api.ynab.com/#personal-access-tokens"
     )
 
 
@@ -142,20 +156,44 @@ def _print(message: str, *, quiet: bool) -> None:
 
 @dataclass
 class _Context:
-    session: aiohttp.ClientSession
     progress: Progress
     con: aiosqlite.Connection
     lock: fasteners.InterProcessLock
+    api_client: ApiClient
+
+
+@dataclass
+class _YnabPlanData:
+    accounts: list[Account]
+    category_groups: list[CategoryGroupWithCategories]
+    payees: list[Payee]
+    transactions: list[TransactionDetail]
+    server_knowledge: int
+    scheduled_transactions: list[ScheduledTransactionDetail]
+
+    def has_data(self) -> bool:
+        return any(
+            getattr(self, field.name)
+            for field in fields(self)
+            if field.name != "server_knowledge"
+        )
 
 
 @asynccontextmanager
 async def _context(
-    db: Path, *, quiet: bool, timeout: float = _SYNC_LOCK_TIMEOUT
+    db: Path,
+    configuration: Configuration,
+    *,
+    quiet: bool,
+    timeout: float = _SYNC_LOCK_TIMEOUT,
 ) -> AsyncIterator[_Context]:
     progress = Progress(*_PROGRESS_COLUMNS, disable=quiet)
     lock_path = db.parent / f"{db.name}.lock"
     lock = fasteners.InterProcessLock(lock_path)
-    async with aiohttp.ClientSession() as session, aiosqlite.connect(db) as con:
+    async with (
+        ApiClient(configuration) as api_client,
+        aiosqlite.connect(db) as con,
+    ):
         con.row_factory = aiosqlite.Row
         loop = asyncio.get_running_loop()
         deadline = loop.time() + timeout
@@ -172,7 +210,7 @@ async def _context(
             await asyncio.sleep(0.1)
 
         try:
-            yield _Context(session, progress, con, lock)
+            yield _Context(progress, con, lock, api_client)
         finally:
             try:
                 await asyncio.to_thread(lock.release)
@@ -196,10 +234,11 @@ async def sync(
 ) -> None:
     await AsyncPath(db).parent.mkdir(parents=True, exist_ok=True)
 
-    async with _context(db, quiet=quiet, timeout=_SYNC_LOCK_TIMEOUT) as context:
-        plans = (await YnabClient(token, context.session)("plans"))["plans"]
-
-        plan_ids = [plan["id"] for plan in plans]
+    configuration = Configuration(access_token=token)
+    async with _context(
+        db, configuration, quiet=quiet, timeout=_SYNC_LOCK_TIMEOUT
+    ) as context:
+        plans = await _get_plan_summaries(context.api_client)
 
         if full_refresh:
             _print("Dropping relations...", quiet=quiet)
@@ -220,63 +259,24 @@ async def sync(
         async with context.con.cursor() as cur:
             lkos = await get_last_knowledge_of_server(cur)
         with _progress(context):
-            yc = ProgressYnabClient(
-                YnabClient(token, context.session),
-                context,
-                context.progress.add_task(
-                    "Plan Data", total=len(plans) * len(_ENDPOINTS)
-                ),
+            task = context.progress.add_task(
+                "Plan Data", total=len(plans) * len(_ENDPOINTS)
             )
 
-            endpoint_data = dict(
-                zip(
-                    _ENDPOINTS,
-                    await asyncio.gather(
-                        *(
-                            asyncio.gather(*jobs(yc, endpoint, plan_ids, lkos))
-                            for endpoint in _ENDPOINTS
-                        )
-                    ),
-                    strict=True,
-                )
+            all_data = await _get_all_ynab(
+                context, [str(plan.id) for plan in plans], lkos, task
             )
 
-        all_account_data = endpoint_data["accounts"]
-        all_cat_data = endpoint_data["categories"]
-        all_payee_data = endpoint_data["payees"]
-        all_txn_data = endpoint_data["transactions"]
-        all_sched_txn_data = endpoint_data["scheduled_transactions"]
-
-        new_lkos = {
-            plan_id: transaction_data["server_knowledge"]
-            for plan_id, transaction_data in zip(plan_ids, all_txn_data, strict=True)
-        }
         _print("Done", quiet=quiet)
 
-        if (
-            not any(t["accounts"] for t in all_account_data)
-            and not any(t["category_groups"] for t in all_cat_data)
-            and not any(p["payees"] for p in all_payee_data)
-            and not any(t["transactions"] for t in all_txn_data)
-            and not any(s["scheduled_transactions"] for s in all_sched_txn_data)
-        ):
-            _print("No new data fetched", quiet=quiet)
-        else:
+        if any(plan_data.has_data() for plan_data in all_data.values()):
             _print("Inserting plan data...", quiet=quiet)
             with _progress(context):
-                await insert_plan_data(
-                    context,
-                    plans,
-                    plan_ids,
-                    all_account_data,
-                    all_cat_data,
-                    all_payee_data,
-                    all_txn_data,
-                    all_sched_txn_data,
-                    new_lkos,
-                )
+                await insert_plan_data(context, plans, all_data)
                 await context.con.commit()
             _print("Done", quiet=quiet)
+        else:
+            _print("No new data fetched", quiet=quiet)
 
 
 async def contents(filename: str) -> str:
@@ -298,49 +298,40 @@ async def get_last_knowledge_of_server(cur: aiosqlite.Cursor) -> dict[str, int]:
 
 
 async def insert_plan_data(
-    context: _Context,
-    plans: list[dict[str, Any]],
-    plan_ids: list[str],
-    all_account_data: list[dict[str, Any]],
-    all_cat_data: list[dict[str, Any]],
-    all_payee_data: list[dict[str, Any]],
-    all_txn_data: list[dict[str, Any]],
-    all_sched_txn_data: list[dict[str, Any]],
-    new_lkos: dict[str, int],
+    context: _Context, plans: list[PlanSummary], all_data: dict[str, _YnabPlanData]
 ) -> None:
-    await insert_plans(context, plans, new_lkos)
+    await insert_plans(
+        context,
+        plans,
+        {plan_id: d.server_knowledge for plan_id, d in all_data.items()},
+    )
     await asyncio.gather(
         *(
-            insert_accounts(context, plan_id, account_data["accounts"])
-            for plan_id, account_data in zip(plan_ids, all_account_data, strict=True)
-        ),
-        *(
-            insert_category_groups(context, plan_id, cat_data["category_groups"])
-            for plan_id, cat_data in zip(plan_ids, all_cat_data, strict=True)
-        ),
-        *(
-            insert_payees(context, plan_id, payee_data["payees"])
-            for plan_id, payee_data in zip(plan_ids, all_payee_data, strict=True)
+            asyncio.gather(
+                insert_accounts(context, plan_id, all_data[plan_id].accounts),
+                insert_category_groups(
+                    context, plan_id, all_data[plan_id].category_groups
+                ),
+                insert_payees(context, plan_id, all_data[plan_id].payees),
+            )
+            for plan_id in all_data
         ),
     )
     await asyncio.gather(
         *(
-            insert_transactions(context, plan_id, txn_data["transactions"])
-            for plan_id, txn_data in zip(plan_ids, all_txn_data, strict=True)
-        ),
-        *(
-            insert_scheduled_transactions(
-                context, plan_id, sched_txn_data["scheduled_transactions"]
+            asyncio.gather(
+                insert_transactions(context, plan_id, all_data[plan_id].transactions),
+                insert_scheduled_transactions(
+                    context, plan_id, all_data[plan_id].scheduled_transactions
+                ),
             )
-            for plan_id, sched_txn_data in zip(
-                plan_ids, all_sched_txn_data, strict=True
-            )
+            for plan_id in all_data
         ),
     )
 
 
 async def insert_plans(
-    context: _Context, plans: list[dict[str, Any]], lkos: dict[str, int]
+    context: _Context, plans: list[PlanSummary], lkos: dict[str, int]
 ) -> None:
     async with context.con.cursor() as cur:
         for plan_batch in batched(plans, _BATCH_SIZE):
@@ -361,15 +352,15 @@ async def insert_plans(
                 """,
                 (
                     (
-                        plan_id := plan["id"],
-                        plan["name"],
-                        plan["currency_format"]["currency_symbol"],
-                        plan["currency_format"]["decimal_digits"],
-                        plan["currency_format"]["decimal_separator"],
-                        plan["currency_format"]["display_symbol"],
-                        plan["currency_format"]["group_separator"],
-                        plan["currency_format"]["iso_code"],
-                        plan["currency_format"]["symbol_first"],
+                        plan_id := str(plan.id),
+                        plan.name,
+                        getattr(cf := plan.currency_format, "currency_symbol", None),
+                        getattr(cf, "decimal_digits", None),
+                        getattr(cf, "decimal_separator", None),
+                        getattr(cf, "display_symbol", None),
+                        getattr(cf, "group_separator", None),
+                        getattr(cf, "iso_code", None),
+                        getattr(cf, "symbol_first", None),
                         lkos[plan_id],
                     )
                     for plan in plan_batch
@@ -385,7 +376,7 @@ _LOAN_ACCOUNT_PERIODIC_VALUES = frozenset(
 async def insert_accounts(
     context: _Context,
     plan_id: str,
-    accounts: list[dict[str, Any]],
+    accounts: list[Account],
 ) -> None:
     # YNAB's LoanAccountPeriodValues are untyped dicts so we need to turn them into a more standard sub-entry view
     updated_accounts = [
@@ -402,7 +393,7 @@ async def insert_accounts(
             ]
         }
         | {k: v for k, v in account.items() if k not in _LOAN_ACCOUNT_PERIODIC_VALUES}
-        for account in accounts
+        for account in (acc.model_dump(mode="json") for acc in accounts)
     ]
 
     await insert_nested_entries(
@@ -419,12 +410,12 @@ async def insert_accounts(
 async def insert_category_groups(
     context: _Context,
     plan_id: str,
-    category_groups: list[dict[str, Any]],
+    category_groups: list[CategoryGroupWithCategories],
 ) -> None:
     await insert_nested_entries(
         context,
         plan_id,
-        category_groups,
+        [cg.model_dump(mode="json") for cg in category_groups],
         "Categories",
         "category_groups",
         "categories",
@@ -435,24 +426,27 @@ async def insert_category_groups(
 async def insert_payees(
     context: _Context,
     plan_id: str,
-    payees: list[dict[str, Any]],
+    payees: list[Payee],
 ) -> None:
     if not payees:
         return
 
     task_id = context.progress.add_task("Payees", total=len(payees))
-    await insert_entries(context, "payees", plan_id, payees, task_id)
+    await insert_entries(
+        context, "payees", plan_id, [p.model_dump(mode="json") for p in payees], task_id
+    )
 
 
 async def insert_transactions(
     context: _Context,
     plan_id: str,
-    transactions: list[dict[str, Any]],
+    transactions: list[TransactionDetail],
 ) -> None:
     await insert_nested_entries(
         context,
         plan_id,
-        transactions,
+        # by_alias=True properly renames 'var_date' to 'date'
+        [t.model_dump(mode="json", by_alias=True) for t in transactions],
         "Transactions",
         "transactions",
         "subtransactions",
@@ -463,12 +457,12 @@ async def insert_transactions(
 async def insert_scheduled_transactions(
     context: _Context,
     plan_id: str,
-    scheduled_transactions: list[dict[str, Any]],
+    scheduled_transactions: list[ScheduledTransactionDetail],
 ) -> None:
     await insert_nested_entries(
         context,
         plan_id,
-        scheduled_transactions,
+        [st.model_dump(mode="json") for st in scheduled_transactions],
         "Scheduled Transactions",
         "scheduled_transactions",
         "subtransactions",
@@ -597,81 +591,118 @@ async def insert_entries(
             context.progress.update(task_id, advance=len(values_batch))
 
 
-def jobs(
-    yc: SupportsYnabClient,
-    endpoint: _Endpoint,
-    plan_ids: list[str],
-    lkos: dict[str, int],
-) -> list[Awaitable[dict[str, Any]]]:
-    return [
-        yc(f"plans/{plan_id}/{endpoint}", last_knowledge_of_server=lkos.get(plan_id))
-        for plan_id in plan_ids
-    ]
+@retry(stop=stop_after_attempt(3))
+async def _get_plan_summaries(api_client: ApiClient) -> list[PlanSummary]:
+    return (await PlansApi(api_client).get_plans()).data.plans
 
 
-class SupportsYnabClient(Protocol):
-    async def __call__(
-        self, path: str, last_knowledge_of_server: int | None = None
-    ) -> dict[str, Any]: ...
-
-
-@dataclass
-class ProgressYnabClient:
-    yc: YnabClient
-    context: _Context
-    task_id: TaskID
-
-    async def __call__(
-        self, path: str, last_knowledge_of_server: int | None = None
-    ) -> dict[str, Any]:
-        try:
-            return await self.yc(path, last_knowledge_of_server)
-        finally:
-            self.context.progress.update(self.task_id, advance=1)
-
-
-@dataclass
-class YnabClient:
-    BASE_SCHEME: ClassVar[str] = "https"
-    BASE_NETLOC: ClassVar[str] = "api.ynab.com"
-    BASE_PATH: ClassVar[str] = "v1/"
-
-    token: str
-    session: aiohttp.ClientSession
-
-    async def __call__(
-        self, path: str, last_knowledge_of_server: int | None = None
-    ) -> dict[str, Any]:
-        headers = {
-            "Authorization": f"Bearer {self.token}",
-            "Content-Type": "application/json",
-        }
-        url = urlunparse(
-            (
-                self.BASE_SCHEME,
-                self.BASE_NETLOC,
-                urljoin(self.BASE_PATH, path),
-                "",
-                urlencode(
-                    {"last_knowledge_of_server": last_knowledge_of_server}
-                    if last_knowledge_of_server
-                    else {}
-                ),
-                "",
-            )
+async def _get_all_ynab(
+    context: _Context, plan_ids: list[str], lkos: dict[str, int], task_id: TaskID
+) -> dict[str, _YnabPlanData]:
+    return dict(
+        await asyncio.gather(
+            *(_get_plan_data(context, plan_id, lkos, task_id) for plan_id in plan_ids)
         )
+    )
 
-        for i in range(3):
-            try:
-                async with self.session.get(url, headers=headers) as resp:
-                    body = await resp.text()
 
-                return json.loads(body)["data"]
-            except Exception:
-                if i == 2:
-                    raise
+async def _get_plan_data(
+    context: _Context, plan_id: str, lkos: dict[str, int], task_id: TaskID
+) -> tuple[str, _YnabPlanData]:
+    (
+        accounts,
+        categories,
+        payees,
+        transactions_serverknowledge,
+        scheduled_transactions,
+    ) = await asyncio.gather(
+        _get_accounts(context, plan_id, lkos, task_id),
+        _get_categories(context, plan_id, lkos, task_id),
+        _get_payees(context, plan_id, lkos, task_id),
+        _get_transactions(context, plan_id, lkos, task_id),
+        _get_scheduled_transactions(context, plan_id, lkos, task_id),
+    )
+    transactions, server_knowledge = transactions_serverknowledge
+    return (
+        plan_id,
+        _YnabPlanData(
+            accounts=accounts,
+            category_groups=categories,
+            payees=payees,
+            transactions=transactions,
+            server_knowledge=server_knowledge,
+            scheduled_transactions=scheduled_transactions,
+        ),
+    )
 
-        raise AssertionError("unreachable")
+
+@retry(stop=stop_after_attempt(3))
+async def _get_accounts(
+    context: _Context, plan_id: str, lkos: dict[str, int], task_id: TaskID
+) -> list[Account]:
+    resp = await AccountsApi(context.api_client).get_accounts(
+        plan_id=plan_id, last_knowledge_of_server=lkos.get(plan_id)
+    )
+    context.progress.update(task_id, advance=1)
+    return resp.data.accounts
+
+
+@retry(stop=stop_after_attempt(3))
+async def _get_categories(
+    context: _Context, plan_id: str, lkos: dict[str, int], task_id: TaskID
+) -> list[CategoryGroupWithCategories]:
+    resp = await CategoriesApi(context.api_client).get_categories(
+        plan_id=plan_id, last_knowledge_of_server=lkos.get(plan_id)
+    )
+    context.progress.update(task_id, advance=1)
+    return resp.data.category_groups
+
+
+@retry(stop=stop_after_attempt(3))
+async def _get_payees(
+    context: _Context, plan_id: str, lkos: dict[str, int], task_id: TaskID
+) -> list[Payee]:
+    resp = await PayeesApi(context.api_client).get_payees(
+        plan_id=plan_id, last_knowledge_of_server=lkos.get(plan_id)
+    )
+    context.progress.update(task_id, advance=1)
+    return resp.data.payees
+
+
+@retry(stop=stop_after_attempt(3))
+async def _get_transactions(
+    context: _Context, plan_id: str, lkos: dict[str, int], task_id: TaskID
+) -> tuple[list[TransactionDetail], int]:
+    resp = await TransactionsApi(context.api_client).get_transactions(
+        plan_id=plan_id, last_knowledge_of_server=lkos.get(plan_id)
+    )
+    context.progress.update(task_id, advance=1)
+    return resp.data.transactions, resp.data.server_knowledge
+
+
+@retry(stop=stop_after_attempt(3))
+async def _get_scheduled_transactions(
+    context: _Context, plan_id: str, lkos: dict[str, int], task_id: TaskID
+) -> list[ScheduledTransactionDetail]:
+    resp = await ScheduledTransactionsApi(
+        context.api_client
+    ).get_scheduled_transactions(
+        plan_id=plan_id, last_knowledge_of_server=lkos.get(plan_id)
+    )
+    context.progress.update(task_id, advance=1)
+    return resp.data.scheduled_transactions
+
+
+# @retry(stop=stop_after_attempt(3))
+# async def _get_ynab[T](
+#     context: _Context,
+#     getter: Callable[..., Awaitable[T]],
+#     task_id: TaskID,
+# ) -> T:
+#     try:
+#         return await getter()
+#     finally:
+#         context.progress.update(task_id, advance=1)
 
 
 def main(

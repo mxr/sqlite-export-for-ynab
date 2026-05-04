@@ -1,4 +1,3 @@
-aioresponses
 covdefaults>=2.1.0
 coverage
 pytest
