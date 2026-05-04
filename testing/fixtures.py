@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+import json
 import re
+from dataclasses import dataclass
 from typing import Any
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
 import pytest
-from aioresponses import aioresponses
 
 if TYPE_CHECKING:
     import aiosqlite
@@ -353,10 +354,72 @@ SCHEDULED_TRANSACTIONS: list[dict[str, Any]] = [
 ]
 
 
+@dataclass
+class _MockRoute:
+    pattern: Any
+    body: str | None = None
+    exception: Exception | None = None
+    repeat: bool = False
+    used: bool = False
+
+
+class _MockYnabResponses:
+    def __init__(self):
+        self.routes: list[_MockRoute] = []
+
+    def get(
+        self,
+        pattern: Any,
+        body: str | None = None,
+        exception: Exception | None = None,
+        repeat: bool = False,
+    ) -> None:
+        self.routes.append(
+            _MockRoute(pattern=pattern, body=body, exception=exception, repeat=repeat)
+        )
+
+    async def call(
+        self,
+        api_client: Any,
+        path: str,
+        last_knowledge_of_server: int | None = None,
+    ) -> dict[str, Any]:
+        url = f"https://api.ynab.com/v1/{path}"
+        for route in self.routes:
+            if route.used and not route.repeat:
+                continue
+            if not route.pattern.search(url):
+                continue
+
+            if not route.repeat:
+                route.used = True
+
+            if route.exception is not None:
+                raise route.exception
+
+            if route.body is None:  # pragma: no cover
+                return {}
+
+            return json.loads(route.body)["data"]
+
+        raise AssertionError(
+            f"Unexpected YNAB request: {url} last_knowledge_of_server={last_knowledge_of_server}"
+        )
+
+
 @pytest.fixture
-def mock_aioresponses():
-    with aioresponses() as m:
-        yield m
+def mock_aioresponses(monkeypatch):
+    from sqlite_export_for_ynab import _main
+
+    mock = _MockYnabResponses()
+
+    async def fake_call(
+        api_client: Any, path: str, last_knowledge_of_server: int | None = None
+    ) -> dict[str, Any]:
+        return await mock.call(api_client, path, last_knowledge_of_server)
+
+    monkeypatch.setattr(_main, "_call_ynab_api", fake_call)
+    return mock
 
 
 def strip_nones(d: aiosqlite.Row) -> dict[str, Any]:

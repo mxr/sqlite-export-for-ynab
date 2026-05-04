@@ -1,13 +1,11 @@
 from __future__ import annotations
 
-import asyncio
 import json
 from configparser import ConfigParser
-from contextlib import asynccontextmanager
+from functools import partial
 from pathlib import Path
 from unittest.mock import patch
 
-import aiohttp
 import aiosqlite
 import fasteners
 import pytest
@@ -17,11 +15,14 @@ from rich.progress import Progress
 
 from sqlite_export_for_ynab import default_db_path
 from sqlite_export_for_ynab._main import _ALL_RELATIONS
+from sqlite_export_for_ynab._main import _call_plan_endpoint
+from sqlite_export_for_ynab._main import _call_ynab_api
 from sqlite_export_for_ynab._main import _Context
 from sqlite_export_for_ynab._main import _context
 from sqlite_export_for_ynab._main import _ENV_TOKEN
 from sqlite_export_for_ynab._main import _PACKAGE
 from sqlite_export_for_ynab._main import _PROGRESS_COLUMNS
+from sqlite_export_for_ynab._main import asyncio_for_ynab
 from sqlite_export_for_ynab._main import contents
 from sqlite_export_for_ynab._main import get_last_knowledge_of_server
 from sqlite_export_for_ynab._main import get_relations
@@ -35,7 +36,6 @@ from sqlite_export_for_ynab._main import main
 from sqlite_export_for_ynab._main import ProgressYnabClient
 from sqlite_export_for_ynab._main import resolve_token
 from sqlite_export_for_ynab._main import sync
-from sqlite_export_for_ynab._main import YnabClient
 from testing.fixtures import ACCOUNT_ID_1
 from testing.fixtures import ACCOUNT_ID_2
 from testing.fixtures import ACCOUNTS
@@ -94,16 +94,13 @@ async def fetchall(con, query):
 @pytest_asyncio.fixture
 async def context(tmp_path):
     with Progress(*_PROGRESS_COLUMNS, disable=True) as progress:
-        async with (
-            aiohttp.ClientSession(loop=asyncio.get_event_loop()) as session,
-            aiosqlite.connect(":memory:") as con,
-        ):
+        async with aiosqlite.connect(":memory:") as con:
             con.row_factory = aiosqlite.Row
             await con.executescript(await contents("create-relations.sql"))
             lock = fasteners.InterProcessLock(
                 tmp_path / "sqlite-export-for-ynab-test.lock"
             )
-            yield _Context(session, progress, con, lock)
+            yield _Context(progress, con, lock)
 
 
 @pytest.mark.parametrize(
@@ -619,7 +616,7 @@ async def test_progress_ynab_client_ok(context, mock_aioresponses):
     mock_aioresponses.get(EXAMPLE_ENDPOINT_RE, body=json.dumps({"data": expected}))
 
     task_id = context.progress.add_task("Example", total=1)
-    pyc = ProgressYnabClient(YnabClient(TOKEN, context.session), context, task_id)
+    pyc = ProgressYnabClient(partial(mock_aioresponses.call, None), context, task_id)
     entries = await pyc("example")
 
     assert entries == expected
@@ -632,10 +629,136 @@ async def test_ynab_client_failure(mock_aioresponses):
     mock_aioresponses.get(EXAMPLE_ENDPOINT_RE, exception=exc, repeat=True)
 
     with pytest.raises(type(exc)) as excinfo:
-        async with aiohttp.ClientSession(loop=asyncio.get_event_loop()) as session:
-            await YnabClient(TOKEN, session)("example")
+        await partial(mock_aioresponses.call, None)("example")
 
     assert excinfo.value == exc
+
+
+class FakeResponse:
+    def __init__(self, data):
+        self.data = data
+
+    def to_dict(self):
+        return {"data": self.data}
+
+
+@pytest.mark.asyncio
+async def test_call_ynab_api_plans(monkeypatch):
+    async def fake_get_plans(self):
+        return FakeResponse({"plans": PLANS})
+
+    monkeypatch.setattr(
+        "sqlite_export_for_ynab._main.asyncio_for_ynab.PlansApi.get_plans",
+        fake_get_plans,
+    )
+
+    assert await _call_ynab_api(object(), "plans") == {"plans": PLANS}
+
+
+@pytest.mark.asyncio
+async def test_call_ynab_api_retries(monkeypatch):
+    calls = 0
+
+    async def fake_get_plans(self):
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            raise RuntimeError("boom")
+        return FakeResponse({"plans": PLANS})
+
+    monkeypatch.setattr(
+        "sqlite_export_for_ynab._main.asyncio_for_ynab.PlansApi.get_plans",
+        fake_get_plans,
+    )
+
+    assert await _call_ynab_api(object(), "plans") == {"plans": PLANS}
+    assert calls == 2
+
+
+@pytest.mark.asyncio
+async def test_call_ynab_api_plan_endpoint(monkeypatch):
+    async def fake_get_accounts(self, plan_id, last_knowledge_of_server=None):
+        assert plan_id == PLAN_ID_1
+        assert last_knowledge_of_server is None
+        return FakeResponse({"accounts": ACCOUNTS})
+
+    monkeypatch.setattr(
+        "sqlite_export_for_ynab._main.asyncio_for_ynab.AccountsApi.get_accounts",
+        fake_get_accounts,
+    )
+
+    assert await _call_ynab_api(object(), "plans/" + PLAN_ID_1 + "/accounts") == {
+        "accounts": ACCOUNTS
+    }
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("path", "patch_target", "expected"),
+    [
+        (
+            "plans/" + PLAN_ID_1,
+            "sqlite_export_for_ynab._main.asyncio_for_ynab.PlansApi.get_plan_by_id",
+            {"plans": PLANS},
+        ),
+        (
+            "plans/" + PLAN_ID_1 + "/accounts",
+            "sqlite_export_for_ynab._main.asyncio_for_ynab.AccountsApi.get_accounts",
+            {"accounts": ACCOUNTS},
+        ),
+        (
+            "plans/" + PLAN_ID_1 + "/categories",
+            "sqlite_export_for_ynab._main.asyncio_for_ynab.CategoriesApi.get_categories",
+            {"category_groups": CATEGORY_GROUPS},
+        ),
+        (
+            "plans/" + PLAN_ID_1 + "/payees",
+            "sqlite_export_for_ynab._main.asyncio_for_ynab.PayeesApi.get_payees",
+            {"payees": PAYEES},
+        ),
+        (
+            "plans/" + PLAN_ID_1 + "/transactions",
+            "sqlite_export_for_ynab._main.asyncio_for_ynab.TransactionsApi.get_transactions",
+            {"transactions": TRANSACTIONS, "server_knowledge": SERVER_KNOWLEDGE_1},
+        ),
+        (
+            "plans/" + PLAN_ID_1 + "/scheduled_transactions",
+            "sqlite_export_for_ynab._main.asyncio_for_ynab.ScheduledTransactionsApi.get_scheduled_transactions",
+            {"scheduled_transactions": SCHEDULED_TRANSACTIONS},
+        ),
+        (
+            "plans/" + PLAN_ID_1 + "/settings",
+            "sqlite_export_for_ynab._main.asyncio_for_ynab.PlansApi.get_plan_settings_by_id",
+            {"currency_format": PLANS[0]["currency_format"]},
+        ),
+    ],
+)
+async def test_call_plan_endpoint(monkeypatch, path, patch_target, expected):
+    async def fake_method(self, *args, **kwargs):
+        return FakeResponse(expected)
+
+    monkeypatch.setattr(patch_target, fake_method)
+
+    result = await _call_plan_endpoint(object(), path, None)
+    assert result.to_dict()["data"] == expected
+
+
+@pytest.mark.asyncio
+async def test_call_ynab_api_unsupported_path():
+    with pytest.raises(ValueError):
+        await _call_ynab_api(object(), "example")
+
+
+@pytest.mark.asyncio
+async def test_call_plan_endpoint_unsupported_path():
+    with pytest.raises(ValueError):
+        await _call_plan_endpoint(object(), "plans/" + PLAN_ID_1 + "/foo/bar", None)
+
+
+@pytest.mark.asyncio
+async def test_call_plan_endpoint_unsupported_endpoint():
+    with pytest.raises(ValueError):
+        await _call_plan_endpoint(object(), "plans/" + PLAN_ID_1 + "/bad", None)
 
 
 def test_main_version(capsys):
@@ -706,11 +829,8 @@ def test_resolve_token_env(monkeypatch):
     autospec=True,
 )
 @patch("sqlite_export_for_ynab._main.asyncio.get_running_loop")
-@patch("sqlite_export_for_ynab._main.aiohttp.ClientSession")
 @pytest.mark.asyncio
-async def test_sync_lock_times_out(
-    mock_client_session, mock_get_running_loop, mock_acquire, tmp_path
-):
+async def test_sync_lock_times_out(mock_get_running_loop, mock_acquire, tmp_path):
     class FakeLoop:
         def __init__(self):
             self._times = iter((0.0, 0.2))
@@ -719,16 +839,15 @@ async def test_sync_lock_times_out(
             return next(self._times)
 
     mock_get_running_loop.return_value = FakeLoop()
-
-    @asynccontextmanager
-    async def fake_client_session():
-        yield object()
-
-    mock_client_session.return_value = fake_client_session()
     mock_acquire.return_value = False
 
     with pytest.raises(TimeoutError):
-        await _context(tmp_path / "db.sqlite", quiet=True, timeout=0.1).__aenter__()
+        await _context(
+            tmp_path / "db.sqlite",
+            asyncio_for_ynab.Configuration(access_token=TOKEN),
+            quiet=True,
+            timeout=0.1,
+        ).__aenter__()
 
     assert mock_acquire.call_count == 1
     assert mock_acquire.call_args.args[1] is False
@@ -741,10 +860,8 @@ async def test_sync_lock_times_out(
 @patch("sqlite_export_for_ynab._main.fasteners.InterProcessLock.release", autospec=True)
 @patch("sqlite_export_for_ynab._main.asyncio.sleep")
 @patch("sqlite_export_for_ynab._main.asyncio.get_running_loop")
-@patch("sqlite_export_for_ynab._main.aiohttp.ClientSession")
 @pytest.mark.asyncio
 async def test_context_retries_after_sleep(
-    mock_client_session,
     mock_get_running_loop,
     mock_sleep,
     mock_release,
@@ -759,15 +876,14 @@ async def test_context_retries_after_sleep(
             return next(self._times)
 
     mock_get_running_loop.return_value = FakeLoop()
-
-    @asynccontextmanager
-    async def fake_client_session():
-        yield object()
-
-    mock_client_session.return_value = fake_client_session()
     mock_acquire.side_effect = [False, True]
 
-    async with _context(tmp_path / "db.sqlite", quiet=True, timeout=0.1):
+    async with _context(
+        tmp_path / "db.sqlite",
+        asyncio_for_ynab.Configuration(access_token=TOKEN),
+        quiet=True,
+        timeout=0.1,
+    ):
         pass
 
     assert mock_acquire.call_count == 2
@@ -781,7 +897,9 @@ async def test_context_removes_lock_file(tmp_path):
     db = tmp_path / "db.sqlite"
     lock_path = tmp_path / "db.sqlite.lock"
 
-    async with _context(db, quiet=True):
+    async with _context(
+        db, asyncio_for_ynab.Configuration(access_token=TOKEN), quiet=True
+    ):
         assert lock_path.exists()
 
     assert not lock_path.exists()
