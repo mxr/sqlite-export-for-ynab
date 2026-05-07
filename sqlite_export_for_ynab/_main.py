@@ -36,7 +36,6 @@ from asyncio_for_ynab import TransactionDetail
 from asyncio_for_ynab import TransactionsApi
 from rich.progress import BarColumn
 from rich.progress import Progress
-from rich.progress import ProgressColumn
 from rich.progress import TaskID
 from rich.progress import TextColumn
 from rich.progress import TimeElapsedColumn
@@ -54,8 +53,9 @@ try:
     from rich.progress import MofNCompleteColumn
 # https://github.com/benleb/surepy/issues/240
 except ImportError:  # pragma: no cover
-    from rich.text import Text
+    from rich.progress import ProgressColumn
     from rich.progress import Task
+    from rich.text import Text
 
     if TYPE_CHECKING:
         from rich.table import Column
