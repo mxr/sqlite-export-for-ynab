@@ -49,5 +49,5 @@ repos:
     additional_dependencies:
     - aiopathlib
     - asyncio-for-ynab
-    - rich>=12
+    - rich>=10
     language_version: python3.12
