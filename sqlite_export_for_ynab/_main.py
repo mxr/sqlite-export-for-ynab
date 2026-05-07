@@ -35,8 +35,8 @@ from asyncio_for_ynab import ScheduledTransactionsApi
 from asyncio_for_ynab import TransactionDetail
 from asyncio_for_ynab import TransactionsApi
 from rich.progress import BarColumn
-from rich.progress import MofNCompleteColumn
 from rich.progress import Progress
+from rich.progress import ProgressColumn
 from rich.progress import TaskID
 from rich.progress import TextColumn
 from rich.progress import TimeElapsedColumn
@@ -49,6 +49,31 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator
     from collections.abc import Iterator
     from collections.abc import Sequence
+
+try:
+    from rich.progress import MofNCompleteColumn
+# https://github.com/benleb/surepy/issues/240
+except ImportError:  # pragma: no cover
+    from rich.text import Text
+    from rich.progress import Task
+
+    if TYPE_CHECKING:
+        from rich.table import Column
+
+    class MofNCompleteColumn(ProgressColumn):  # type:ignore[no-redef]
+        def __init__(self, separator: str = "/", table_column: Column | None = None):
+            self.separator = separator
+            super().__init__(table_column=table_column)
+
+        def render(self, task: Task) -> Text:
+            """Show completed/total."""
+            completed = int(task.completed)
+            total = int(task.total) if task.total is not None else "?"
+            total_width = len(str(total))
+            return Text(
+                f"{completed:{total_width}d}{self.separator}{total}",
+                style="progress.download",
+            )
 
 
 _EntryTable = (
