@@ -13,7 +13,7 @@ repos:
   - id: pretty-format-toml
     args: [--autofix, --trailing-commas]
   - id: pretty-format-yaml
-    args: [--autofix, '--line-width=120']
+    args: [--autofix, --line-width=120]
 - repo: https://github.com/asottile/setup-cfg-fmt
   rev: v3.2.0
   hooks:
@@ -46,9 +46,5 @@ repos:
   rev: v1.20.2
   hooks:
   - id: mypy
-    additional_dependencies: [
-    aiopathlib,
-    asyncio-for-ynab,
-    rich>=12
-    ]
+    additional_dependencies: [aiopathlib, asyncio-for-ynab, rich>=12]
     language_version: python3.12
