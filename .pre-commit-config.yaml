@@ -51,3 +51,8 @@ repos:
     - asyncio-for-ynab
     - rich>=10
     language_version: python3.12
+- repo: https://github.com/zizmorcore/zizmor-pre-commit
+  rev: v1.24.1
+  hooks:
+  - id: zizmor
+    args: [--no-progress, --fix]
