@@ -13,4 +13,4 @@ concurrency:
 
 jobs:
   release:
-    uses: mxr/workflows/.github/workflows/pypi-release.yml@96a47675aa2e18981384cd018c2583accd9f797e
+    uses: mxr/workflows/.github/workflows/pypi-release.yml@f0281d9a23f65774fe530a52f03d5419ed871519 # v0.1.0
