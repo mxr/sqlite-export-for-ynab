@@ -1,6 +1,6 @@
 repos:
 - repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: v6.0.0
+  rev: 3e8a8703264a2f4a69428a0aa4dcb512790b2c8c  # frozen: v6.0.0
   hooks:
   - id: check-docstring-first
   - id: debug-statements
@@ -8,42 +8,42 @@ repos:
   - id: requirements-txt-fixer
   - id: trailing-whitespace
 - repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
-  rev: v2.16.0
+  rev: 4380fbb73a154b5f5624794c1c78d9719ccc860f  # frozen: v2.16.0
   hooks:
   - id: pretty-format-toml
     args: [--autofix, --trailing-commas]
   - id: pretty-format-yaml
     args: [--autofix]
 - repo: https://github.com/asottile/setup-cfg-fmt
-  rev: v3.2.0
+  rev: 9339507e9522e953c07479c9f6abeec0f2fe4e12  # frozen: v3.2.0
   hooks:
   - id: setup-cfg-fmt
     args: [--min-py-version, '3.12']
 - repo: https://github.com/asottile/reorder-python-imports
-  rev: v3.16.0
+  rev: 7885866bd38c852b5e042c4aeef0285d715ffeee  # frozen: v3.16.0
   hooks:
   - id: reorder-python-imports
     args: [--py312-plus, --add-import, from __future__ import annotations]
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.15.12
+  rev: 6fec9b7edb08fd9989088709d864a7826dc74e80  # frozen: v0.15.12
   hooks:
   - id: ruff-check
     args: [--fix]
   - id: ruff-format
 - repo: https://github.com/sqlfluff/sqlfluff
-  rev: 4.1.0
+  rev: ec5ed61d83ae336c65c4c15396a23772ce9d2fcc  # frozen: 4.1.0
   hooks:
   - id: sqlfluff-fix
     args: [--dialect, sqlite]
 - repo: https://github.com/adamtheturtle/doccmd-pre-commit
-  rev: v2026.3.26.2
+  rev: 6531338d501c86cf5f0803ba6e2c3a2a858a63c5  # frozen: v2026.3.26.2
   hooks:
   - id: doccmd
     name: doccmd-sqlfluff
     args: [--no-pad-file, --language, sql, --command, sqlfluff fix --dialect sqlite]
     additional_dependencies: [sqlfluff]
 - repo: https://github.com/pre-commit/mirrors-mypy
-  rev: v1.20.2
+  rev: a9d9ff50af0432cbb950856daf08082fa51cbfa2  # frozen: v2.0.0
   hooks:
   - id: mypy
     additional_dependencies:
@@ -52,7 +52,7 @@ repos:
     - rich>=10
     language_version: python3.12
 - repo: https://github.com/zizmorcore/zizmor-pre-commit
-  rev: v1.24.1
+  rev: a4727cbbcd26d7098e96b9cb738169b59711ae51  # frozen: v1.24.1
   hooks:
   - id: zizmor
     args: [--no-progress, --fix]
