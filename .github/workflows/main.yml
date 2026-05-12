@@ -21,7 +21,7 @@ jobs:
       with:
         filters: |
           project_files:
-            - .github/workflows/**
+            - .github/workflows/main.yml
             - '**/*.py'
             - '**/*.sql'
             - '**/*.toml'
