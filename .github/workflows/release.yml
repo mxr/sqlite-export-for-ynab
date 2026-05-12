@@ -13,4 +13,8 @@ concurrency:
 
 jobs:
   release:
-    uses: mxr/workflows/.github/workflows/pypi-release.yml@f0281d9a23f65774fe530a52f03d5419ed871519 # v0.1.0
+    uses: 
+      mxr/workflows/.github/workflows/pypi-release.yml@f0281d9a23f65774fe530a52f03d5419ed871519     # v0.1.0
+    permissions:
+      contents: write
+      id-token: write
