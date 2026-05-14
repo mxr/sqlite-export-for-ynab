@@ -205,7 +205,7 @@ FROM (
     WHERE
         category_name = 'Apps'
         AND SUBSTR(date_next, 1, 7) < SUBSTR(DATE('now', '+1 year'), 1, 7)
-)
+) AS spend
 ;
 ```
 
