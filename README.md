@@ -506,7 +506,7 @@ WITH params AS (
         TRUE
         AND NOT c.deleted
         AND c.category_group_name != 'Credit Card Payments'
-        AND c.category_group_name != 'Internal Master Category'
+        AND NOT c.internal
         AND (
             v.include_category_groups = ''
             OR EXISTS (
