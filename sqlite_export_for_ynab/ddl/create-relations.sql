@@ -56,6 +56,7 @@ CREATE TABLE IF NOT EXISTS category_groups (
     , plan_id TEXT
     , name TEXT
     , hidden BOOLEAN
+    , internal BOOLEAN
     , deleted BOOLEAN
     , FOREIGN KEY (plan_id) REFERENCES plans (id)
 )
@@ -68,6 +69,7 @@ CREATE TABLE IF NOT EXISTS categories (
     , category_group_name TEXT
     , name TEXT
     , hidden BOOLEAN
+    , internal BOOLEAN
     , original_category_group_id TEXT
     , note TEXT
     , budgeted INT

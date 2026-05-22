@@ -47,7 +47,7 @@ repos:
   - id: mypy
     additional_dependencies:
     - aiopathlib
-    - asyncio-for-ynab
+    - asyncio-for-ynab~=1.84.0
     - rich>=10
     language_version: python3.12
 - repo: https://github.com/zizmorcore/zizmor-pre-commit
