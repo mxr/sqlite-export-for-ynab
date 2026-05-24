@@ -242,7 +242,7 @@ WITH interest_by_account AS (
     SELECT
         plan_id
         , account_name
-        , SUM(-amount_currency) AS total
+        , SUM(amount_currency) AS total
     FROM flat_transactions
     WHERE
         TRUE
