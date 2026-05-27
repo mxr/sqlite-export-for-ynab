@@ -46,6 +46,8 @@ from sqlite_export_for_ynab import ddl
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
+    from collections.abc import Awaitable
+    from collections.abc import Callable
     from collections.abc import Iterator
     from collections.abc import Sequence
 
@@ -640,100 +642,45 @@ async def _get_all_ynab(
 async def _get_plan_data(
     context: _Context, plan_id: str, lkos: dict[str, int], task_id: TaskID
 ) -> tuple[str, _YnabPlanData]:
-    (
-        accounts,
-        categories,
-        payees,
-        transactions_serverknowledge,
-        scheduled_transactions,
-    ) = await asyncio.gather(
-        _get_accounts(context, plan_id, lkos, task_id),
-        _get_categories(context, plan_id, lkos, task_id),
-        _get_payees(context, plan_id, lkos, task_id),
-        _get_transactions(context, plan_id, lkos, task_id),
-        _get_scheduled_transactions(context, plan_id, lkos, task_id),
+    accounts, categories, payees, transactions, scheduled = await asyncio.gather(
+        *(
+            _get_ynab(context, endpoint, plan_id, lkos, task_id)
+            for endpoint in (
+                AccountsApi(context.api_client).get_accounts,
+                CategoriesApi(context.api_client).get_categories,
+                PayeesApi(context.api_client).get_payees,
+                TransactionsApi(context.api_client).get_transactions,
+                ScheduledTransactionsApi(context.api_client).get_scheduled_transactions,
+            )
+        )
     )
-    transactions, server_knowledge = transactions_serverknowledge
     return (
         plan_id,
         _YnabPlanData(
-            accounts=accounts,
-            category_groups=categories,
-            payees=payees,
-            transactions=transactions,
-            server_knowledge=server_knowledge,
-            scheduled_transactions=scheduled_transactions,
+            accounts=accounts.data.accounts,
+            category_groups=categories.data.category_groups,
+            payees=payees.data.payees,
+            transactions=transactions.data.transactions,
+            server_knowledge=transactions.data.server_knowledge,
+            scheduled_transactions=scheduled.data.scheduled_transactions,
         ),
     )
 
 
 @retry(stop=stop_after_attempt(3))
-async def _get_accounts(
-    context: _Context, plan_id: str, lkos: dict[str, int], task_id: TaskID
-) -> list[Account]:
-    resp = await AccountsApi(context.api_client).get_accounts(
-        plan_id=plan_id, last_knowledge_of_server=lkos.get(plan_id)
-    )
-    context.progress.update(task_id, advance=1)
-    return resp.data.accounts
-
-
-@retry(stop=stop_after_attempt(3))
-async def _get_categories(
-    context: _Context, plan_id: str, lkos: dict[str, int], task_id: TaskID
-) -> list[CategoryGroupWithCategories]:
-    resp = await CategoriesApi(context.api_client).get_categories(
-        plan_id=plan_id, last_knowledge_of_server=lkos.get(plan_id)
-    )
-    context.progress.update(task_id, advance=1)
-    return resp.data.category_groups
-
-
-@retry(stop=stop_after_attempt(3))
-async def _get_payees(
-    context: _Context, plan_id: str, lkos: dict[str, int], task_id: TaskID
-) -> list[Payee]:
-    resp = await PayeesApi(context.api_client).get_payees(
-        plan_id=plan_id, last_knowledge_of_server=lkos.get(plan_id)
-    )
-    context.progress.update(task_id, advance=1)
-    return resp.data.payees
-
-
-@retry(stop=stop_after_attempt(3))
-async def _get_transactions(
-    context: _Context, plan_id: str, lkos: dict[str, int], task_id: TaskID
-) -> tuple[list[TransactionDetail], int]:
-    resp = await TransactionsApi(context.api_client).get_transactions(
-        plan_id=plan_id, last_knowledge_of_server=lkos.get(plan_id)
-    )
-    context.progress.update(task_id, advance=1)
-    return resp.data.transactions, resp.data.server_knowledge
-
-
-@retry(stop=stop_after_attempt(3))
-async def _get_scheduled_transactions(
-    context: _Context, plan_id: str, lkos: dict[str, int], task_id: TaskID
-) -> list[ScheduledTransactionDetail]:
-    resp = await ScheduledTransactionsApi(
-        context.api_client
-    ).get_scheduled_transactions(
-        plan_id=plan_id, last_knowledge_of_server=lkos.get(plan_id)
-    )
-    context.progress.update(task_id, advance=1)
-    return resp.data.scheduled_transactions
-
-
-# @retry(stop=stop_after_attempt(3))
-# async def _get_ynab[T](
-#     context: _Context,
-#     getter: Callable[..., Awaitable[T]],
-#     task_id: TaskID,
-# ) -> T:
-#     try:
-#         return await getter()
-#     finally:
-#         context.progress.update(task_id, advance=1)
+async def _get_ynab[T](
+    context: _Context,
+    endpoint: Callable[..., Awaitable[T]],
+    plan_id: str,
+    lkos: dict[str, int],
+    task_id: TaskID,
+) -> T:
+    try:
+        return await endpoint(
+            plan_id=plan_id, last_knowledge_of_server=lkos.get(plan_id)
+        )
+    finally:
+        context.progress.update(task_id, advance=1)
 
 
 def main(
