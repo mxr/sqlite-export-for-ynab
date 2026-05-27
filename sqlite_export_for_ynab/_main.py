@@ -603,7 +603,13 @@ async def insert_entries(
     if not entries:
         return
 
-    entry_keys = tuple(entries[0])
+    async with context.con.cursor() as cur:
+        await cur.execute(f"PRAGMA table_info({table})")
+        table_columns = {row["name"] async for row in cur}
+
+    # Ignore any keys the YNAB API returns that aren't columns in the DDL so
+    # newly-added API fields don't break the insert.
+    entry_keys = tuple(k for k in entries[0] if k in table_columns)
     sql = f"INSERT OR REPLACE INTO {table} ({', '.join(entry_keys + ('plan_id',))}) VALUES ({', '.join('?' * (len(entry_keys) + 1))})"
 
     async with context.con.cursor() as cur:

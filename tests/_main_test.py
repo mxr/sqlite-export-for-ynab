@@ -29,6 +29,7 @@ from sqlite_export_for_ynab._main import get_last_knowledge_of_server
 from sqlite_export_for_ynab._main import get_relations
 from sqlite_export_for_ynab._main import insert_accounts
 from sqlite_export_for_ynab._main import insert_category_groups
+from sqlite_export_for_ynab._main import insert_entries
 from sqlite_export_for_ynab._main import insert_payees
 from sqlite_export_for_ynab._main import insert_plans
 from sqlite_export_for_ynab._main import insert_scheduled_transactions
@@ -495,6 +496,31 @@ async def test_insert_payees(context):
                 "transfer_account_id": None,
                 "deleted": False,
             },
+        ],
+    )
+
+
+@pytest.mark.asyncio
+async def test_insert_entries_ignores_unknown_keys(context):
+    task_id = context.progress.add_task("Payees", total=1)
+    entry = {
+        "id": PAYEE_ID_1,
+        "name": "Payee",
+        "transfer_account_id": None,
+        "deleted": False,
+        "brand_new_api_field": "surprise",
+    }
+    await insert_entries(context, "payees", PLAN_ID_1, [entry], task_id)
+    assert_rows(
+        await fetchall(context.con, "SELECT * FROM payees"),
+        [
+            {
+                "id": PAYEE_ID_1,
+                "plan_id": PLAN_ID_1,
+                "name": "Payee",
+                "transfer_account_id": None,
+                "deleted": False,
+            }
         ],
     )
 
