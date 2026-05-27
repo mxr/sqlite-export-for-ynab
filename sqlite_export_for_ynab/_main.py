@@ -642,17 +642,13 @@ async def _get_all_ynab(
 async def _get_plan_data(
     context: _Context, plan_id: str, lkos: dict[str, int], task_id: TaskID
 ) -> tuple[str, _YnabPlanData]:
+    py = _ProgressYnab(context, plan_id, lkos, task_id)
     accounts, categories, payees, transactions, scheduled = await asyncio.gather(
-        *(
-            _get_ynab(context, endpoint, plan_id, lkos, task_id)
-            for endpoint in (
-                AccountsApi(context.api_client).get_accounts,
-                CategoriesApi(context.api_client).get_categories,
-                PayeesApi(context.api_client).get_payees,
-                TransactionsApi(context.api_client).get_transactions,
-                ScheduledTransactionsApi(context.api_client).get_scheduled_transactions,
-            )
-        )
+        py.get(AccountsApi(context.api_client).get_accounts),
+        py.get(CategoriesApi(context.api_client).get_categories),
+        py.get(PayeesApi(context.api_client).get_payees),
+        py.get(TransactionsApi(context.api_client).get_transactions),
+        py.get(ScheduledTransactionsApi(context.api_client).get_scheduled_transactions),
     )
     return (
         plan_id,
@@ -667,20 +663,22 @@ async def _get_plan_data(
     )
 
 
-@retry(stop=stop_after_attempt(3))
-async def _get_ynab[T](
-    context: _Context,
-    endpoint: Callable[..., Awaitable[T]],
-    plan_id: str,
-    lkos: dict[str, int],
-    task_id: TaskID,
-) -> T:
-    try:
-        return await endpoint(
-            plan_id=plan_id, last_knowledge_of_server=lkos.get(plan_id)
-        )
-    finally:
-        context.progress.update(task_id, advance=1)
+@dataclass(slots=True)
+class _ProgressYnab:
+    context: _Context
+    plan_id: str
+    lkos: dict[str, int]
+    task_id: TaskID
+
+    @retry(stop=stop_after_attempt(3))
+    async def get[T](self, endpoint: Callable[..., Awaitable[T]]) -> T:
+        try:
+            return await endpoint(
+                plan_id=self.plan_id,
+                last_knowledge_of_server=self.lkos.get(self.plan_id),
+            )
+        finally:
+            self.context.progress.update(self.task_id, advance=1)
 
 
 def main(
