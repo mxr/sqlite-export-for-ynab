@@ -643,16 +643,37 @@ async def _get_plan_data(
     context: _Context, plan_id: str, lkos: dict[str, int], task_id: TaskID
 ) -> tuple[str, _YnabPlanData]:
     accounts, categories, payees, transactions, scheduled = await asyncio.gather(
-        *(
-            _get_ynab(context, endpoint, plan_id, lkos, task_id)
-            for endpoint in (
-                AccountsApi(context.api_client).get_accounts,
-                CategoriesApi(context.api_client).get_categories,
-                PayeesApi(context.api_client).get_payees,
-                TransactionsApi(context.api_client).get_transactions,
-                ScheduledTransactionsApi(context.api_client).get_scheduled_transactions,
-            )
-        )
+        _get_ynab(
+            context,
+            AccountsApi(context.api_client).get_accounts,
+            plan_id,
+            lkos,
+            task_id,
+        ),
+        _get_ynab(
+            context,
+            CategoriesApi(context.api_client).get_categories,
+            plan_id,
+            lkos,
+            task_id,
+        ),
+        _get_ynab(
+            context, PayeesApi(context.api_client).get_payees, plan_id, lkos, task_id
+        ),
+        _get_ynab(
+            context,
+            TransactionsApi(context.api_client).get_transactions,
+            plan_id,
+            lkos,
+            task_id,
+        ),
+        _get_ynab(
+            context,
+            ScheduledTransactionsApi(context.api_client).get_scheduled_transactions,
+            plan_id,
+            lkos,
+            task_id,
+        ),
     )
     return (
         plan_id,
