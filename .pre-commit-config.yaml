@@ -24,13 +24,13 @@ repos:
   - id: reorder-python-imports
     args: [--py312-plus, --add-import, from __future__ import annotations]
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: 0671d8ab202c4ac093b78433ae5baf74f3fc7246  # frozen: v0.15.15
+  rev: 22f0422809455ec89ffdcf5a00170ba816e42ddb  # frozen: v0.15.16
   hooks:
   - id: ruff-check
     args: [--fix]
   - id: ruff-format
 - repo: https://github.com/sqlfluff/sqlfluff
-  rev: 22c57db940d939c73993877850f6efff6c5ecfd6  # frozen: 4.2.1
+  rev: 1c2ec52808fdc09efa1552437ec9d140749f98d0  # frozen: 4.2.2
   hooks:
   - id: sqlfluff-fix
     args: [--dialect, sqlite]
