@@ -50,7 +50,6 @@ repos:
     - aiopathlib
     - aiosqlite
     - asyncio-for-ynab~=1.84.0
-    - covdefaults>=2.1.0
     - coverage
     - fasteners
     - pytest
@@ -68,7 +67,6 @@ repos:
     - aiopathlib
     - aiosqlite
     - asyncio-for-ynab~=1.84.0
-    - covdefaults>=2.1.0
     - coverage
     - fasteners
     - pytest
@@ -77,7 +75,7 @@ repos:
     - setuptools
     - tenacity
 - repo: https://github.com/mxr/sync-typing-deps
-  rev: 81a9447ee214e44951ca828b4208dec474c35c49  # frozen: v0.2.1
+  rev: ea302aacebe5e1a3c6b96c8bd63eab48a1b59ed2  # frozen: v0.2.2
   hooks:
   - id: sync-typing-deps
 - repo: https://github.com/zizmorcore/zizmor-pre-commit
