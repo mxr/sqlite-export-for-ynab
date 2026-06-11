@@ -58,8 +58,24 @@ repos:
     - rich>=10
     - tenacity
     language_version: python3.12
+- repo: https://github.com/mxr/mirrors-ty
+  rev: b0cc809b854427130bbdc84b922e0e38c6c6b8eb  # frozen: v0.0.48
+  hooks:
+  - id: ty
+    additional_dependencies:
+    - aiohttp>=3
+    - aiopathlib
+    - aiosqlite
+    - asyncio-for-ynab~=1.84.0
+    - covdefaults>=2.1.0
+    - coverage
+    - fasteners
+    - pytest
+    - pytest-asyncio
+    - rich>=10
+    - tenacity
 - repo: https://github.com/mxr/sync-typing-deps
-  rev: 7d7b4335a5a16da0f46aef710a6855b0298321d4
+  rev: 9d1ec5df424295d87cfef41c144e7c5d3f3acfdd  # frozen: v0.2.0
   hooks:
   - id: sync-typing-deps
 - repo: https://github.com/zizmorcore/zizmor-pre-commit
