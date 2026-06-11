@@ -59,7 +59,7 @@ repos:
     - tenacity
     language_version: python3.12
 - repo: https://github.com/mxr/sync-typing-deps
-  rev: ac01d4cdd568460783aebd40cfafab4cbba822c5  # frozen: v0.3.0
+  rev: 8e97e35c846b35976c59b973cd40690152b3c716  # frozen: v0.4.0
   hooks:
   - id: sync-typing-deps
 - repo: https://github.com/zizmorcore/zizmor-pre-commit
