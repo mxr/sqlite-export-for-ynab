@@ -1,3 +1,7 @@
+[build-system]
+build-backend = "setuptools.build_meta"
+requires = ["setuptools"]
+
 [tool.mypy]
 check_untyped_defs = true
 disallow_any_generics = true
