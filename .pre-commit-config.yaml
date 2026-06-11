@@ -46,10 +46,19 @@ repos:
   hooks:
   - id: mypy
     additional_dependencies:
+    - aiohttp>=3
     - aiopathlib
+    - aiosqlite
     - asyncio-for-ynab~=1.84.0
+    - pytest
+    - pytest-asyncio
     - rich>=10
+    - tenacity
     language_version: python3.12
+- repo: https://github.com/mxr/sync-typing-deps
+  rev: 7d7b4335a5a16da0f46aef710a6855b0298321d4
+  hooks:
+  - id: sync-typing-deps
 - repo: https://github.com/zizmorcore/zizmor-pre-commit
   rev: 9257c6050c0261b8c57e712f632dc4a8010109a9  # frozen: v1.25.2
   hooks:
