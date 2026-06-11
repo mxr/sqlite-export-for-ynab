@@ -2,6 +2,14 @@
 build-backend = "setuptools.build_meta"
 requires = ["setuptools"]
 
+[dependency-groups]
+dev = [
+  "covdefaults>=2.1.0",
+  "coverage",
+  "pytest",
+  "pytest-asyncio",
+]
+
 [project]
 authors = [{name = "Max R", email = "mxr@users.noreply.github.com"}]
 classifiers = [
@@ -27,14 +35,6 @@ name = "sqlite_export_for_ynab"
 readme = "README.md"
 requires-python = ">=3.12"
 version = "2.9.0"
-
-[project.optional-dependencies]
-dev = [
-  "covdefaults>=2.1.0",
-  "coverage",
-  "pytest",
-  "pytest-asyncio",
-]
 
 [project.scripts]
 sqlite-export-for-ynab = "sqlite_export_for_ynab._main:main"
@@ -129,4 +129,4 @@ commands = [
   ["coverage", "run", "-m", "pytest", "{posargs:tests}"],
   ["coverage", "report"],
 ]
-extras = ["dev"]
+dependency_groups = ["dev"]

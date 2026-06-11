@@ -46,6 +46,10 @@ repos:
     - pytest-asyncio
     - setuptools
     language_version: python3.12
+- repo: https://github.com/astral-sh/ty-pre-commit
+  rev: a71646c845a122391e3ce3a43502fcf4003d1efa  # frozen: v0.0.48
+  hooks:
+  - id: ty
 - repo: https://github.com/mxr/sync-typing-deps
   rev: ac01d4cdd568460783aebd40cfafab4cbba822c5  # frozen: v0.3.0
   hooks:
