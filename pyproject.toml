@@ -3,7 +3,7 @@ build-backend = "setuptools.build_meta"
 requires = ["setuptools"]
 
 [project]
-authors = [{name = "Max R", email = "maxr@outlook.com"}]
+authors = [{name = "Max R", email = "mxr@users.noreply.github.com"}]
 classifiers = [
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3 :: Only",
