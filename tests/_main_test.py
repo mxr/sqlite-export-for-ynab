@@ -4,6 +4,7 @@ from configparser import ConfigParser
 from pathlib import Path
 from typing import Any
 from typing import cast
+from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock
 from unittest.mock import Mock
 from unittest.mock import patch
@@ -13,6 +14,9 @@ import fasteners
 import pytest
 import pytest_asyncio
 from rich.progress import Progress
+
+if TYPE_CHECKING:
+    from asyncio_for_ynab import ApiClient
 
 from sqlite_export_for_ynab import default_db_path
 from sqlite_export_for_ynab._main import _ALL_RELATIONS
@@ -860,7 +864,7 @@ async def test_insert_scheduled_transactions(context):
 )
 @pytest.mark.asyncio
 async def test_get_plan_summaries_retries():
-    assert await _get_plan_summaries(object()) == PLANS
+    assert await _get_plan_summaries(cast("ApiClient", object())) == PLANS
 
 
 @patch("sqlite_export_for_ynab._main.sync")

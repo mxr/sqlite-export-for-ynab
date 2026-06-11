@@ -50,6 +50,9 @@ repos:
     - aiopathlib
     - aiosqlite
     - asyncio-for-ynab~=1.84.0
+    - covdefaults>=2.1.0
+    - coverage
+    - fasteners
     - pytest
     - pytest-asyncio
     - rich>=10
