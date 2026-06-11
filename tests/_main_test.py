@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from configparser import ConfigParser
 from pathlib import Path
-from typing import Any
-from typing import cast
 from unittest.mock import AsyncMock
 from unittest.mock import Mock
 from unittest.mock import patch
@@ -454,7 +452,7 @@ async def test_insert_category_group_without_categories(context):
     await insert_category_groups(
         context,
         PLAN_ID_1,
-        cast("Any", [CATEGORY_GROUPS[0].model_copy(update={"categories": []})]),
+        [CATEGORY_GROUPS[0].model_copy(update={"categories": []})],
     )
 
     assert_rows(
@@ -860,7 +858,7 @@ async def test_insert_scheduled_transactions(context):
 )
 @pytest.mark.asyncio
 async def test_get_plan_summaries_retries():
-    assert await _get_plan_summaries(object()) == PLANS
+    assert await _get_plan_summaries(Mock(spec=asyncio_for_ynab.ApiClient)) == PLANS
 
 
 @patch("sqlite_export_for_ynab._main.sync")
