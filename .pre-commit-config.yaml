@@ -13,11 +13,6 @@ repos:
     args: [--autofix, --trailing-commas]
   - id: pretty-format-yaml
     args: [--autofix]
-- repo: https://github.com/asottile/setup-cfg-fmt
-  rev: 9339507e9522e953c07479c9f6abeec0f2fe4e12  # frozen: v3.2.0
-  hooks:
-  - id: setup-cfg-fmt
-    args: [--min-py-version, '3.12']
 - repo: https://github.com/asottile/reorder-python-imports
   rev: 7885866bd38c852b5e042c4aeef0285d715ffeee  # frozen: v3.16.0
   hooks:
