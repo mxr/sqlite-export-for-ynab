@@ -307,7 +307,7 @@ async def sync(
 
 
 async def contents(filename: str) -> str:
-    return await AsyncPath(resources.files(ddl) / filename).read_text()
+    return await AsyncPath(str(resources.files(ddl) / filename)).read_text()
 
 
 async def get_relations(cur: aiosqlite.Cursor) -> set[str]:
