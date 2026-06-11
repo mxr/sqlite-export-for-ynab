@@ -46,17 +46,10 @@ repos:
   hooks:
   - id: mypy
     additional_dependencies:
-    - aiohttp>=3
-    - aiopathlib
-    - aiosqlite
-    - asyncio-for-ynab~=1.84.0
     - coverage
-    - fasteners
     - pytest
     - pytest-asyncio
-    - rich>=10
     - setuptools
-    - tenacity
     language_version: python3.12
 - repo: https://github.com/mxr/sync-typing-deps
   rev: ac01d4cdd568460783aebd40cfafab4cbba822c5  # frozen: v0.3.0
