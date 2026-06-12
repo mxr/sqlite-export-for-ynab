@@ -2,6 +2,49 @@
 build-backend = "setuptools.build_meta"
 requires = ["setuptools"]
 
+[dependency-groups]
+dev = [
+  "covdefaults>=2.1.0",
+  "coverage",
+  "pytest",
+  "pytest-asyncio",
+]
+
+[project]
+authors = [{name = "Max R", email = "mxr@users.noreply.github.com"}]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: Implementation :: CPython",
+  "Programming Language :: Python :: Implementation :: PyPy",
+]
+dependencies = [
+  "aiohttp>=3",
+  "aiopathlib",
+  "aiosqlite",
+  "asyncio-for-ynab~=1.84.0",
+  "fasteners",
+  "rich>=10",
+  "tenacity",
+]
+description = "SQLite Export for YNAB - Export YNAB Data to SQLite"
+keywords = ["ynab", "sqlite", "sql", "budget", "plan", "cli"]
+license = "MIT"
+license-files = ["LICENSE"]
+name = "sqlite_export_for_ynab"
+readme = "README.md"
+requires-python = ">=3.12"
+version = "2.9.0"
+
+[project.scripts]
+sqlite-export-for-ynab = "sqlite_export_for_ynab._main:main"
+
+[project.urls]
+Homepage = "https://github.com/mxr/sqlite-export-for-ynab"
+
+[tool.coverage.run]
+plugins = ["covdefaults"]
+
 [tool.mypy]
 check_untyped_defs = true
 disallow_any_generics = true
@@ -34,6 +77,13 @@ extend-select = [
   "TC",  # see flake8-type-checking
 ]
 
+[tool.setuptools.package-data]
+"*" = ["*.sql"]
+sqlite_export_for_ynab = ["py.typed"]
+
+[tool.setuptools.packages]
+find = {}
+
 [tool.sqlfluff.layout.type.comma]
 line_position = "leading"
 spacing_before = "touch"
@@ -65,3 +115,19 @@ require_final_semicolon = true
 
 [tool.sqlfluff.rules.references.quoting]
 prefer_quoted_keywords = true
+
+[tool.tox]
+env_list = ["py", "pypy3", "pre-commit"]
+
+[tool.tox.env.pre-commit]
+commands = [["pre-commit", "run", "--all-files", "--show-diff-on-failure"]]
+deps = ["pre-commit-uv"]
+skip_install = true
+
+[tool.tox.env_run_base]
+commands = [
+  ["coverage", "erase"],
+  ["coverage", "run", "-m", "pytest", "{posargs:tests}"],
+  ["coverage", "report"],
+]
+dependency_groups = ["dev"]

@@ -13,18 +13,13 @@ repos:
     args: [--autofix, --trailing-commas]
   - id: pretty-format-yaml
     args: [--autofix]
-- repo: https://github.com/asottile/setup-cfg-fmt
-  rev: 9339507e9522e953c07479c9f6abeec0f2fe4e12  # frozen: v3.2.0
-  hooks:
-  - id: setup-cfg-fmt
-    args: [--min-py-version, '3.12']
 - repo: https://github.com/asottile/reorder-python-imports
   rev: 7885866bd38c852b5e042c4aeef0285d715ffeee  # frozen: v3.16.0
   hooks:
   - id: reorder-python-imports
     args: [--py312-plus, --add-import, from __future__ import annotations]
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: 22f0422809455ec89ffdcf5a00170ba816e42ddb  # frozen: v0.15.16
+  rev: 3b3f7c3f57fe9925356faf5fe6230835138be230  # frozen: v0.15.17
   hooks:
   - id: ruff-check
     args: [--fix]
@@ -58,8 +53,24 @@ repos:
     - setuptools
     - tenacity
     language_version: python3.12
+- repo: https://github.com/mxr/mirrors-ty
+  rev: b0cc809b854427130bbdc84b922e0e38c6c6b8eb  # frozen: v0.0.48
+  hooks:
+  - id: ty
+    additional_dependencies:
+    - aiohttp>=3
+    - aiopathlib
+    - aiosqlite
+    - asyncio-for-ynab~=1.84.0
+    - coverage
+    - fasteners
+    - pytest
+    - pytest-asyncio
+    - rich>=10
+    - setuptools
+    - tenacity
 - repo: https://github.com/mxr/sync-typing-deps
-  rev: 8e97e35c846b35976c59b973cd40690152b3c716  # frozen: v0.4.0
+  rev: 34b664ec01850e0d9cb4fe97c1a03d8ed71f393c  # frozen: v0.5.0
   hooks:
   - id: sync-typing-deps
 - repo: https://github.com/zizmorcore/zizmor-pre-commit
