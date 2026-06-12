@@ -57,7 +57,7 @@ repos:
   rev: a71646c845a122391e3ce3a43502fcf4003d1efa  # frozen: v0.0.48
   hooks:
   - id: ty
-    args: [--no-project]
+    args: [--isolated]
     # vendored from https://github.com/astral-sh/ty-pre-commit/blob/4de226aa36d17b50c9f4c5773453662bc338f774/.pre-commit-hooks.yaml#L4 but altered to remove the --ty-version to force it to use the version from additional_dependencies
     entry: uv check --quiet --preview-features=check-command
     additional_dependencies:
