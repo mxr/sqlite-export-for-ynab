@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from configparser import ConfigParser
 from pathlib import Path
 from unittest.mock import AsyncMock
 from unittest.mock import Mock
@@ -875,9 +874,11 @@ async def test_async_main_parses_full_refresh_and_quiet(sync, tmp_path, monkeypa
 
 
 def test_main_version(capsys):
-    cp = ConfigParser()
-    cp.read(Path(__file__).parent.parent / "setup.cfg")
-    expected_version = cp["metadata"]["version"]
+    import tomllib
+
+    with open(Path(__file__).parent.parent / "pyproject.toml", "rb") as f:
+        data = tomllib.load(f)
+    expected_version = data["project"]["version"]
 
     with pytest.raises(SystemExit) as excinfo:
         main(("--version",))
