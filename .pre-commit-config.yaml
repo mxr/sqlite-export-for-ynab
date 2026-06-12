@@ -57,6 +57,7 @@ repos:
   rev: a71646c845a122391e3ce3a43502fcf4003d1efa  # frozen: v0.0.48
   hooks:
   - id: ty
+    args: [--isolated]
 - repo: https://github.com/mxr/sync-typing-deps
   rev: 8e97e35c846b35976c59b973cd40690152b3c716  # frozen: v0.4.0
   hooks:

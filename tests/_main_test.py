@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import tomllib
 from pathlib import Path
 from unittest.mock import AsyncMock
 from unittest.mock import Mock
@@ -874,8 +875,6 @@ async def test_async_main_parses_full_refresh_and_quiet(sync, tmp_path, monkeypa
 
 
 def test_main_version(capsys):
-    import tomllib
-
     with open(Path(__file__).parent.parent / "pyproject.toml", "rb") as f:
         data = tomllib.load(f)
     expected_version = data["project"]["version"]
