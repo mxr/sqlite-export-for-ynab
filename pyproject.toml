@@ -81,7 +81,8 @@ extend-select = [
 "*" = ["*.sql"]
 sqlite_export_for_ynab = ["py.typed"]
 
-[tool.setuptools.packages.find]
+[tool.setuptools.packages]
+find = {}
 
 [tool.sqlfluff.layout.type.comma]
 line_position = "leading"
