@@ -57,7 +57,19 @@ repos:
   rev: a71646c845a122391e3ce3a43502fcf4003d1efa  # frozen: v0.0.48
   hooks:
   - id: ty
-    args: [--isolated]
+    args: [--no-project]
+    additional_dependencies:
+    - aiohttp>=3
+    - aiopathlib
+    - aiosqlite
+    - asyncio-for-ynab~=1.84.0
+    - coverage
+    - fasteners
+    - pytest
+    - pytest-asyncio
+    - rich>=10
+    - setuptools
+    - tenacity
 - repo: https://github.com/mxr/sync-typing-deps
   rev: 8e97e35c846b35976c59b973cd40690152b3c716  # frozen: v0.4.0
   hooks:
