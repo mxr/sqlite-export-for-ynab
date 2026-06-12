@@ -78,8 +78,8 @@ extend-select = [
 ]
 
 [tool.setuptools.package-data]
-"*" = ["*.sql"]
 sqlite_export_for_ynab = ["py.typed"]
+"sqlite_export_for_ynab.ddl" = ["*.sql"]
 
 [tool.setuptools.packages]
 find = {}
