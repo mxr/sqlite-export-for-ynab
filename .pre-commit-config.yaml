@@ -59,6 +59,7 @@ repos:
   - id: ty
     args: [--no-project]
     additional_dependencies:
+    - ty
     - aiohttp>=3
     - aiopathlib
     - aiosqlite
