@@ -53,15 +53,11 @@ repos:
     - setuptools
     - tenacity
     language_version: python3.12
-- repo: https://github.com/astral-sh/ty-pre-commit
-  rev: a71646c845a122391e3ce3a43502fcf4003d1efa  # frozen: v0.0.48
+- repo: https://github.com/mxr/mirrors-ty
+  rev: b0cc809b854427130bbdc84b922e0e38c6c6b8eb  # frozen: v0.0.48
   hooks:
   - id: ty
-    args: [--isolated]
-    # vendored from https://github.com/astral-sh/ty-pre-commit/blob/4de226aa36d17b50c9f4c5773453662bc338f774/.pre-commit-hooks.yaml#L4 but altered to remove the --ty-version to force it to use the version from additional_dependencies
-    entry: uv check --quiet --preview-features=check-command
     additional_dependencies:
-    - ty==0.0.48
     - aiohttp>=3
     - aiopathlib
     - aiosqlite
@@ -74,7 +70,7 @@ repos:
     - setuptools
     - tenacity
 - repo: https://github.com/mxr/sync-typing-deps
-  rev: 8e97e35c846b35976c59b973cd40690152b3c716  # frozen: v0.4.0
+  rev: 34b664ec01850e0d9cb4fe97c1a03d8ed71f393c  # frozen: v0.5.0
   hooks:
   - id: sync-typing-deps
 - repo: https://github.com/zizmorcore/zizmor-pre-commit
