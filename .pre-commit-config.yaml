@@ -53,10 +53,11 @@ repos:
     - setuptools
     - tenacity
     language_version: python3.12
-- repo: https://github.com/mxr/mirrors-ty
+- repo: https://github.com/astral-sh/ty-pre-commit
   rev: b0cc809b854427130bbdc84b922e0e38c6c6b8eb  # frozen: v0.0.48
   hooks:
   - id: ty
+    args: ['--no-project', '--offline']
     additional_dependencies:
     - aiohttp>=3
     - aiopathlib
