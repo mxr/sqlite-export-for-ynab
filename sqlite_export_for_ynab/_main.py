@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any
 from typing import Literal
 from typing import overload
+from typing import override
 from typing import TYPE_CHECKING
 
 import aiosqlite
@@ -67,6 +68,7 @@ except ImportError:  # pragma: no cover
             self.separator = separator
             super().__init__(table_column=table_column)
 
+        @override
         def render(self, task: Task) -> Text:
             """Show completed/total."""
             completed = int(task.completed)
