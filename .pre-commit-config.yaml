@@ -54,7 +54,7 @@ repos:
     - tenacity
     language_version: python3.12
 - repo: https://github.com/mxr/mirrors-ty
-  rev: b0cc809b854427130bbdc84b922e0e38c6c6b8eb  # frozen: v0.0.48
+  rev: 8d65f680939768b9b5de1c206b315c6e8f7e0328  # frozen: v0.0.49
   hooks:
   - id: ty
     additional_dependencies:
@@ -70,7 +70,7 @@ repos:
     - setuptools
     - tenacity
 - repo: https://github.com/mxr/sync-typing-deps
-  rev: 34b664ec01850e0d9cb4fe97c1a03d8ed71f393c  # frozen: v0.5.0
+  rev: 15d110e7034a52d6a141f23e436e31156d4f9959  # frozen: v0.5.2
   hooks:
   - id: sync-typing-deps
 - repo: https://github.com/zizmorcore/zizmor-pre-commit
