@@ -219,8 +219,11 @@ async def _context(
     progress = Progress(*_PROGRESS_COLUMNS, disable=quiet)
     lock_path = db.parent / f"{db.name}.lock"
     lock = fasteners.InterProcessLock(lock_path)
+    # ApiClient's constructor builds an SSL context (loads certs from disk),
+    # so build it off the event loop thread.
+    api_client = await asyncio.to_thread(ApiClient, configuration)
     async with (
-        ApiClient(configuration) as api_client,
+        api_client,
         aiosqlite.connect(db) as con,
     ):
         con.row_factory = aiosqlite.Row
