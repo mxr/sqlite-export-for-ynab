@@ -19,7 +19,7 @@ repos:
   - id: reorder-python-imports
     args: [--py312-plus, --add-import, from __future__ import annotations]
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: 77039ccbba72c8aede339c5f8ae29b42aced0a2e  # frozen: v0.15.18
+  rev: c59bba8fb259db0fec2bbb77ad8ba51ea7341b56  # frozen: v0.15.20
   hooks:
   - id: ruff-check
     args: [--fix]
@@ -54,7 +54,7 @@ repos:
     - tenacity
     language_version: python3.12
 - repo: https://github.com/mxr/mirrors-ty
-  rev: 5b10dad44c693b6b759f1060bf03ce699b9b903a  # frozen: v0.0.51
+  rev: 009c8adeffbab5aa73005612dd5a7fd9b825eee5  # frozen: v0.0.55
   hooks:
   - id: ty
     additional_dependencies:
