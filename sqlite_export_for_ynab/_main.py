@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from dataclasses import field
 from dataclasses import fields
 from datetime import date
+from datetime import timedelta
 from importlib import resources
 from importlib.metadata import version
 from itertools import batched
@@ -701,17 +702,18 @@ class _ProgressYnab:
                     plan_id=self.plan_id,
                     last_knowledge_of_server=last_knowledge_of_server,
                 )
-            return await self._get_transactions_by_year(first_month)
+            return await self._get_transactions_in_chunks(first_month)
         finally:
             self.context.progress.update(self.task_id, advance=1)
 
-    async def _get_transactions_by_year(
+    async def _get_transactions_in_chunks(
         self, first_month: date
     ) -> TransactionsResponse:
+        today = date.today()
         responses = await asyncio.gather(
             *(
-                self._get_transactions_for_year(year)
-                for year in range(first_month.year, date.today().year + 1)
+                self._get_transactions_for_chunk(since_date, until_date)
+                for since_date, until_date in _quarterly_chunks(first_month, today)
             )
         )
         transactions_by_id = {
@@ -729,12 +731,27 @@ class _ProgressYnab:
         )
 
     @retry(stop=stop_after_attempt(3))
-    async def _get_transactions_for_year(self, year: int) -> TransactionsResponse:
+    async def _get_transactions_for_chunk(
+        self, since_date: date, until_date: date
+    ) -> TransactionsResponse:
         return await self._transactions_api.get_transactions(
             plan_id=self.plan_id,
-            since_date=date(year, 1, 1),
-            until_date=date(year, 12, 31),
+            since_date=since_date,
+            until_date=until_date,
         )
+
+
+def _add_months(d: date, months: int) -> date:
+    month_index = d.month - 1 + months
+    return date(d.year + month_index // 12, month_index % 12 + 1, 1)
+
+
+def _quarterly_chunks(first_month: date, today: date) -> Iterator[tuple[date, date]]:
+    since_date = first_month
+    while since_date <= today:
+        until_date = min(_add_months(since_date, 3) - timedelta(days=1), today)
+        yield since_date, until_date
+        since_date = until_date + timedelta(days=1)
 
 
 def main(

@@ -22,6 +22,7 @@ from sqlite_export_for_ynab._main import _get_plan_summaries
 from sqlite_export_for_ynab._main import _PACKAGE
 from sqlite_export_for_ynab._main import _PROGRESS_COLUMNS
 from sqlite_export_for_ynab._main import _ProgressYnab
+from sqlite_export_for_ynab._main import _quarterly_chunks
 from sqlite_export_for_ynab._main import async_main
 from sqlite_export_for_ynab._main import asyncio_for_ynab
 from sqlite_export_for_ynab._main import contents
@@ -130,19 +131,54 @@ async def test_progress_ynab_get_transactions_uses_last_knowledge_of_server_when
     assert response.data.transactions == TRANSACTIONS
 
 
+@pytest.mark.parametrize(
+    ("first_month", "today", "expected_chunks"),
+    (
+        pytest.param(
+            date(2021, 4, 1),
+            date(2022, 1, 15),
+            [
+                (date(2021, 4, 1), date(2021, 6, 30)),
+                (date(2021, 7, 1), date(2021, 9, 30)),
+                (date(2021, 10, 1), date(2021, 12, 31)),
+                (date(2022, 1, 1), date(2022, 1, 15)),
+            ],
+            id="spans-multiple-quarters-with-partial-last-chunk",
+        ),
+        pytest.param(
+            date(2024, 1, 1),
+            date(2024, 1, 1),
+            [(date(2024, 1, 1), date(2024, 1, 1))],
+            id="single-day-range",
+        ),
+    ),
+)
+def test_quarterly_chunks(first_month, today, expected_chunks):
+    assert list(_quarterly_chunks(first_month, today)) == expected_chunks
+
+
 @pytest.mark.asyncio
-async def test_progress_ynab_get_transactions_chunks_by_year_when_full_refresh(context):
+async def test_progress_ynab_get_transactions_merges_chunk_responses(
+    context, monkeypatch
+):
     task_id = context.progress.add_task("Plan Data", total=1)
     py = _ProgressYnab(context, PLAN_ID_1, {}, task_id)
 
-    current_year = date.today().year
+    chunks = [
+        (date(2021, 1, 1), date(2021, 3, 31)),
+        (date(2021, 4, 1), date(2021, 6, 30)),
+    ]
+    monkeypatch.setattr(
+        "sqlite_export_for_ynab._main._quarterly_chunks",
+        lambda first_month, today: iter(chunks),
+    )
+
     old_transaction, new_transaction, _ = TRANSACTIONS
 
     def side_effect(*, plan_id, since_date, until_date):
         assert plan_id == PLAN_ID_1
-        assert since_date == date(since_date.year, 1, 1)
-        assert until_date == date(since_date.year, 12, 31)
-        if since_date.year == current_year - 1:
+        assert (since_date, until_date) in chunks
+        if since_date == chunks[0][0]:
             return transactions_response([old_transaction], SERVER_KNOWLEDGE_1)
         return transactions_response([new_transaction], SERVER_KNOWLEDGE_2)
 
@@ -150,7 +186,7 @@ async def test_progress_ynab_get_transactions_chunks_by_year_when_full_refresh(c
         "sqlite_export_for_ynab._main.TransactionsApi.get_transactions",
         new=AsyncMock(side_effect=side_effect),
     ):
-        response = await py.get_transactions(date(current_year - 1, 6, 1))
+        response = await py.get_transactions(date(2021, 1, 1))
 
     assert {t.id for t in response.data.transactions} == {
         old_transaction.id,
