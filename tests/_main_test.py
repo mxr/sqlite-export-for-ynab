@@ -131,27 +131,6 @@ async def test_progress_ynab_get_transactions_uses_last_knowledge_of_server_when
 
 
 @pytest.mark.asyncio
-async def test_progress_ynab_get_transactions_uses_single_call_when_no_first_month(
-    context,
-):
-    task_id = context.progress.add_task("Plan Data", total=1)
-    py = _ProgressYnab(context, PLAN_ID_1, {}, task_id)
-
-    with patch(
-        "sqlite_export_for_ynab._main.TransactionsApi.get_transactions",
-        new=AsyncMock(
-            return_value=transactions_response(TRANSACTIONS, SERVER_KNOWLEDGE_1)
-        ),
-    ) as get_transactions:
-        response = await py.get_transactions(None)
-
-    get_transactions.assert_awaited_once_with(
-        plan_id=PLAN_ID_1, last_knowledge_of_server=None
-    )
-    assert response.data.transactions == TRANSACTIONS
-
-
-@pytest.mark.asyncio
 async def test_progress_ynab_get_transactions_chunks_by_year_when_full_refresh(context):
     task_id = context.progress.add_task("Plan Data", total=1)
     py = _ProgressYnab(context, PLAN_ID_1, {}, task_id)

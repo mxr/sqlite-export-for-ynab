@@ -37,6 +37,7 @@ PLANS: list[PlanSummary] = [
     PlanSummary(
         id=UUID(PLAN_ID_1),
         name="Plan 1",
+        first_month=date.fromisoformat("2024-01-01"),
         currency_format=CurrencyFormat(
             currency_symbol="$",
             decimal_digits=2,
@@ -51,6 +52,7 @@ PLANS: list[PlanSummary] = [
     PlanSummary(
         id=UUID(PLAN_ID_2),
         name="Plan 2",
+        first_month=date.fromisoformat("2024-01-01"),
         currency_format=CurrencyFormat(
             currency_symbol="$",
             decimal_digits=2,

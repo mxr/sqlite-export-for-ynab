@@ -649,6 +649,7 @@ async def _get_plan_data(
     context: _Context, plan: PlanSummary, lkos: dict[str, int], task_id: TaskID
 ) -> tuple[str, _YnabPlanData]:
     plan_id = str(plan.id)
+    assert plan.first_month is not None
     py = _ProgressYnab(context, plan_id, lkos, task_id)
     accounts, categories, payees, transactions, scheduled = await asyncio.gather(
         py.get(AccountsApi(context.api_client).get_accounts),
@@ -687,10 +688,10 @@ class _ProgressYnab:
         finally:
             self.context.progress.update(self.task_id, advance=1)
 
-    async def get_transactions(self, first_month: date | None) -> TransactionsResponse:
+    async def get_transactions(self, first_month: date) -> TransactionsResponse:
         last_knowledge_of_server = self.lkos.get(self.plan_id)
         try:
-            if last_knowledge_of_server is not None or first_month is None:
+            if last_knowledge_of_server is not None:
                 return await TransactionsApi(self.context.api_client).get_transactions(
                     plan_id=self.plan_id,
                     last_knowledge_of_server=last_knowledge_of_server,
