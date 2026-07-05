@@ -44,7 +44,7 @@ repos:
     - aiohttp>=3
     - aiopathlib
     - aiosqlite
-    - asyncio-for-ynab~=1.84.0
+    - asyncio-for-ynab~=1.85.0
     - coverage
     - fasteners
     - pytest
@@ -61,7 +61,7 @@ repos:
     - aiohttp>=3
     - aiopathlib
     - aiosqlite
-    - asyncio-for-ynab~=1.84.0
+    - asyncio-for-ynab~=1.85.0
     - coverage
     - fasteners
     - pytest
