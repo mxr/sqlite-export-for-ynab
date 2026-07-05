@@ -6,6 +6,7 @@ import os
 from contextlib import asynccontextmanager
 from contextlib import contextmanager
 from dataclasses import dataclass
+from dataclasses import field
 from dataclasses import fields
 from datetime import date
 from importlib import resources
@@ -677,6 +678,10 @@ class _ProgressYnab:
     plan_id: str
     lkos: dict[str, int]
     task_id: TaskID
+    _transactions_api: TransactionsApi = field(init=False)
+
+    def __post_init__(self) -> None:
+        self._transactions_api = TransactionsApi(self.context.api_client)
 
     @retry(stop=stop_after_attempt(3))
     async def get[T](self, endpoint: Callable[..., Awaitable[T]]) -> T:
@@ -692,7 +697,7 @@ class _ProgressYnab:
         last_knowledge_of_server = self.lkos.get(self.plan_id)
         try:
             if last_knowledge_of_server is not None:
-                return await TransactionsApi(self.context.api_client).get_transactions(
+                return await self._transactions_api.get_transactions(
                     plan_id=self.plan_id,
                     last_knowledge_of_server=last_knowledge_of_server,
                 )
@@ -725,7 +730,7 @@ class _ProgressYnab:
 
     @retry(stop=stop_after_attempt(3))
     async def _get_transactions_for_year(self, year: int) -> TransactionsResponse:
-        return await TransactionsApi(self.context.api_client).get_transactions(
+        return await self._transactions_api.get_transactions(
             plan_id=self.plan_id,
             since_date=date(year, 1, 1),
             until_date=date(year, 12, 31),
