@@ -6,7 +6,6 @@ import os
 from contextlib import asynccontextmanager
 from contextlib import contextmanager
 from dataclasses import dataclass
-from dataclasses import field
 from dataclasses import fields
 from datetime import date
 from datetime import timedelta
@@ -657,7 +656,7 @@ async def _get_plan_data(
         py.get(AccountsApi(context.api_client).get_accounts),
         py.get(CategoriesApi(context.api_client).get_categories),
         py.get(PayeesApi(context.api_client).get_payees),
-        py.get_transactions(plan.first_month),
+        py.get_transactions(TransactionsApi(context.api_client), plan.first_month),
         py.get(ScheduledTransactionsApi(context.api_client).get_scheduled_transactions),
     )
     return (
@@ -679,10 +678,6 @@ class _ProgressYnab:
     plan_id: str
     lkos: dict[str, int]
     task_id: TaskID
-    _transactions_api: TransactionsApi = field(init=False)
-
-    def __post_init__(self) -> None:
-        self._transactions_api = TransactionsApi(self.context.api_client)
 
     @retry(stop=stop_after_attempt(3))
     async def get[T](self, endpoint: Callable[..., Awaitable[T]]) -> T:
@@ -694,36 +689,42 @@ class _ProgressYnab:
         finally:
             self.context.progress.update(self.task_id, advance=1)
 
-    async def get_transactions(self, first_month: date) -> TransactionsResponse:
+    async def get_transactions(
+        self, transactions_api: TransactionsApi, first_month: date
+    ) -> TransactionsResponse:
         last_knowledge_of_server = self.lkos.get(self.plan_id)
         try:
             if last_knowledge_of_server is not None:
-                return await self._transactions_api.get_transactions(
+                return await transactions_api.get_transactions(
                     plan_id=self.plan_id,
                     last_knowledge_of_server=last_knowledge_of_server,
                 )
-            return await self._get_transactions_in_chunks(first_month)
+            return await self._get_transactions_in_chunks(transactions_api, first_month)
         finally:
             self.context.progress.update(self.task_id, advance=1)
 
     async def _get_transactions_in_chunks(
-        self, first_month: date
+        self, transactions_api: TransactionsApi, first_month: date
     ) -> TransactionsResponse:
         today = date.today()
         responses = await asyncio.gather(
             *(
-                self._get_transactions_for_chunk(since_date, until_date)
+                self._get_transactions_for_chunk(
+                    transactions_api, since_date, until_date
+                )
                 for since_date, until_date in _quarterly_chunks(first_month, today)
             )
         )
-        transactions_by_id = {
-            transaction.id: transaction
+        transactions = [
+            transaction
             for response in responses
             for transaction in response.data.transactions
-        }
+        ]
+        ids = [transaction.id for transaction in transactions]
+        assert len(set(ids)) == len(ids)
         return TransactionsResponse(
             data=TransactionsResponseData(
-                transactions=list(transactions_by_id.values()),
+                transactions=transactions,
                 server_knowledge=max(
                     response.data.server_knowledge for response in responses
                 ),
@@ -732,9 +733,9 @@ class _ProgressYnab:
 
     @retry(stop=stop_after_attempt(3))
     async def _get_transactions_for_chunk(
-        self, since_date: date, until_date: date
+        self, transactions_api: TransactionsApi, since_date: date, until_date: date
     ) -> TransactionsResponse:
-        return await self._transactions_api.get_transactions(
+        return await transactions_api.get_transactions(
             plan_id=self.plan_id,
             since_date=since_date,
             until_date=until_date,

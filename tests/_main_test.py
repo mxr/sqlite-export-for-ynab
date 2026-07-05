@@ -125,8 +125,9 @@ async def test_progress_ynab_get_transactions_uses_last_knowledge_of_server_when
 ):
     task_id = context.progress.add_task("Plan Data", total=1)
     py = _ProgressYnab(context, PLAN_ID_1, LKOS, task_id)
+    transactions_api = asyncio_for_ynab.TransactionsApi(context.api_client)
 
-    response = await py.get_transactions(date(2020, 1, 1))
+    response = await py.get_transactions(transactions_api, date(2020, 1, 1))
 
     _LKO_TRANSACTIONS_MOCK.assert_awaited_once_with(
         plan_id=PLAN_ID_1, last_knowledge_of_server=LKOS[PLAN_ID_1]
@@ -187,8 +188,9 @@ def _chunk_merge_test_side_effect(*, plan_id, since_date, until_date):
 async def test_progress_ynab_get_transactions_merges_chunk_responses(context):
     task_id = context.progress.add_task("Plan Data", total=1)
     py = _ProgressYnab(context, PLAN_ID_1, {}, task_id)
+    transactions_api = asyncio_for_ynab.TransactionsApi(context.api_client)
 
-    response = await py.get_transactions(date(2021, 1, 1))
+    response = await py.get_transactions(transactions_api, date(2021, 1, 1))
 
     old_transaction, new_transaction, _ = TRANSACTIONS
     assert {t.id for t in response.data.transactions} == {
@@ -196,6 +198,11 @@ async def test_progress_ynab_get_transactions_merges_chunk_responses(context):
         new_transaction.id,
     }
     assert response.data.server_knowledge == SERVER_KNOWLEDGE_2
+
+
+def _transactions_in_range_side_effect(*, plan_id, since_date, until_date):
+    matching = [t for t in TRANSACTIONS if since_date <= t.var_date <= until_date]
+    return transactions_response(matching, SERVER_KNOWLEDGE_1)
 
 
 @pytest.mark.parametrize(
@@ -1201,7 +1208,7 @@ async def test_sync_no_data_quiet(tmp_path, capsys):
 )
 @patch(
     "sqlite_export_for_ynab._main.TransactionsApi.get_transactions",
-    new=AsyncMock(return_value=transactions_response(TRANSACTIONS, SERVER_KNOWLEDGE_1)),
+    new=AsyncMock(side_effect=_transactions_in_range_side_effect),
 )
 @patch(
     "sqlite_export_for_ynab._main.ScheduledTransactionsApi.get_scheduled_transactions",
