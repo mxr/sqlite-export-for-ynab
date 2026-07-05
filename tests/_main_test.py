@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import tomllib
+from datetime import date
 from pathlib import Path
 from unittest.mock import AsyncMock
 from unittest.mock import Mock
@@ -20,6 +21,7 @@ from sqlite_export_for_ynab._main import _ENV_TOKEN
 from sqlite_export_for_ynab._main import _get_plan_summaries
 from sqlite_export_for_ynab._main import _PACKAGE
 from sqlite_export_for_ynab._main import _PROGRESS_COLUMNS
+from sqlite_export_for_ynab._main import _ProgressYnab
 from sqlite_export_for_ynab._main import async_main
 from sqlite_export_for_ynab._main import asyncio_for_ynab
 from sqlite_export_for_ynab._main import contents
@@ -71,6 +73,7 @@ from testing.fixtures import SCHEDULED_TRANSACTION_ID_3
 from testing.fixtures import SCHEDULED_TRANSACTIONS
 from testing.fixtures import scheduled_transactions_response
 from testing.fixtures import SERVER_KNOWLEDGE_1
+from testing.fixtures import SERVER_KNOWLEDGE_2
 from testing.fixtures import SUBTRANSACTION_ID_1
 from testing.fixtures import SUBTRANSACTION_ID_2
 from testing.fixtures import TOKEN
@@ -104,6 +107,77 @@ async def context(tmp_path):
                 tmp_path / "sqlite-export-for-ynab-test.lock"
             )
             yield _Context(progress, con, lock, Mock(spec=asyncio_for_ynab.ApiClient))
+
+
+@pytest.mark.asyncio
+async def test_progress_ynab_get_transactions_uses_last_knowledge_of_server_when_present(
+    context,
+):
+    task_id = context.progress.add_task("Plan Data", total=1)
+    py = _ProgressYnab(context, PLAN_ID_1, LKOS, task_id)
+
+    with patch(
+        "sqlite_export_for_ynab._main.TransactionsApi.get_transactions",
+        new=AsyncMock(
+            return_value=transactions_response(TRANSACTIONS, SERVER_KNOWLEDGE_1)
+        ),
+    ) as get_transactions:
+        response = await py.get_transactions(date(2020, 1, 1))
+
+    get_transactions.assert_awaited_once_with(
+        plan_id=PLAN_ID_1, last_knowledge_of_server=LKOS[PLAN_ID_1]
+    )
+    assert response.data.transactions == TRANSACTIONS
+
+
+@pytest.mark.asyncio
+async def test_progress_ynab_get_transactions_uses_single_call_when_no_first_month(
+    context,
+):
+    task_id = context.progress.add_task("Plan Data", total=1)
+    py = _ProgressYnab(context, PLAN_ID_1, {}, task_id)
+
+    with patch(
+        "sqlite_export_for_ynab._main.TransactionsApi.get_transactions",
+        new=AsyncMock(
+            return_value=transactions_response(TRANSACTIONS, SERVER_KNOWLEDGE_1)
+        ),
+    ) as get_transactions:
+        response = await py.get_transactions(None)
+
+    get_transactions.assert_awaited_once_with(
+        plan_id=PLAN_ID_1, last_knowledge_of_server=None
+    )
+    assert response.data.transactions == TRANSACTIONS
+
+
+@pytest.mark.asyncio
+async def test_progress_ynab_get_transactions_chunks_by_year_when_full_refresh(context):
+    task_id = context.progress.add_task("Plan Data", total=1)
+    py = _ProgressYnab(context, PLAN_ID_1, {}, task_id)
+
+    current_year = date.today().year
+    old_transaction, new_transaction, _ = TRANSACTIONS
+
+    def side_effect(*, plan_id, since_date, until_date):
+        assert plan_id == PLAN_ID_1
+        assert since_date == date(since_date.year, 1, 1)
+        assert until_date == date(since_date.year, 12, 31)
+        if since_date.year == current_year - 1:
+            return transactions_response([old_transaction], SERVER_KNOWLEDGE_1)
+        return transactions_response([new_transaction], SERVER_KNOWLEDGE_2)
+
+    with patch(
+        "sqlite_export_for_ynab._main.TransactionsApi.get_transactions",
+        new=AsyncMock(side_effect=side_effect),
+    ):
+        response = await py.get_transactions(date(current_year - 1, 6, 1))
+
+    assert {t.id for t in response.data.transactions} == {
+        old_transaction.id,
+        new_transaction.id,
+    }
+    assert response.data.server_knowledge == SERVER_KNOWLEDGE_2
 
 
 @pytest.mark.parametrize(

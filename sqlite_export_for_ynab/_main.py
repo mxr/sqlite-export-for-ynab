@@ -7,6 +7,7 @@ from contextlib import asynccontextmanager
 from contextlib import contextmanager
 from dataclasses import dataclass
 from dataclasses import fields
+from datetime import date
 from importlib import resources
 from importlib.metadata import version
 from itertools import batched
@@ -35,6 +36,8 @@ from asyncio_for_ynab import ScheduledTransactionDetail
 from asyncio_for_ynab import ScheduledTransactionsApi
 from asyncio_for_ynab import TransactionDetail
 from asyncio_for_ynab import TransactionsApi
+from asyncio_for_ynab import TransactionsResponse
+from asyncio_for_ynab import TransactionsResponseData
 from rich.progress import BarColumn
 from rich.progress import Progress
 from rich.progress import TaskID
@@ -651,7 +654,7 @@ async def _get_plan_data(
         py.get(AccountsApi(context.api_client).get_accounts),
         py.get(CategoriesApi(context.api_client).get_categories),
         py.get(PayeesApi(context.api_client).get_payees),
-        py.get(TransactionsApi(context.api_client).get_transactions),
+        py.get_transactions(plan.first_month),
         py.get(ScheduledTransactionsApi(context.api_client).get_scheduled_transactions),
     )
     return (
@@ -683,6 +686,49 @@ class _ProgressYnab:
             )
         finally:
             self.context.progress.update(self.task_id, advance=1)
+
+    async def get_transactions(self, first_month: date | None) -> TransactionsResponse:
+        last_knowledge_of_server = self.lkos.get(self.plan_id)
+        try:
+            if last_knowledge_of_server is not None or first_month is None:
+                return await TransactionsApi(self.context.api_client).get_transactions(
+                    plan_id=self.plan_id,
+                    last_knowledge_of_server=last_knowledge_of_server,
+                )
+            return await self._get_transactions_by_year(first_month)
+        finally:
+            self.context.progress.update(self.task_id, advance=1)
+
+    async def _get_transactions_by_year(
+        self, first_month: date
+    ) -> TransactionsResponse:
+        responses = await asyncio.gather(
+            *(
+                self._get_transactions_for_year(year)
+                for year in range(first_month.year, date.today().year + 1)
+            )
+        )
+        transactions_by_id = {
+            transaction.id: transaction
+            for response in responses
+            for transaction in response.data.transactions
+        }
+        return TransactionsResponse(
+            data=TransactionsResponseData(
+                transactions=list(transactions_by_id.values()),
+                server_knowledge=max(
+                    response.data.server_knowledge for response in responses
+                ),
+            )
+        )
+
+    @retry(stop=stop_after_attempt(3))
+    async def _get_transactions_for_year(self, year: int) -> TransactionsResponse:
+        return await TransactionsApi(self.context.api_client).get_transactions(
+            plan_id=self.plan_id,
+            since_date=date(year, 1, 1),
+            until_date=date(year, 12, 31),
+        )
 
 
 def main(
