@@ -158,9 +158,7 @@ def test_quarterly_chunks(first_month, today, expected_chunks):
 
 
 @pytest.mark.asyncio
-async def test_progress_ynab_get_transactions_merges_chunk_responses(
-    context, monkeypatch
-):
+async def test_progress_ynab_get_transactions_merges_chunk_responses(context):
     task_id = context.progress.add_task("Plan Data", total=1)
     py = _ProgressYnab(context, PLAN_ID_1, {}, task_id)
 
@@ -168,10 +166,6 @@ async def test_progress_ynab_get_transactions_merges_chunk_responses(
         (date(2021, 1, 1), date(2021, 3, 31)),
         (date(2021, 4, 1), date(2021, 6, 30)),
     ]
-    monkeypatch.setattr(
-        "sqlite_export_for_ynab._main._quarterly_chunks",
-        lambda first_month, today: iter(chunks),
-    )
 
     old_transaction, new_transaction, _ = TRANSACTIONS
 
@@ -182,9 +176,15 @@ async def test_progress_ynab_get_transactions_merges_chunk_responses(
             return transactions_response([old_transaction], SERVER_KNOWLEDGE_1)
         return transactions_response([new_transaction], SERVER_KNOWLEDGE_2)
 
-    with patch(
-        "sqlite_export_for_ynab._main.TransactionsApi.get_transactions",
-        new=AsyncMock(side_effect=side_effect),
+    with (
+        patch(
+            "sqlite_export_for_ynab._main._quarterly_chunks",
+            return_value=iter(chunks),
+        ),
+        patch(
+            "sqlite_export_for_ynab._main.TransactionsApi.get_transactions",
+            new=AsyncMock(side_effect=side_effect),
+        ),
     ):
         response = await py.get_transactions(date(2021, 1, 1))
 
