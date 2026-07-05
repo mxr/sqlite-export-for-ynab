@@ -110,6 +110,15 @@ async def context(tmp_path):
             yield _Context(progress, con, lock, Mock(spec=asyncio_for_ynab.ApiClient))
 
 
+_LKO_TRANSACTIONS_MOCK = AsyncMock(
+    return_value=transactions_response(TRANSACTIONS, SERVER_KNOWLEDGE_1)
+)
+
+
+@patch(
+    "sqlite_export_for_ynab._main.TransactionsApi.get_transactions",
+    new=_LKO_TRANSACTIONS_MOCK,
+)
 @pytest.mark.asyncio
 async def test_progress_ynab_get_transactions_uses_last_knowledge_of_server_when_present(
     context,
@@ -117,15 +126,9 @@ async def test_progress_ynab_get_transactions_uses_last_knowledge_of_server_when
     task_id = context.progress.add_task("Plan Data", total=1)
     py = _ProgressYnab(context, PLAN_ID_1, LKOS, task_id)
 
-    with patch(
-        "sqlite_export_for_ynab._main.TransactionsApi.get_transactions",
-        new=AsyncMock(
-            return_value=transactions_response(TRANSACTIONS, SERVER_KNOWLEDGE_1)
-        ),
-    ) as get_transactions:
-        response = await py.get_transactions(date(2020, 1, 1))
+    response = await py.get_transactions(date(2020, 1, 1))
 
-    get_transactions.assert_awaited_once_with(
+    _LKO_TRANSACTIONS_MOCK.assert_awaited_once_with(
         plan_id=PLAN_ID_1, last_knowledge_of_server=LKOS[PLAN_ID_1]
     )
     assert response.data.transactions == TRANSACTIONS
@@ -157,37 +160,37 @@ def test_quarterly_chunks(first_month, today, expected_chunks):
     assert list(_quarterly_chunks(first_month, today)) == expected_chunks
 
 
+_CHUNK_MERGE_TEST_CHUNKS = [
+    (date(2021, 1, 1), date(2021, 3, 31)),
+    (date(2021, 4, 1), date(2021, 6, 30)),
+]
+
+
+def _chunk_merge_test_side_effect(*, plan_id, since_date, until_date):
+    assert plan_id == PLAN_ID_1
+    assert (since_date, until_date) in _CHUNK_MERGE_TEST_CHUNKS
+    old_transaction, new_transaction, _ = TRANSACTIONS
+    if since_date == _CHUNK_MERGE_TEST_CHUNKS[0][0]:
+        return transactions_response([old_transaction], SERVER_KNOWLEDGE_1)
+    return transactions_response([new_transaction], SERVER_KNOWLEDGE_2)
+
+
+@patch(
+    "sqlite_export_for_ynab._main._quarterly_chunks",
+    new=Mock(return_value=iter(_CHUNK_MERGE_TEST_CHUNKS)),
+)
+@patch(
+    "sqlite_export_for_ynab._main.TransactionsApi.get_transactions",
+    new=AsyncMock(side_effect=_chunk_merge_test_side_effect),
+)
 @pytest.mark.asyncio
 async def test_progress_ynab_get_transactions_merges_chunk_responses(context):
     task_id = context.progress.add_task("Plan Data", total=1)
     py = _ProgressYnab(context, PLAN_ID_1, {}, task_id)
 
-    chunks = [
-        (date(2021, 1, 1), date(2021, 3, 31)),
-        (date(2021, 4, 1), date(2021, 6, 30)),
-    ]
+    response = await py.get_transactions(date(2021, 1, 1))
 
     old_transaction, new_transaction, _ = TRANSACTIONS
-
-    def side_effect(*, plan_id, since_date, until_date):
-        assert plan_id == PLAN_ID_1
-        assert (since_date, until_date) in chunks
-        if since_date == chunks[0][0]:
-            return transactions_response([old_transaction], SERVER_KNOWLEDGE_1)
-        return transactions_response([new_transaction], SERVER_KNOWLEDGE_2)
-
-    with (
-        patch(
-            "sqlite_export_for_ynab._main._quarterly_chunks",
-            return_value=iter(chunks),
-        ),
-        patch(
-            "sqlite_export_for_ynab._main.TransactionsApi.get_transactions",
-            new=AsyncMock(side_effect=side_effect),
-        ),
-    ):
-        response = await py.get_transactions(date(2021, 1, 1))
-
     assert {t.id for t in response.data.transactions} == {
         old_transaction.id,
         new_transaction.id,
