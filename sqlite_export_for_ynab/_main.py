@@ -721,7 +721,7 @@ class _ProgressYnab:
             for transaction in response.data.transactions
         ]
         ids = [transaction.id for transaction in transactions]
-        assert len(set(ids)) == len(ids)
+        assert len(set(ids)) == len(ids)  # paranoid check for no overlap across chunks
         return TransactionsResponse(
             data=TransactionsResponseData(
                 transactions=transactions,
