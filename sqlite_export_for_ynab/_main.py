@@ -716,23 +716,17 @@ class ChunkedTransactionsApi:
         today = date.today()
         responses = await asyncio.gather(
             *(
-                self._chunk(transactions_api, plan_id, since_date, until_date)
-                for since_date, until_date in _quarterly(self.first_month, today)
+                self._chunk(transactions_api, plan_id, sd, ud)
+                for sd, ud in _quarterly(self.first_month, today)
             )
         )
-        transactions = [
-            transaction
-            for response in responses
-            for transaction in response.data.transactions
-        ]
-        ids = [transaction.id for transaction in transactions]
+        transactions = [t for r in responses for t in r.data.transactions]
+        ids = [t.id for t in transactions]
         assert len(set(ids)) == len(ids)  # paranoid check for no overlap across chunks
         return TransactionsResponse(
             data=TransactionsResponseData(
                 transactions=transactions,
-                server_knowledge=max(
-                    response.data.server_knowledge for response in responses
-                ),
+                server_knowledge=max(r.data.server_knowledge for r in responses),
             )
         )
 
@@ -741,13 +735,13 @@ class ChunkedTransactionsApi:
         self,
         transactions_api: TransactionsApi,
         plan_id: str,
-        since_date: date,
-        until_date: date,
+        sd: date,
+        ud: date,
     ) -> TransactionsResponse:
         return await transactions_api.get_transactions(
             plan_id=plan_id,
-            since_date=since_date,
-            until_date=until_date,
+            since_date=sd,
+            until_date=ud,
         )
 
 
