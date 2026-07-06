@@ -295,9 +295,7 @@ async def sync(
                 "Plan Data", total=len(plans) * len(_ENDPOINTS)
             )
 
-            all_data = await _get_all_ynab(
-                context, [str(plan.id) for plan in plans], lkos, task
-            )
+            all_data = await _get_all_ynab(context, plans, lkos, task)
 
         _print("Done", quiet=quiet)
 
@@ -635,18 +633,19 @@ async def _get_plan_summaries(api_client: ApiClient) -> list[PlanSummary]:
 
 
 async def _get_all_ynab(
-    context: _Context, plan_ids: list[str], lkos: dict[str, int], task_id: TaskID
+    context: _Context, plans: list[PlanSummary], lkos: dict[str, int], task_id: TaskID
 ) -> dict[str, _YnabPlanData]:
     return dict(
         await asyncio.gather(
-            *(_get_plan_data(context, plan_id, lkos, task_id) for plan_id in plan_ids)
+            *(_get_plan_data(context, plan, lkos, task_id) for plan in plans)
         )
     )
 
 
 async def _get_plan_data(
-    context: _Context, plan_id: str, lkos: dict[str, int], task_id: TaskID
+    context: _Context, plan: PlanSummary, lkos: dict[str, int], task_id: TaskID
 ) -> tuple[str, _YnabPlanData]:
+    plan_id = str(plan.id)
     py = _ProgressYnab(context, plan_id, lkos, task_id)
     accounts, categories, payees, transactions, scheduled = await asyncio.gather(
         py.get(AccountsApi(context.api_client).get_accounts),
