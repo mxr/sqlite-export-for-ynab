@@ -21,7 +21,7 @@ from sqlite_export_for_ynab._main import _ENV_TOKEN
 from sqlite_export_for_ynab._main import _get_plan_summaries
 from sqlite_export_for_ynab._main import _PACKAGE
 from sqlite_export_for_ynab._main import _PROGRESS_COLUMNS
-from sqlite_export_for_ynab._main import _quarterly_chunks
+from sqlite_export_for_ynab._main import _quarterly
 from sqlite_export_for_ynab._main import async_main
 from sqlite_export_for_ynab._main import asyncio_for_ynab
 from sqlite_export_for_ynab._main import ChunkedTransactionsApi
@@ -155,8 +155,8 @@ async def test_chunked_transactions_api_uses_last_knowledge_of_server_when_prese
         ),
     ),
 )
-def test_quarterly_chunks(first_month, today, expected_chunks):
-    assert list(_quarterly_chunks(first_month, today)) == expected_chunks
+def test_quarterly(first_month, today, expected_chunks):
+    assert list(_quarterly(first_month, today)) == expected_chunks
 
 
 def _chunk_merge_test_side_effect(*, plan_id, since_date, until_date):
@@ -168,7 +168,7 @@ def _chunk_merge_test_side_effect(*, plan_id, since_date, until_date):
     return transactions_response([new_transaction], SERVER_KNOWLEDGE_2)
 
 
-@patch("sqlite_export_for_ynab._main._quarterly_chunks")
+@patch("sqlite_export_for_ynab._main._quarterly")
 @patch("sqlite_export_for_ynab._main.TransactionsApi.get_transactions")
 @pytest.mark.asyncio
 async def test_chunked_transactions_api_merges_chunk_responses(

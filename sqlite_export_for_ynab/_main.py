@@ -708,18 +708,16 @@ class ChunkedTransactionsApi:
                 plan_id=plan_id,
                 last_knowledge_of_server=last_knowledge_of_server,
             )
-        return await self._get_all_transactions(transactions_api, plan_id)
+        return await self._get(transactions_api, plan_id)
 
-    async def _get_all_transactions(
+    async def _get(
         self, transactions_api: TransactionsApi, plan_id: str
     ) -> TransactionsResponse:
         today = date.today()
         responses = await asyncio.gather(
             *(
-                self._get_transactions(
-                    transactions_api, plan_id, since_date, until_date
-                )
-                for since_date, until_date in _quarterly_chunks(self.first_month, today)
+                self._chunk(transactions_api, plan_id, since_date, until_date)
+                for since_date, until_date in _quarterly(self.first_month, today)
             )
         )
         transactions = [
@@ -739,7 +737,7 @@ class ChunkedTransactionsApi:
         )
 
     @retry(stop=stop_after_attempt(3))
-    async def _get_transactions(
+    async def _chunk(
         self,
         transactions_api: TransactionsApi,
         plan_id: str,
@@ -758,7 +756,7 @@ def _add_months(d: date, months: int) -> date:
     return date(d.year + month_index // 12, month_index % 12 + 1, 1)
 
 
-def _quarterly_chunks(first_month: date, today: date) -> Iterator[tuple[date, date]]:
+def _quarterly(first_month: date, today: date) -> Iterator[tuple[date, date]]:
     since_date = first_month
     while since_date <= today:
         until_date = min(_add_months(since_date, 3) - timedelta(days=1), today)
