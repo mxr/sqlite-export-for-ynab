@@ -69,6 +69,11 @@ PLANS: list[PlanSummary] = [
 SERVER_KNOWLEDGE_1 = 107667
 SERVER_KNOWLEDGE_2 = 107668
 
+TRANSACTION_CHUNKS = [
+    (date(2021, 1, 1), date(2021, 3, 31)),
+    (date(2021, 4, 1), date(2021, 6, 30)),
+]
+
 LKOS = {
     PLAN_ID_1: SERVER_KNOWLEDGE_1,
     PLAN_ID_2: SERVER_KNOWLEDGE_2,
