@@ -699,19 +699,17 @@ class _ProgressYnab:
                     plan_id=self.plan_id,
                     last_knowledge_of_server=last_knowledge_of_server,
                 )
-            return await self._get_transactions_in_chunks(transactions_api, first_month)
+            return await self._get_all_transactions(transactions_api, first_month)
         finally:
             self.context.progress.update(self.task_id, advance=1)
 
-    async def _get_transactions_in_chunks(
+    async def _get_all_transactions(
         self, transactions_api: TransactionsApi, first_month: date
     ) -> TransactionsResponse:
         today = date.today()
         responses = await asyncio.gather(
             *(
-                self._get_transactions_for_chunk(
-                    transactions_api, since_date, until_date
-                )
+                self._get_transactions(transactions_api, since_date, until_date)
                 for since_date, until_date in _quarterly_chunks(first_month, today)
             )
         )
@@ -732,7 +730,7 @@ class _ProgressYnab:
         )
 
     @retry(stop=stop_after_attempt(3))
-    async def _get_transactions_for_chunk(
+    async def _get_transactions(
         self, transactions_api: TransactionsApi, since_date: date, until_date: date
     ) -> TransactionsResponse:
         return await transactions_api.get_transactions(
