@@ -188,11 +188,6 @@ async def test_progress_ynab_get_transactions_merges_chunk_responses(
     assert response.data.server_knowledge == SERVER_KNOWLEDGE_2
 
 
-def _transactions_in_range_side_effect(*, plan_id, since_date, until_date):
-    matching = [t for t in TRANSACTIONS if since_date <= t.var_date <= until_date]
-    return transactions_response(matching, SERVER_KNOWLEDGE_1)
-
-
 @pytest.mark.parametrize(
     ("xdg_data_home", "expected_prefix"),
     (
@@ -1196,7 +1191,12 @@ async def test_sync_no_data_quiet(tmp_path, capsys):
 )
 @patch(
     "sqlite_export_for_ynab._main.TransactionsApi.get_transactions",
-    new=AsyncMock(side_effect=_transactions_in_range_side_effect),
+    new=AsyncMock(
+        side_effect=lambda *, plan_id, since_date, until_date: transactions_response(
+            [t for t in TRANSACTIONS if since_date <= t.var_date <= until_date],
+            SERVER_KNOWLEDGE_1,
+        )
+    ),
 )
 @patch(
     "sqlite_export_for_ynab._main.ScheduledTransactionsApi.get_scheduled_transactions",
