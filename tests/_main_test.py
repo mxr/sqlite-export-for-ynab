@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import tomllib
+from datetime import date
 from pathlib import Path
 from unittest.mock import AsyncMock
 from unittest.mock import Mock
@@ -20,8 +21,10 @@ from sqlite_export_for_ynab._main import _ENV_TOKEN
 from sqlite_export_for_ynab._main import _get_plan_summaries
 from sqlite_export_for_ynab._main import _PACKAGE
 from sqlite_export_for_ynab._main import _PROGRESS_COLUMNS
+from sqlite_export_for_ynab._main import _quarterly
 from sqlite_export_for_ynab._main import async_main
 from sqlite_export_for_ynab._main import asyncio_for_ynab
+from sqlite_export_for_ynab._main import ChunkedTransactionsApi
 from sqlite_export_for_ynab._main import contents
 from sqlite_export_for_ynab._main import get_last_knowledge_of_server
 from sqlite_export_for_ynab._main import get_relations
@@ -71,9 +74,11 @@ from testing.fixtures import SCHEDULED_TRANSACTION_ID_3
 from testing.fixtures import SCHEDULED_TRANSACTIONS
 from testing.fixtures import scheduled_transactions_response
 from testing.fixtures import SERVER_KNOWLEDGE_1
+from testing.fixtures import SERVER_KNOWLEDGE_2
 from testing.fixtures import SUBTRANSACTION_ID_1
 from testing.fixtures import SUBTRANSACTION_ID_2
 from testing.fixtures import TOKEN
+from testing.fixtures import TRANSACTION_CHUNKS
 from testing.fixtures import TRANSACTION_ID_1
 from testing.fixtures import TRANSACTION_ID_2
 from testing.fixtures import TRANSACTION_ID_3
@@ -104,6 +109,87 @@ async def context(tmp_path):
                 tmp_path / "sqlite-export-for-ynab-test.lock"
             )
             yield _Context(progress, con, lock, Mock(spec=asyncio_for_ynab.ApiClient))
+
+
+@patch("sqlite_export_for_ynab._main.TransactionsApi.get_transactions")
+@pytest.mark.asyncio
+async def test_chunked_transactions_api_uses_last_knowledge_of_server_when_present(
+    get_transactions, context
+):
+    get_transactions.return_value = transactions_response(
+        TRANSACTIONS, SERVER_KNOWLEDGE_1
+    )
+    chunked_transactions_api = ChunkedTransactionsApi(
+        context.api_client, date(2020, 1, 1)
+    )
+
+    response = await chunked_transactions_api.get_transactions(
+        plan_id=PLAN_ID_1, last_knowledge_of_server=LKOS[PLAN_ID_1]
+    )
+
+    get_transactions.assert_awaited_once_with(
+        plan_id=PLAN_ID_1, last_knowledge_of_server=LKOS[PLAN_ID_1]
+    )
+    assert response.data.transactions == TRANSACTIONS
+
+
+@pytest.mark.parametrize(
+    ("first_month", "today", "expected_chunks"),
+    (
+        pytest.param(
+            date(2021, 4, 1),
+            date(2022, 1, 15),
+            [
+                (date(2021, 4, 1), date(2021, 6, 30)),
+                (date(2021, 7, 1), date(2021, 9, 30)),
+                (date(2021, 10, 1), date(2021, 12, 31)),
+                (date(2022, 1, 1), date(2022, 1, 15)),
+            ],
+            id="spans-multiple-quarters-with-partial-last-chunk",
+        ),
+        pytest.param(
+            date(2024, 1, 1),
+            date(2024, 1, 1),
+            [(date(2024, 1, 1), date(2024, 1, 1))],
+            id="single-day-range",
+        ),
+    ),
+)
+def test_quarterly(first_month, today, expected_chunks):
+    assert list(_quarterly(first_month, today)) == expected_chunks
+
+
+def _chunk_merge_test_side_effect(*, plan_id, since_date, until_date):
+    assert plan_id == PLAN_ID_1
+    assert (since_date, until_date) in TRANSACTION_CHUNKS
+    old_transaction, new_transaction, _ = TRANSACTIONS
+    if since_date == TRANSACTION_CHUNKS[0][0]:
+        return transactions_response([old_transaction], SERVER_KNOWLEDGE_1)
+    return transactions_response([new_transaction], SERVER_KNOWLEDGE_2)
+
+
+@patch("sqlite_export_for_ynab._main._quarterly")
+@patch("sqlite_export_for_ynab._main.TransactionsApi.get_transactions")
+@pytest.mark.asyncio
+async def test_chunked_transactions_api_merges_chunk_responses(
+    get_transactions, quarterly_chunks, context
+):
+    get_transactions.side_effect = _chunk_merge_test_side_effect
+    quarterly_chunks.return_value = iter(TRANSACTION_CHUNKS)
+    chunked_transactions_api = ChunkedTransactionsApi(
+        context.api_client, date(2021, 1, 1)
+    )
+
+    response = await chunked_transactions_api.get_transactions(
+        plan_id=PLAN_ID_1, last_knowledge_of_server=None
+    )
+
+    old_transaction, new_transaction, _ = TRANSACTIONS
+    assert {t.id for t in response.data.transactions} == {
+        old_transaction.id,
+        new_transaction.id,
+    }
+    assert response.data.server_knowledge == SERVER_KNOWLEDGE_2
 
 
 @pytest.mark.parametrize(
@@ -1109,7 +1195,12 @@ async def test_sync_no_data_quiet(tmp_path, capsys):
 )
 @patch(
     "sqlite_export_for_ynab._main.TransactionsApi.get_transactions",
-    new=AsyncMock(return_value=transactions_response(TRANSACTIONS, SERVER_KNOWLEDGE_1)),
+    new=AsyncMock(
+        side_effect=lambda *, plan_id, since_date, until_date: transactions_response(
+            [t for t in TRANSACTIONS if since_date <= t.var_date <= until_date],
+            SERVER_KNOWLEDGE_1,
+        )
+    ),
 )
 @patch(
     "sqlite_export_for_ynab._main.ScheduledTransactionsApi.get_scheduled_transactions",

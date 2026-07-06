@@ -37,6 +37,7 @@ PLANS: list[PlanSummary] = [
     PlanSummary(
         id=UUID(PLAN_ID_1),
         name="Plan 1",
+        first_month=date.fromisoformat("2024-01-01"),
         currency_format=CurrencyFormat(
             currency_symbol="$",
             decimal_digits=2,
@@ -51,6 +52,7 @@ PLANS: list[PlanSummary] = [
     PlanSummary(
         id=UUID(PLAN_ID_2),
         name="Plan 2",
+        first_month=date.fromisoformat("2024-01-01"),
         currency_format=CurrencyFormat(
             currency_symbol="$",
             decimal_digits=2,
@@ -66,6 +68,11 @@ PLANS: list[PlanSummary] = [
 
 SERVER_KNOWLEDGE_1 = 107667
 SERVER_KNOWLEDGE_2 = 107668
+
+TRANSACTION_CHUNKS = [
+    (date(2021, 1, 1), date(2021, 3, 31)),
+    (date(2021, 4, 1), date(2021, 6, 30)),
+]
 
 LKOS = {
     PLAN_ID_1: SERVER_KNOWLEDGE_1,

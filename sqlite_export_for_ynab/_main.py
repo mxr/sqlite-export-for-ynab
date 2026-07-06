@@ -7,6 +7,8 @@ from contextlib import asynccontextmanager
 from contextlib import contextmanager
 from dataclasses import dataclass
 from dataclasses import fields
+from datetime import date
+from datetime import timedelta
 from importlib import resources
 from importlib.metadata import version
 from itertools import batched
@@ -35,6 +37,8 @@ from asyncio_for_ynab import ScheduledTransactionDetail
 from asyncio_for_ynab import ScheduledTransactionsApi
 from asyncio_for_ynab import TransactionDetail
 from asyncio_for_ynab import TransactionsApi
+from asyncio_for_ynab import TransactionsResponse
+from asyncio_for_ynab import TransactionsResponseData
 from rich.progress import BarColumn
 from rich.progress import Progress
 from rich.progress import TaskID
@@ -646,12 +650,17 @@ async def _get_plan_data(
     context: _Context, plan: PlanSummary, lkos: dict[str, int], task_id: TaskID
 ) -> tuple[str, _YnabPlanData]:
     plan_id = str(plan.id)
+    assert plan.first_month is not None
     py = _ProgressYnab(context, plan_id, lkos, task_id)
     accounts, categories, payees, transactions, scheduled = await asyncio.gather(
         py.get(AccountsApi(context.api_client).get_accounts),
         py.get(CategoriesApi(context.api_client).get_categories),
         py.get(PayeesApi(context.api_client).get_payees),
-        py.get(TransactionsApi(context.api_client).get_transactions),
+        py.get(
+            ChunkedTransactionsApi(
+                context.api_client, plan.first_month
+            ).get_transactions
+        ),
         py.get(ScheduledTransactionsApi(context.api_client).get_scheduled_transactions),
     )
     return (
@@ -683,6 +692,70 @@ class _ProgressYnab:
             )
         finally:
             self.context.progress.update(self.task_id, advance=1)
+
+
+@dataclass(slots=True, frozen=True)
+class ChunkedTransactionsApi:
+    api_client: ApiClient
+    first_month: date
+
+    async def get_transactions(
+        self, *, plan_id: str, last_knowledge_of_server: int | None
+    ) -> TransactionsResponse:
+        transactions_api = TransactionsApi(self.api_client)
+        if last_knowledge_of_server is not None:
+            return await transactions_api.get_transactions(
+                plan_id=plan_id,
+                last_knowledge_of_server=last_knowledge_of_server,
+            )
+        return await self._get(transactions_api, plan_id)
+
+    async def _get(
+        self, transactions_api: TransactionsApi, plan_id: str
+    ) -> TransactionsResponse:
+        today = date.today()
+        responses = await asyncio.gather(
+            *(
+                self._chunk(transactions_api, plan_id, sd, ud)
+                for sd, ud in _quarterly(self.first_month, today)
+            )
+        )
+        transactions = [t for r in responses for t in r.data.transactions]
+        ids = [t.id for t in transactions]
+        assert len(set(ids)) == len(ids)  # paranoid check for no overlap across chunks
+        return TransactionsResponse(
+            data=TransactionsResponseData(
+                transactions=transactions,
+                server_knowledge=max(r.data.server_knowledge for r in responses),
+            )
+        )
+
+    @retry(stop=stop_after_attempt(3))
+    async def _chunk(
+        self,
+        transactions_api: TransactionsApi,
+        plan_id: str,
+        since_date: date,
+        until_date: date,
+    ) -> TransactionsResponse:
+        return await transactions_api.get_transactions(
+            plan_id=plan_id,
+            since_date=since_date,
+            until_date=until_date,
+        )
+
+
+def _add_months(d: date, months: int) -> date:
+    month_index = d.month - 1 + months
+    return date(d.year + month_index // 12, month_index % 12 + 1, 1)
+
+
+def _quarterly(first_month: date, today: date) -> Iterator[tuple[date, date]]:
+    since_date = first_month
+    while since_date <= today:
+        until_date = min(_add_months(since_date, 3) - timedelta(days=1), today)
+        yield since_date, until_date
+        since_date = until_date + timedelta(days=1)
 
 
 def main(
