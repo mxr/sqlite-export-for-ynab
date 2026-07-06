@@ -735,13 +735,13 @@ class ChunkedTransactionsApi:
         self,
         transactions_api: TransactionsApi,
         plan_id: str,
-        sd: date,
-        ud: date,
+        since_date: date,
+        until_date: date,
     ) -> TransactionsResponse:
         return await transactions_api.get_transactions(
             plan_id=plan_id,
-            since_date=sd,
-            until_date=ud,
+            since_date=since_date,
+            until_date=until_date,
         )
 
 
