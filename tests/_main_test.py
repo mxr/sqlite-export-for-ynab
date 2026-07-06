@@ -21,10 +21,10 @@ from sqlite_export_for_ynab._main import _ENV_TOKEN
 from sqlite_export_for_ynab._main import _get_plan_summaries
 from sqlite_export_for_ynab._main import _PACKAGE
 from sqlite_export_for_ynab._main import _PROGRESS_COLUMNS
-from sqlite_export_for_ynab._main import _ProgressYnab
 from sqlite_export_for_ynab._main import _quarterly_chunks
 from sqlite_export_for_ynab._main import async_main
 from sqlite_export_for_ynab._main import asyncio_for_ynab
+from sqlite_export_for_ynab._main import ChunkedTransactionsApi
 from sqlite_export_for_ynab._main import contents
 from sqlite_export_for_ynab._main import get_last_knowledge_of_server
 from sqlite_export_for_ynab._main import get_relations
@@ -113,17 +113,19 @@ async def context(tmp_path):
 
 @patch("sqlite_export_for_ynab._main.TransactionsApi.get_transactions")
 @pytest.mark.asyncio
-async def test_progress_ynab_get_transactions_uses_last_knowledge_of_server_when_present(
+async def test_chunked_transactions_api_uses_last_knowledge_of_server_when_present(
     get_transactions, context
 ):
     get_transactions.return_value = transactions_response(
         TRANSACTIONS, SERVER_KNOWLEDGE_1
     )
-    task_id = context.progress.add_task("Plan Data", total=1)
-    py = _ProgressYnab(context, PLAN_ID_1, LKOS, task_id)
-    transactions_api = asyncio_for_ynab.TransactionsApi(context.api_client)
+    chunked_transactions_api = ChunkedTransactionsApi(
+        context.api_client, date(2020, 1, 1)
+    )
 
-    response = await py.get_transactions(transactions_api, date(2020, 1, 1))
+    response = await chunked_transactions_api.get_transactions(
+        plan_id=PLAN_ID_1, last_knowledge_of_server=LKOS[PLAN_ID_1]
+    )
 
     get_transactions.assert_awaited_once_with(
         plan_id=PLAN_ID_1, last_knowledge_of_server=LKOS[PLAN_ID_1]
@@ -169,16 +171,18 @@ def _chunk_merge_test_side_effect(*, plan_id, since_date, until_date):
 @patch("sqlite_export_for_ynab._main._quarterly_chunks")
 @patch("sqlite_export_for_ynab._main.TransactionsApi.get_transactions")
 @pytest.mark.asyncio
-async def test_progress_ynab_get_transactions_merges_chunk_responses(
+async def test_chunked_transactions_api_merges_chunk_responses(
     get_transactions, quarterly_chunks, context
 ):
     get_transactions.side_effect = _chunk_merge_test_side_effect
     quarterly_chunks.return_value = iter(TRANSACTION_CHUNKS)
-    task_id = context.progress.add_task("Plan Data", total=1)
-    py = _ProgressYnab(context, PLAN_ID_1, {}, task_id)
-    transactions_api = asyncio_for_ynab.TransactionsApi(context.api_client)
+    chunked_transactions_api = ChunkedTransactionsApi(
+        context.api_client, date(2021, 1, 1)
+    )
 
-    response = await py.get_transactions(transactions_api, date(2021, 1, 1))
+    response = await chunked_transactions_api.get_transactions(
+        plan_id=PLAN_ID_1, last_knowledge_of_server=None
+    )
 
     old_transaction, new_transaction, _ = TRANSACTIONS
     assert {t.id for t in response.data.transactions} == {

@@ -656,7 +656,11 @@ async def _get_plan_data(
         py.get(AccountsApi(context.api_client).get_accounts),
         py.get(CategoriesApi(context.api_client).get_categories),
         py.get(PayeesApi(context.api_client).get_payees),
-        py.get_transactions(TransactionsApi(context.api_client), plan.first_month),
+        py.get(
+            ChunkedTransactionsApi(
+                context.api_client, plan.first_month
+            ).get_transactions
+        ),
         py.get(ScheduledTransactionsApi(context.api_client).get_scheduled_transactions),
     )
     return (
@@ -689,28 +693,33 @@ class _ProgressYnab:
         finally:
             self.context.progress.update(self.task_id, advance=1)
 
+
+@dataclass(slots=True, frozen=True)
+class ChunkedTransactionsApi:
+    api_client: ApiClient
+    first_month: date
+
     async def get_transactions(
-        self, transactions_api: TransactionsApi, first_month: date
+        self, *, plan_id: str, last_knowledge_of_server: int | None
     ) -> TransactionsResponse:
-        last_knowledge_of_server = self.lkos.get(self.plan_id)
-        try:
-            if last_knowledge_of_server is not None:
-                return await transactions_api.get_transactions(
-                    plan_id=self.plan_id,
-                    last_knowledge_of_server=last_knowledge_of_server,
-                )
-            return await self._get_all_transactions(transactions_api, first_month)
-        finally:
-            self.context.progress.update(self.task_id, advance=1)
+        transactions_api = TransactionsApi(self.api_client)
+        if last_knowledge_of_server is not None:
+            return await transactions_api.get_transactions(
+                plan_id=plan_id,
+                last_knowledge_of_server=last_knowledge_of_server,
+            )
+        return await self._get_all_transactions(transactions_api, plan_id)
 
     async def _get_all_transactions(
-        self, transactions_api: TransactionsApi, first_month: date
+        self, transactions_api: TransactionsApi, plan_id: str
     ) -> TransactionsResponse:
         today = date.today()
         responses = await asyncio.gather(
             *(
-                self._get_transactions(transactions_api, since_date, until_date)
-                for since_date, until_date in _quarterly_chunks(first_month, today)
+                self._get_transactions(
+                    transactions_api, plan_id, since_date, until_date
+                )
+                for since_date, until_date in _quarterly_chunks(self.first_month, today)
             )
         )
         transactions = [
@@ -731,10 +740,14 @@ class _ProgressYnab:
 
     @retry(stop=stop_after_attempt(3))
     async def _get_transactions(
-        self, transactions_api: TransactionsApi, since_date: date, until_date: date
+        self,
+        transactions_api: TransactionsApi,
+        plan_id: str,
+        since_date: date,
+        until_date: date,
     ) -> TransactionsResponse:
         return await transactions_api.get_transactions(
-            plan_id=self.plan_id,
+            plan_id=plan_id,
             since_date=since_date,
             until_date=until_date,
         )
