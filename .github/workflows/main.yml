@@ -31,7 +31,7 @@ jobs:
   main-real:
     needs: [changes]
     if: needs.changes.outputs.project_files == 'true'
-    uses: asottile/workflows/.github/workflows/tox.yml@adfec6a1ccb5d6b189aa153676d4f0743afa21c1 # v1.11.0
+    uses: asottile/workflows/.github/workflows/tox.yml@75fa946a6d3d763b75b3a6669c18dc4d1822e939 # v1.11.1
     with:
       env: '["py312", "py313", "py314", "pypy7.3.20"]' # https://github.com/actions/runner-images/blob/4847d9e554d1ad62acec5c5bddfc6175fe1bef4e/images/ubuntu/Ubuntu2204-Readme.md#pypy
   main:
@@ -52,7 +52,7 @@ jobs:
   main-win-real:
     needs: [changes]
     if: needs.changes.outputs.project_files == 'true'
-    uses: asottile/workflows/.github/workflows/tox.yml@adfec6a1ccb5d6b189aa153676d4f0743afa21c1 # v1.11.0
+    uses: asottile/workflows/.github/workflows/tox.yml@75fa946a6d3d763b75b3a6669c18dc4d1822e939 # v1.11.1
     with:
       env: '["py312"]'
       os: windows-latest
