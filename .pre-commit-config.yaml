@@ -14,12 +14,12 @@ repos:
   - id: pretty-format-yaml
     args: [--autofix]
 - repo: https://github.com/asottile/reorder-python-imports
-  rev: 7885866bd38c852b5e042c4aeef0285d715ffeee  # frozen: v3.16.0
+  rev: 5e38415c12154247a099c7023c210e3d458275b5  # frozen: v3.17.0
   hooks:
   - id: reorder-python-imports
     args: [--py312-plus, --add-import, from __future__ import annotations]
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: c59bba8fb259db0fec2bbb77ad8ba51ea7341b56  # frozen: v0.15.20
+  rev: 01a675ea018f2fb714478a5ffb83fcea8374bb06  # frozen: v0.15.21
   hooks:
   - id: ruff-check
     args: [--fix]
@@ -37,7 +37,7 @@ repos:
     args: [--no-pad-file, --language, sql, --command, sqlfluff fix --dialect sqlite]
     additional_dependencies: [sqlfluff]
 - repo: https://github.com/pre-commit/mirrors-mypy
-  rev: d2823d321df3af8f878f7ee3414dc94d037145b9  # frozen: v2.1.0
+  rev: 41e691678310dfd3833f7ab4e180ddb014310356  # frozen: v2.3.0
   hooks:
   - id: mypy
     additional_dependencies:
@@ -54,7 +54,7 @@ repos:
     - tenacity
     language_version: python3.12
 - repo: https://github.com/mxr/mirrors-ty
-  rev: 2594f20d8f325fc7ed4338a945b641bfb1f312ef  # frozen: v0.0.56
+  rev: 998abf4835043939a0ba4952b3da7026f45edf36  # frozen: v0.0.59
   hooks:
   - id: ty
     additional_dependencies:
