@@ -29,7 +29,6 @@ from asyncio_for_ynab import TransactionDetail
 from asyncio_for_ynab import TransactionsResponse
 from asyncio_for_ynab import TransactionsResponseData
 
-
 PLAN_ID_1 = str(uuid4())
 PLAN_ID_2 = str(uuid4())
 

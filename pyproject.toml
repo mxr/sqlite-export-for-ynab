@@ -69,13 +69,18 @@ target-version = "py312"
 
 [tool.ruff.lint]
 extend-select = [
-  "UP",  # see pyupgrade
-  "B",  # see flake8-bugbear
   "A",  # see flake8-builtins
+  "B",  # see flake8-bugbear
   "C4",  # see flake8-comprehension
+  "I",  # sort imports
   "SIM",  # see flake8-simplify
   "TC",  # see flake8-type-checking
+  "UP",  # see pyupgrade
 ]
+
+[tool.ruff.lint.isort]
+force-single-line = true
+required-imports = ["from __future__ import annotations"]
 
 [tool.setuptools.package-data]
 sqlite_export_for_ynab = ["py.typed"]

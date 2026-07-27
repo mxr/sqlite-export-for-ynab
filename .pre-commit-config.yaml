@@ -13,13 +13,8 @@ repos:
     args: [--autofix, --trailing-commas]
   - id: pretty-format-yaml
     args: [--autofix]
-- repo: https://github.com/asottile/reorder-python-imports
-  rev: 5e38415c12154247a099c7023c210e3d458275b5  # frozen: v3.17.0
-  hooks:
-  - id: reorder-python-imports
-    args: [--py312-plus, --add-import, from __future__ import annotations]
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: 2700fd5671c633760d912769c041bfcde2b9a01b  # frozen: v0.15.22
+  rev: cb8c523fd4835aba42af70f4cad5568db4df0b6c  # frozen: v0.16.0
   hooks:
   - id: ruff-check
     args: [--fix]
@@ -50,11 +45,11 @@ repos:
     - pytest
     - pytest-asyncio
     - rich>=10
-    - setuptools
     - tenacity
+    - types-setuptools
     language_version: python3.12
 - repo: https://github.com/mxr/mirrors-ty
-  rev: febed8a7b2665e80a9d3855c59ac716a6284d628  # frozen: v0.0.61
+  rev: d7f08bf6b37691c482773f198ba01539eb331d6a  # frozen: v0.0.63
   hooks:
   - id: ty
     additional_dependencies:
@@ -67,14 +62,14 @@ repos:
     - pytest
     - pytest-asyncio
     - rich>=10
-    - setuptools
     - tenacity
+    - types-setuptools
 - repo: https://github.com/mxr/sync-typing-deps
-  rev: c2ec0c01a31703615c17e3fe11d1fe28c003f1d8  # frozen: v0.5.3
+  rev: a8b960f5e2bb3627b5a1fc8171fe224cdd64ff0a  # frozen: v0.5.4
   hooks:
   - id: sync-typing-deps
 - repo: https://github.com/zizmorcore/zizmor-pre-commit
-  rev: 64a97fb7fa63188393d3215c6e312f5f9c6d0f78  # frozen: v1.27.0
+  rev: 067260dc5fe6ea86b7551bfd6f8b3ba4e6c93129  # frozen: v1.28.0
   hooks:
   - id: zizmor
     args: [--no-progress, --fix]

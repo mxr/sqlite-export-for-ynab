@@ -8,16 +8,18 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from dataclasses import fields
 from datetime import date
+from datetime import datetime
 from datetime import timedelta
 from importlib import resources
 from importlib.metadata import version
 from itertools import batched
 from pathlib import Path
+from typing import TYPE_CHECKING
 from typing import Any
 from typing import Literal
+from typing import get_args
 from typing import overload
 from typing import override
-from typing import TYPE_CHECKING
 
 import aiosqlite
 import asyncio_for_ynab  # noqa: F401
@@ -84,28 +86,24 @@ except ImportError:  # pragma: no cover
             )
 
 
-_EntryTable = (
-    Literal["accounts"]
-    | Literal["account_periodic_values"]
-    | Literal["category_groups"]
-    | Literal["categories"]
-    | Literal["payees"]
-    | Literal["transactions"]
-    | Literal["subtransactions"]
-    | Literal["scheduled_transactions"]
-    | Literal["scheduled_subtransactions"]
-)
-_Endpoint = (
-    Literal["accounts"]
-    | Literal["categories"]
-    | Literal["payees"]
-    | Literal["transactions"]
-    | Literal["scheduled_transactions"]
-)
-_ENDPOINTS = tuple(lit.__args__[0] for lit in _Endpoint.__args__)
+_EntryTable = Literal[
+    "accounts",
+    "account_periodic_values",
+    "category_groups",
+    "categories",
+    "payees",
+    "transactions",
+    "subtransactions",
+    "scheduled_transactions",
+    "scheduled_subtransactions",
+]
+_Endpoint = Literal[
+    "accounts", "categories", "payees", "transactions", "scheduled_transactions"
+]
+_ENDPOINTS = get_args(_Endpoint)
 _ALL_RELATIONS = frozenset(
     ("plans", "flat_transactions", "scheduled_flat_transactions")
-    + tuple(lit.__args__[0] for lit in _EntryTable.__args__)
+    + get_args(_EntryTable)
 )
 
 _ENV_TOKEN = "YNAB_PERSONAL_ACCESS_TOKEN"
@@ -556,28 +554,20 @@ async def insert_nested_entries(
     context: _Context,
     plan_id: str,
     entries: list[dict[str, Any]],
-    desc: (
-        Literal["Accounts"]
-        | Literal["Categories"]
-        | Literal["Transactions"]
-        | Literal["Scheduled Transactions"]
-    ),
+    desc: (Literal["Accounts", "Categories", "Transactions", "Scheduled Transactions"]),
     entries_name: (
-        Literal["accounts"]
-        | Literal["category_groups"]
-        | Literal["transactions"]
-        | Literal["scheduled_transactions"]
+        Literal["accounts", "category_groups", "transactions", "scheduled_transactions"]
     ),
     subentries_name: (
-        Literal["account_periodic_values"]
-        | Literal["categories"]
-        | Literal["subtransactions"]
+        Literal["account_periodic_values", "categories", "subtransactions"]
     ),
     subentries_table_name: (
-        Literal["account_periodic_values"]
-        | Literal["categories"]
-        | Literal["subtransactions"]
-        | Literal["scheduled_subtransactions"]
+        Literal[
+            "account_periodic_values",
+            "categories",
+            "subtransactions",
+            "scheduled_subtransactions",
+        ]
     ),
 ) -> None:
     if not entries:
@@ -713,7 +703,7 @@ class ChunkedTransactionsApi:
     async def _get(
         self, transactions_api: TransactionsApi, plan_id: str
     ) -> TransactionsResponse:
-        today = date.today()
+        today = datetime.now().astimezone().date()
         responses = await asyncio.gather(
             *(
                 self._chunk(transactions_api, plan_id, sd, ud)
