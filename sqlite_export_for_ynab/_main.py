@@ -3,65 +3,50 @@ from __future__ import annotations
 import argparse
 import asyncio
 import os
-from contextlib import asynccontextmanager
-from contextlib import contextmanager
-from dataclasses import dataclass
-from dataclasses import fields
-from datetime import date
-from datetime import timedelta
+from contextlib import asynccontextmanager, contextmanager
+from dataclasses import dataclass, fields
+from datetime import date, timedelta
 from importlib import resources
 from importlib.metadata import version
 from itertools import batched
 from pathlib import Path
-from typing import Any
-from typing import Literal
-from typing import overload
-from typing import override
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Literal, overload, override
 
 import aiosqlite
 import asyncio_for_ynab  # noqa: F401
 import fasteners
 from aiopathlib import AsyncPath
-from asyncio_for_ynab import Account
-from asyncio_for_ynab import AccountsApi
-from asyncio_for_ynab import ApiClient
-from asyncio_for_ynab import CategoriesApi
-from asyncio_for_ynab import CategoryGroupWithCategories
-from asyncio_for_ynab import Configuration
-from asyncio_for_ynab import Payee
-from asyncio_for_ynab import PayeesApi
-from asyncio_for_ynab import PlansApi
-from asyncio_for_ynab import PlanSummary
-from asyncio_for_ynab import ScheduledTransactionDetail
-from asyncio_for_ynab import ScheduledTransactionsApi
-from asyncio_for_ynab import TransactionDetail
-from asyncio_for_ynab import TransactionsApi
-from asyncio_for_ynab import TransactionsResponse
-from asyncio_for_ynab import TransactionsResponseData
-from rich.progress import BarColumn
-from rich.progress import Progress
-from rich.progress import TaskID
-from rich.progress import TextColumn
-from rich.progress import TimeElapsedColumn
-from tenacity import retry
-from tenacity import stop_after_attempt
+from asyncio_for_ynab import (
+    Account,
+    AccountsApi,
+    ApiClient,
+    CategoriesApi,
+    CategoryGroupWithCategories,
+    Configuration,
+    Payee,
+    PayeesApi,
+    PlansApi,
+    PlanSummary,
+    ScheduledTransactionDetail,
+    ScheduledTransactionsApi,
+    TransactionDetail,
+    TransactionsApi,
+    TransactionsResponse,
+    TransactionsResponseData,
+)
+from rich.progress import BarColumn, Progress, TaskID, TextColumn, TimeElapsedColumn
+from tenacity import retry, stop_after_attempt
 
 from sqlite_export_for_ynab import ddl
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator
-    from collections.abc import Awaitable
-    from collections.abc import Callable
-    from collections.abc import Iterator
-    from collections.abc import Sequence
+    from collections.abc import AsyncIterator, Awaitable, Callable, Iterator, Sequence
 
 try:
     from rich.progress import MofNCompleteColumn
 # https://github.com/benleb/surepy/issues/240
 except ImportError:  # pragma: no cover
-    from rich.progress import ProgressColumn
-    from rich.progress import Task
+    from rich.progress import ProgressColumn, Task
     from rich.text import Text
 
     if TYPE_CHECKING:
@@ -84,24 +69,20 @@ except ImportError:  # pragma: no cover
             )
 
 
-_EntryTable = (
-    Literal["accounts"]
-    | Literal["account_periodic_values"]
-    | Literal["category_groups"]
-    | Literal["categories"]
-    | Literal["payees"]
-    | Literal["transactions"]
-    | Literal["subtransactions"]
-    | Literal["scheduled_transactions"]
-    | Literal["scheduled_subtransactions"]
-)
-_Endpoint = (
-    Literal["accounts"]
-    | Literal["categories"]
-    | Literal["payees"]
-    | Literal["transactions"]
-    | Literal["scheduled_transactions"]
-)
+_EntryTable = Literal[
+    "accounts",
+    "account_periodic_values",
+    "category_groups",
+    "categories",
+    "payees",
+    "transactions",
+    "subtransactions",
+    "scheduled_transactions",
+    "scheduled_subtransactions",
+]
+_Endpoint = Literal[
+    "accounts", "categories", "payees", "transactions", "scheduled_transactions"
+]
 _ENDPOINTS = tuple(lit.__args__[0] for lit in _Endpoint.__args__)
 _ALL_RELATIONS = frozenset(
     ("plans", "flat_transactions", "scheduled_flat_transactions")
@@ -556,28 +537,20 @@ async def insert_nested_entries(
     context: _Context,
     plan_id: str,
     entries: list[dict[str, Any]],
-    desc: (
-        Literal["Accounts"]
-        | Literal["Categories"]
-        | Literal["Transactions"]
-        | Literal["Scheduled Transactions"]
-    ),
+    desc: (Literal["Accounts", "Categories", "Transactions", "Scheduled Transactions"]),
     entries_name: (
-        Literal["accounts"]
-        | Literal["category_groups"]
-        | Literal["transactions"]
-        | Literal["scheduled_transactions"]
+        Literal["accounts", "category_groups", "transactions", "scheduled_transactions"]
     ),
     subentries_name: (
-        Literal["account_periodic_values"]
-        | Literal["categories"]
-        | Literal["subtransactions"]
+        Literal["account_periodic_values", "categories", "subtransactions"]
     ),
     subentries_table_name: (
-        Literal["account_periodic_values"]
-        | Literal["categories"]
-        | Literal["subtransactions"]
-        | Literal["scheduled_subtransactions"]
+        Literal[
+            "account_periodic_values",
+            "categories",
+            "subtransactions",
+            "scheduled_subtransactions",
+        ]
     ),
 ) -> None:
     if not entries:
