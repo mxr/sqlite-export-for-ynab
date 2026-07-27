@@ -8,6 +8,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from dataclasses import fields
 from datetime import date
+from datetime import datetime
 from datetime import timedelta
 from importlib import resources
 from importlib.metadata import version
@@ -16,6 +17,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 from typing import Any
 from typing import Literal
+from typing import get_args
 from typing import overload
 from typing import override
 
@@ -98,10 +100,10 @@ _EntryTable = Literal[
 _Endpoint = Literal[
     "accounts", "categories", "payees", "transactions", "scheduled_transactions"
 ]
-_ENDPOINTS = tuple(lit.__args__[0] for lit in _Endpoint.__args__)
+_ENDPOINTS = get_args(_Endpoint)
 _ALL_RELATIONS = frozenset(
     ("plans", "flat_transactions", "scheduled_flat_transactions")
-    + tuple(lit.__args__[0] for lit in _EntryTable.__args__)
+    + get_args(_EntryTable)
 )
 
 _ENV_TOKEN = "YNAB_PERSONAL_ACCESS_TOKEN"
@@ -701,7 +703,7 @@ class ChunkedTransactionsApi:
     async def _get(
         self, transactions_api: TransactionsApi, plan_id: str
     ) -> TransactionsResponse:
-        today = date.today()
+        today = datetime.now().astimezone().date()
         responses = await asyncio.gather(
             *(
                 self._chunk(transactions_api, plan_id, sd, ud)
