@@ -1,29 +1,4 @@
 repos:
-- repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: 3e8a8703264a2f4a69428a0aa4dcb512790b2c8c  # frozen: v6.0.0
-  hooks:
-  - id: check-docstring-first
-  - id: debug-statements
-  - id: end-of-file-fixer
-  - id: trailing-whitespace
-- repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
-  rev: 4380fbb73a154b5f5624794c1c78d9719ccc860f  # frozen: v2.16.0
-  hooks:
-  - id: pretty-format-toml
-    args: [--autofix, --trailing-commas]
-  - id: pretty-format-yaml
-    args: [--autofix]
-- repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: cb8c523fd4835aba42af70f4cad5568db4df0b6c  # frozen: v0.16.0
-  hooks:
-  - id: ruff-check
-    args: [--fix]
-  - id: ruff-format
-- repo: https://github.com/sqlfluff/sqlfluff
-  rev: 1c2ec52808fdc09efa1552437ec9d140749f98d0  # frozen: 4.2.2
-  hooks:
-  - id: sqlfluff-fix
-    args: [--dialect, sqlite]
 - repo: https://github.com/adamtheturtle/doccmd-pre-commit
   rev: 6531338d501c86cf5f0803ba6e2c3a2a858a63c5  # frozen: v2026.3.26.2
   hooks:
@@ -31,23 +6,19 @@ repos:
     name: doccmd-sqlfluff
     args: [--no-pad-file, --language, sql, --command, sqlfluff fix --dialect sqlite]
     additional_dependencies: [sqlfluff]
-- repo: https://github.com/pre-commit/mirrors-mypy
-  rev: 41e691678310dfd3833f7ab4e180ddb014310356  # frozen: v2.3.0
+- repo: https://github.com/astral-sh/ruff-pre-commit
+  rev: cb8c523fd4835aba42af70f4cad5568db4df0b6c  # frozen: v0.16.0
   hooks:
-  - id: mypy
-    additional_dependencies:
-    - aiohttp>=3
-    - aiopathlib
-    - aiosqlite
-    - asyncio-for-ynab~=1.86.0
-    - coverage
-    - fasteners
-    - pytest
-    - pytest-asyncio
-    - rich>=10
-    - tenacity
-    - types-setuptools
-    language_version: python3.12
+  - id: ruff-check
+    args: [--fix]
+  - id: ruff-format
+- repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
+  rev: 4380fbb73a154b5f5624794c1c78d9719ccc860f  # frozen: v2.16.0
+  hooks:
+  - id: pretty-format-toml
+    args: [--autofix, --trailing-commas]
+  - id: pretty-format-yaml
+    args: [--autofix]
 - repo: https://github.com/mxr/mirrors-ty
   rev: d7f08bf6b37691c482773f198ba01539eb331d6a  # frozen: v0.0.63
   hooks:
@@ -68,14 +39,43 @@ repos:
   rev: a8b960f5e2bb3627b5a1fc8171fe224cdd64ff0a  # frozen: v0.5.4
   hooks:
   - id: sync-typing-deps
-- repo: https://github.com/zizmorcore/zizmor-pre-commit
-  rev: 067260dc5fe6ea86b7551bfd6f8b3ba4e6c93129  # frozen: v1.28.0
+- repo: https://github.com/pre-commit/mirrors-mypy
+  rev: 41e691678310dfd3833f7ab4e180ddb014310356  # frozen: v2.3.0
   hooks:
-  - id: zizmor
-    args: [--no-progress, --fix]
+  - id: mypy
+    additional_dependencies:
+    - aiohttp>=3
+    - aiopathlib
+    - aiosqlite
+    - asyncio-for-ynab~=1.86.0
+    - coverage
+    - fasteners
+    - pytest
+    - pytest-asyncio
+    - rich>=10
+    - tenacity
+    - types-setuptools
+    language_version: python3.12
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: 3e8a8703264a2f4a69428a0aa4dcb512790b2c8c  # frozen: v6.0.0
+  hooks:
+  - id: check-docstring-first
+  - id: debug-statements
+  - id: end-of-file-fixer
+  - id: trailing-whitespace
 - repo: https://github.com/rhysd/actionlint
   rev: 914e7df21a07ef503a81201c76d2b11c789d3fca  # frozen: v1.7.12
   hooks:
   - id: actionlint
     additional_dependencies:
     - github.com/wasilibs/go-shellcheck/cmd/shellcheck@latest
+- repo: https://github.com/sqlfluff/sqlfluff
+  rev: 1c2ec52808fdc09efa1552437ec9d140749f98d0  # frozen: 4.2.2
+  hooks:
+  - id: sqlfluff-fix
+    args: [--dialect, sqlite]
+- repo: https://github.com/zizmorcore/zizmor-pre-commit
+  rev: 067260dc5fe6ea86b7551bfd6f8b3ba4e6c93129  # frozen: v1.28.0
+  hooks:
+  - id: zizmor
+    args: [--no-progress, --fix]
