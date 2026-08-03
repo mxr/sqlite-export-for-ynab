@@ -7,7 +7,7 @@ repos:
     args: [--no-pad-file, --language, sql, --command, sqlfluff fix --dialect sqlite]
     additional_dependencies: [sqlfluff]
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: cb8c523fd4835aba42af70f4cad5568db4df0b6c  # frozen: v0.16.0
+  rev: 39d9ac5938dadb73df0564a45f163e25ff9fa6e2  # frozen: v0.16.1
   hooks:
   - id: ruff-check
     args: [--fix]
@@ -20,7 +20,7 @@ repos:
   - id: pretty-format-yaml
     args: [--autofix]
 - repo: https://github.com/mxr/mirrors-ty
-  rev: d7f08bf6b37691c482773f198ba01539eb331d6a  # frozen: v0.0.63
+  rev: cfe4cc7cb29a831fc9b2bee1825f0d7d36cf099a  # frozen: v0.0.65
   hooks:
   - id: ty
     additional_dependencies:
@@ -75,7 +75,7 @@ repos:
   - id: sqlfluff-fix
     args: [--dialect, sqlite]
 - repo: https://github.com/zizmorcore/zizmor-pre-commit
-  rev: 067260dc5fe6ea86b7551bfd6f8b3ba4e6c93129  # frozen: v1.28.0
+  rev: 451b56af716f9f0d0c2b816503a3fd0cf8b036fa  # frozen: v1.29.0
   hooks:
   - id: zizmor
     args: [--no-progress, --fix]
