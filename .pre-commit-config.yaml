@@ -1,13 +1,13 @@
 repos:
 - repo: https://github.com/adamtheturtle/doccmd-pre-commit
-  rev: 6531338d501c86cf5f0803ba6e2c3a2a858a63c5  # frozen: v2026.3.26.2
+  rev: 4fb934fa497cf201ce59e1e6e0580e8358c699fc  # frozen: v2026.7.19
   hooks:
   - id: doccmd
     name: doccmd-sqlfluff
     args: [--no-pad-file, --language, sql, --command, sqlfluff fix --dialect sqlite]
     additional_dependencies: [sqlfluff]
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: 39d9ac5938dadb73df0564a45f163e25ff9fa6e2  # frozen: v0.16.1
+  rev: 7c55798a78262d14b2074abf623d8a992ebb70d4  # frozen: v0.16.2
   hooks:
   - id: ruff-check
     args: [--fix]
@@ -20,7 +20,7 @@ repos:
   - id: pretty-format-yaml
     args: [--autofix]
 - repo: https://github.com/mxr/mirrors-ty
-  rev: cfe4cc7cb29a831fc9b2bee1825f0d7d36cf099a  # frozen: v0.0.65
+  rev: a11e465e7066ef42fa224778028856b7e607291c  # frozen: v0.0.69
   hooks:
   - id: ty
     additional_dependencies:
@@ -70,7 +70,7 @@ repos:
     additional_dependencies:
     - github.com/wasilibs/go-shellcheck/cmd/shellcheck@latest
 - repo: https://github.com/sqlfluff/sqlfluff
-  rev: 1c2ec52808fdc09efa1552437ec9d140749f98d0  # frozen: 4.2.2
+  rev: 8108cc202d2aa2732b21d48507152c95ee244030  # frozen: 4.3.0
   hooks:
   - id: sqlfluff-fix
     args: [--dialect, sqlite]
