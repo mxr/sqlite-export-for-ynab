@@ -1,13 +1,13 @@
 repos:
 - repo: https://github.com/adamtheturtle/doccmd-pre-commit
-  rev: 4fb934fa497cf201ce59e1e6e0580e8358c699fc  # frozen: v2026.7.19
+  rev: bbdcf0ddc8ab91dd0fd2ce8cdf724f389b834b02  # frozen: v2026.8.16
   hooks:
   - id: doccmd
     name: doccmd-sqlfluff
     args: [--no-pad-file, --language, sql, --command, sqlfluff fix --dialect sqlite]
     additional_dependencies: [sqlfluff]
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: 7c55798a78262d14b2074abf623d8a992ebb70d4  # frozen: v0.16.2
+  rev: 65dbdb59d2f2d9c3bdc343c566821ad3319ddaa3  # frozen: v0.16.3
   hooks:
   - id: ruff-check
     args: [--fix]
@@ -20,7 +20,7 @@ repos:
   - id: pretty-format-yaml
     args: [--autofix]
 - repo: https://github.com/mxr/mirrors-ty
-  rev: a11e465e7066ef42fa224778028856b7e607291c  # frozen: v0.0.69
+  rev: 398c915cc4577232a73248ca3d9a30bc5f5ba602  # frozen: v0.0.72
   hooks:
   - id: ty
     additional_dependencies:
@@ -40,7 +40,7 @@ repos:
   hooks:
   - id: sync-typing-deps
 - repo: https://github.com/pre-commit/mirrors-mypy
-  rev: 41e691678310dfd3833f7ab4e180ddb014310356  # frozen: v2.3.0
+  rev: 7ff8d35ae36a7d2b968f2f90b4c723e292e594ee  # frozen: v2.3.1
   hooks:
   - id: mypy
     additional_dependencies:
