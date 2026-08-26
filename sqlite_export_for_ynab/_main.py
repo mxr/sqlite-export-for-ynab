@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 from typing import Any
 from typing import Literal
+from typing import cast
 from typing import get_args
 from typing import overload
 from typing import override
@@ -157,9 +158,9 @@ async def async_main(
     )
 
     args = parser.parse_args(argv)
-    db: Path = args.db
-    full_refresh: bool = args.full_refresh
-    quiet: bool = args.quiet
+    db = cast(Path, args.db)
+    full_refresh =cast(bool, args.full_refresh)
+    quiet=cast( bool, args.quiet)
 
     token = resolve_token(token_override)
 
