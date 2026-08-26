@@ -158,9 +158,9 @@ async def async_main(
     )
 
     args = parser.parse_args(argv)
-    db = cast(Path, args.db)
-    full_refresh =cast(bool, args.full_refresh)
-    quiet=cast( bool, args.quiet)
+    db = cast("Path", args.db)
+    full_refresh = cast("bool", args.full_refresh)
+    quiet = cast("bool", args.quiet)
 
     token = resolve_token(token_override)
 
