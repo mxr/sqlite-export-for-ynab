@@ -73,6 +73,7 @@ extend-select = [
   "B",  # see flake8-bugbear
   "C4",  # see flake8-comprehension
   "I",  # sort imports
+  "S",  # see flake8-bandit
   "SIM",  # see flake8-simplify
   "TC",  # see flake8-type-checking
   "UP",  # see pyupgrade
