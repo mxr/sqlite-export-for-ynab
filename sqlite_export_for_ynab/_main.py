@@ -60,7 +60,9 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
 try:
-    from rich.progress import MofNCompleteColumn
+    from rich.progress import (
+        MofNCompleteColumn,  # pyright: ignore[reportAssignmentType]
+    )
 # https://github.com/benleb/surepy/issues/240
 except ImportError:  # pragma: no cover
     from rich.progress import ProgressColumn

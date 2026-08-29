@@ -7,7 +7,7 @@ repos:
     args: [--no-pad-file, --language, sql, --command, sqlfluff fix --dialect sqlite]
     additional_dependencies: [sqlfluff]
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: aab412d509121cb5f7533134b7e67f9fab59c682  # frozen: v0.16.4
+  rev: 1f1e8bf348ff38fc88619a38d3ca4d9c56abea49  # frozen: v0.16.5
   hooks:
   - id: ruff-check
     args: [--fix]
@@ -19,8 +19,24 @@ repos:
     args: [--autofix, --trailing-commas]
   - id: pretty-format-yaml
     args: [--autofix]
+- repo: https://github.com/RobertCraigie/pyright-python
+  rev: 392b6ba8e54be6d603e02e9f8d601d27b7a48d12  # frozen: v1.1.411
+  hooks:
+  - id: pyright
+    additional_dependencies:
+    - aiohttp>=3
+    - aiopathlib
+    - aiosqlite
+    - asyncio-for-ynab~=1.86.0
+    - coverage
+    - fasteners
+    - pytest
+    - pytest-asyncio
+    - rich>=10
+    - tenacity
+    - types-setuptools
 - repo: https://github.com/mxr/mirrors-ty
-  rev: 37bffad357f01d2dbb25251a16441e660df41c50  # frozen: v0.0.74
+  rev: c14b7154f94117c080a16ce054bc64bd7fe5ac88  # frozen: v0.0.75
   hooks:
   - id: ty
     additional_dependencies:
