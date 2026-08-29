@@ -83,6 +83,11 @@ extend-select = [
 force-single-line = true
 required-imports = ["from __future__ import annotations"]
 
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = [
+  "S101",  # asserts are fine in tests
+]
+
 [tool.setuptools.package-data]
 sqlite_export_for_ynab = ["py.typed"]
 "sqlite_export_for_ynab.ddl" = ["*.sql"]
