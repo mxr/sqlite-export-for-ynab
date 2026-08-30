@@ -36,7 +36,7 @@ repos:
     - tenacity
     - types-setuptools
 - repo: https://github.com/mxr/sync-typing-deps
-  rev: a8b960f5e2bb3627b5a1fc8171fe224cdd64ff0a  # frozen: v0.5.4
+  rev: 827c0d0f5b5dda0644170665034006604f9eb10b  # frozen: v0.6.0
   hooks:
   - id: sync-typing-deps
 - repo: https://github.com/pre-commit/mirrors-mypy
