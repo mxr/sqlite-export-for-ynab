@@ -67,6 +67,18 @@ repos:
   rev: 392b6ba8e54be6d603e02e9f8d601d27b7a48d12  # frozen: v1.1.411
   hooks:
   - id: pyright
+    additional_dependencies:
+    - aiohttp>=3
+    - aiopathlib
+    - aiosqlite
+    - asyncio-for-ynab~=1.86.0
+    - coverage
+    - fasteners
+    - pytest
+    - pytest-asyncio
+    - rich>=10
+    - tenacity
+    - types-setuptools
 - repo: https://github.com/rhysd/actionlint
   rev: 914e7df21a07ef503a81201c76d2b11c789d3fca  # frozen: v1.7.12
   hooks:
