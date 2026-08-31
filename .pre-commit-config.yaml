@@ -63,6 +63,10 @@ repos:
   - id: debug-statements
   - id: end-of-file-fixer
   - id: trailing-whitespace
+- repo: https://github.com/RobertCraigie/pyright-python
+  rev: 392b6ba8e54be6d603e02e9f8d601d27b7a48d12  # frozen: v1.1.411
+  hooks:
+  - id: pyright
 - repo: https://github.com/rhysd/actionlint
   rev: 914e7df21a07ef503a81201c76d2b11c789d3fca  # frozen: v1.7.12
   hooks:
