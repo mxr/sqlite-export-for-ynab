@@ -7,7 +7,7 @@ repos:
     args: [--no-pad-file, --language, sql, --command, sqlfluff fix --dialect sqlite]
     additional_dependencies: [sqlfluff]
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: 1f1e8bf348ff38fc88619a38d3ca4d9c56abea49  # frozen: v0.16.5
+  rev: 321478e58f4938179c6b86e4ddfa923d1547a49b  # frozen: v0.16.6
   hooks:
   - id: ruff-check
     args: [--fix]
@@ -20,7 +20,7 @@ repos:
   - id: pretty-format-yaml
     args: [--autofix]
 - repo: https://github.com/mxr/mirrors-ty
-  rev: 429804df3fe7b725a9a36f196e9a5390c9f12cd3  # frozen: v0.0.76
+  rev: fdf5987c0856f51fc20614b56761196b31483ae1  # frozen: v0.0.78
   hooks:
   - id: ty
     additional_dependencies:
@@ -64,7 +64,7 @@ repos:
   - id: end-of-file-fixer
   - id: trailing-whitespace
 - repo: https://github.com/mxr/mirrors-pyright
-  rev: 789d36e40263da0e4d83395ed125b03a3a0e2c5f  # frozen: v1.1.412
+  rev: 89ead1aa9974c0da927f2c2cc6a435f2ce8767fd  # frozen: v1.1.413
   hooks:
   - id: pyright
     additional_dependencies:
