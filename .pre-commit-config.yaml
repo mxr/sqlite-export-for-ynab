@@ -12,6 +12,13 @@ repos:
   - id: ruff-check
     args: [--fix]
   - id: ruff-format
+- repo: https://github.com/hukkin/mdformat
+  rev: 2d496dbc18e31b83a1596685347ffe0b6041daf0  # frozen: 1.0.0
+  hooks:
+  - id: mdformat
+    args: [--number, --wrap, '120']
+    additional_dependencies:
+    - mdformat-gfm
 - repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
   rev: 4380fbb73a154b5f5624794c1c78d9719ccc860f  # frozen: v2.16.0
   hooks:

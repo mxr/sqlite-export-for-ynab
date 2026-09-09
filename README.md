@@ -1,12 +1,14 @@
 # sqlite-export-for-ynab
 
-[![pre-commit.ci status](https://results.pre-commit.ci/badge/github/mxr/sqlite-export-for-ynab/main.svg)](https://results.pre-commit.ci/latest/github/mxr/sqlite-export-for-ynab/main) [![codecov](https://codecov.io/github/mxr/sqlite-export-for-ynab/graph/badge.svg?token=NVCP6RDKSH)](https://codecov.io/github/mxr/sqlite-export-for-ynab)
+[![pre-commit.ci status](https://results.pre-commit.ci/badge/github/mxr/sqlite-export-for-ynab/main.svg)](https://results.pre-commit.ci/latest/github/mxr/sqlite-export-for-ynab/main)
+[![codecov](https://codecov.io/github/mxr/sqlite-export-for-ynab/graph/badge.svg?token=NVCP6RDKSH)](https://codecov.io/github/mxr/sqlite-export-for-ynab)
 
 SQLite Export for YNAB - Export YNAB Budget Data to SQLite
 
 ## What This Does
 
-Export all your [YNAB](https://ynab.com/) plans to a local [SQLite](https://www.sqlite.org/) DB. Then you can query your data with any tools compatible with SQLite.
+Export all your [YNAB](https://ynab.com/) plans to a local [SQLite](https://www.sqlite.org/) DB. Then you can query your
+data with any tools compatible with SQLite.
 
 ## Installation
 
@@ -18,7 +20,8 @@ $ pip install sqlite-export-for-ynab
 
 ### CLI
 
-Provision a [YNAB Personal Access Token](https://api.ynab.com/#personal-access-tokens) and save it as an environment variable.
+Provision a [YNAB Personal Access Token](https://api.ynab.com/#personal-access-tokens) and save it as an environment
+variable.
 
 ```console
 $ export YNAB_PERSONAL_ACCESS_TOKEN="..."
@@ -30,17 +33,22 @@ Run the tool from the terminal to download your plans:
 $ sqlite-export-for-ynab
 ```
 
-Running it again will pull only data that changed since the last pull (this is done with [Delta Requests](https://api.ynab.com/#deltas)). If you want to wipe the DB and pull all data again use the `--full-refresh` flag.
-Pass `--quiet` to suppress all CLI output, including progress bars.
+Running it again will pull only data that changed since the last pull (this is done with
+[Delta Requests](https://api.ynab.com/#deltas)). If you want to wipe the DB and pull all data again use the
+`--full-refresh` flag. Pass `--quiet` to suppress all CLI output, including progress bars.
 
 <a id="db-path"></a>You can specify the DB path with the following options
+
 1. The `--db` flag.
-1. The `XDG_DATA_HOME` variable (see the [XDG Base Directory Specification](https://specifications.freedesktop.org/basedir-spec/latest/index.html)). In that case the DB is saved in `"${XDG_DATA_HOME}"/sqlite-export-for-ynab/db.sqlite`.
-1. If neither is set, the DB is saved in `~/.local/share/sqlite-export-for-ynab/db.sqlite`.
+2. The `XDG_DATA_HOME` variable (see the
+   [XDG Base Directory Specification](https://specifications.freedesktop.org/basedir-spec/latest/index.html)). In that
+   case the DB is saved in `"${XDG_DATA_HOME}"/sqlite-export-for-ynab/db.sqlite`.
+3. If neither is set, the DB is saved in `~/.local/share/sqlite-export-for-ynab/db.sqlite`.
 
 ### Library
 
-The library exposes the package `sqlite_export_for_ynab` and two functions - `default_db_path` and `sync`. You can use them as follows:
+The library exposes the package `sqlite_export_for_ynab` and two functions - `default_db_path` and `sync`. You can use
+them as follows:
 
 ```python
 import asyncio
@@ -58,11 +66,17 @@ asyncio.run(sync(token, db, full_refresh))
 
 ## Relations
 
-The relations are defined in [create-relations.sql](sqlite_export_for_ynab/ddl/create-relations.sql). They are 1:1 with [YNAB's OpenAPI Spec](https://api.ynab.com/papi/open_api_spec.yaml) (ex: transactions, accounts, etc) with some additions:
+The relations are defined in [create-relations.sql](sqlite_export_for_ynab/ddl/create-relations.sql). They are 1:1 with
+[YNAB's OpenAPI Spec](https://api.ynab.com/papi/open_api_spec.yaml) (ex: transactions, accounts, etc) with some
+additions:
 
-1. Some objects are pulled out into their own tables so they can be more cleanly modeled in SQLite (ex: subtransactions, loan account periodic values).
-1. Foreign keys are added as needed (ex: plan ID, transaction ID) so data across plans remains separate.
-1. Two new views called `flat_transactions` and `scheduled_flat_transactions`. These allow you to query split and non-split transactions easily, without needing to also query `subtransactions` and `scheduled_subtransactions` respectively. They also filter out deleted/unapproved transactions/subtransactions and project payee/category fields to make querying more ergonomic.
+1. Some objects are pulled out into their own tables so they can be more cleanly modeled in SQLite (ex: subtransactions,
+   loan account periodic values).
+2. Foreign keys are added as needed (ex: plan ID, transaction ID) so data across plans remains separate.
+3. Two new views called `flat_transactions` and `scheduled_flat_transactions`. These allow you to query split and
+   non-split transactions easily, without needing to also query `subtransactions` and `scheduled_subtransactions`
+   respectively. They also filter out deleted/unapproved transactions/subtransactions and project payee/category fields
+   to make querying more ergonomic.
 
 ## Querying
 
@@ -72,10 +86,10 @@ You can issue queries with typical SQLite tools. *`sqlite-export-for-ynab` delib
 
 You can run the queries from this README using a tool like [`mdq`](https://github.com/yshavit/mdq). For example:
 
-```console
+````console
 $ mdq '```sql dupes' path/to/sqlite-export-for-ynab/README.md -o plain \
     | sqlite3 path/to/sqlite-export-for-ynab/db.sqlite
-```
+````
 
 The DB path is documented [above](#db-path).
 
@@ -209,7 +223,7 @@ FROM (
 ;
 ```
 
-To estimate taxable interest for a given year[^1]:
+To estimate taxable interest for a given year\[^1\]:
 
 ```sql
 -- Parameters expected by this query:
@@ -567,4 +581,6 @@ WHERE
 ;
 ```
 
-[^1]: This query is a rough estimate based on YNAB data and optional user inputs. It is not financial advice, tax advice, or a substitute for Forms 1099-INT, brokerage statements, bank records, or guidance from a qualified professional.
+\[^1\]: This query is a rough estimate based on YNAB data and optional user inputs. It is not financial advice, tax
+advice, or a substitute for Forms 1099-INT, brokerage statements, bank records, or guidance from a qualified
+professional.
