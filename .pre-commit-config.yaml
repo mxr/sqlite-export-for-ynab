@@ -1,13 +1,13 @@
 repos:
 - repo: https://github.com/adamtheturtle/doccmd-pre-commit
-  rev: bbdcf0ddc8ab91dd0fd2ce8cdf724f389b834b02  # frozen: v2026.8.16
+  rev: da0c9c1ee5bf0ff20857fc5123618f517ec82103  # frozen: v2026.9.7
   hooks:
   - id: doccmd
     name: doccmd-sqlfluff
     args: [--no-pad-file, --language, sql, --command, sqlfluff fix --dialect sqlite]
     additional_dependencies: [sqlfluff]
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: 321478e58f4938179c6b86e4ddfa923d1547a49b  # frozen: v0.16.6
+  rev: e8f7d69b957a30acb2c875078d5fd012de24b64c  # frozen: v0.16.7
   hooks:
   - id: ruff-check
     args: [--fix]
@@ -27,7 +27,7 @@ repos:
   - id: pretty-format-yaml
     args: [--autofix]
 - repo: https://github.com/mxr/mirrors-ty
-  rev: fdf5987c0856f51fc20614b56761196b31483ae1  # frozen: v0.0.78
+  rev: d8b7d61f7e6a48575c4938adcea7464e2fef7fdc  # frozen: v0.0.80
   hooks:
   - id: ty
     additional_dependencies:
@@ -71,7 +71,7 @@ repos:
   - id: end-of-file-fixer
   - id: trailing-whitespace
 - repo: https://github.com/mxr/mirrors-pyright
-  rev: 89ead1aa9974c0da927f2c2cc6a435f2ce8767fd  # frozen: v1.1.413
+  rev: 917816f768b32cc3aabd877e48b9001e7bf1b35c  # frozen: v1.1.414
   hooks:
   - id: pyright
     additional_dependencies:
@@ -98,7 +98,7 @@ repos:
   - id: sqlfluff-fix
     args: [--dialect, sqlite]
 - repo: https://github.com/zizmorcore/zizmor-pre-commit
-  rev: cef8b8350da46d8114c7e6b7272aebdccdf193ce  # frozen: v1.30.0
+  rev: fa412071e4f5d44d44f9e365f4676f9df92456a2  # frozen: v1.30.1
   hooks:
   - id: zizmor
     args: [--no-progress, --fix]
