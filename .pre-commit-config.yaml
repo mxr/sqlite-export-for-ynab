@@ -1,13 +1,13 @@
 repos:
 - repo: https://github.com/adamtheturtle/doccmd-pre-commit
-  rev: da0c9c1ee5bf0ff20857fc5123618f517ec82103  # frozen: v2026.9.7
+  rev: 00bc9ef5e997f14a87685cf841978ff99af978c9  # frozen: v2026.9.16.1
   hooks:
   - id: doccmd
     name: doccmd-sqlfluff
     args: [--no-pad-file, --language, sql, --command, sqlfluff fix --dialect sqlite]
     additional_dependencies: [sqlfluff]
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: e8f7d69b957a30acb2c875078d5fd012de24b64c  # frozen: v0.16.7
+  rev: 2eeb5678de71a00c0902cbda7105d328432f72cb  # frozen: v0.16.8
   hooks:
   - id: ruff-check
     args: [--fix]
@@ -27,7 +27,7 @@ repos:
   - id: pretty-format-yaml
     args: [--autofix]
 - repo: https://github.com/mxr/mirrors-ty
-  rev: d8b7d61f7e6a48575c4938adcea7464e2fef7fdc  # frozen: v0.0.80
+  rev: 247350e02d5017e6936ece7b0c05f936c6aef207  # frozen: v0.0.82
   hooks:
   - id: ty
     additional_dependencies:
