@@ -9,7 +9,7 @@ permissions: {}
 
 jobs:
   changes:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     outputs:
       project_files: ${{ steps.filter.outputs.project_files }}
     steps:
@@ -37,7 +37,7 @@ jobs:
   main:
     needs: [changes, main-real]
     if: always()
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
     - env:
         PROJECT_FILES: ${{ needs.changes.outputs.project_files }}
@@ -59,7 +59,7 @@ jobs:
   main-win:
     needs: [changes, main-win-real]
     if: always()
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
     - env:
         PROJECT_FILES: ${{ needs.changes.outputs.project_files }}
