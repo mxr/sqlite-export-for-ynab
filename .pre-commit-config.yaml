@@ -71,7 +71,7 @@ repos:
   - id: debug-statements
   - id: end-of-file-fixer
   - id: trailing-whitespace
-- repo: https://github.com/mxr/mirrors-pyright
+- repo: https://github.com/mxr/pyright-pre-commit
   rev: 917816f768b32cc3aabd877e48b9001e7bf1b35c  # frozen: v1.1.414
   hooks:
   - id: pyright
