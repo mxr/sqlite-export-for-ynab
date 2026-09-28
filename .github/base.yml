@@ -1,0 +1,4 @@
+stack: [python, sql]
+opt:
+  python:
+    min-version: '3.14'
