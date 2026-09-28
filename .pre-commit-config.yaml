@@ -7,7 +7,7 @@ repos:
     args: [--no-pad-file, --language, sql, --command, sqlfluff fix --dialect sqlite]
     additional_dependencies: [sqlfluff]
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: 2eeb5678de71a00c0902cbda7105d328432f72cb  # frozen: v0.16.8
+  rev: a56c0b927e6465d37cae3e97d35d4d18ab2b96cd  # frozen: v0.16.9
   hooks:
   - id: ruff-check
     args: [--fix]
@@ -28,7 +28,7 @@ repos:
   - id: pretty-format-yaml
     args: [--autofix]
 - repo: https://github.com/mxr/mirrors-ty
-  rev: 247350e02d5017e6936ece7b0c05f936c6aef207  # frozen: v0.0.82
+  rev: ea8dbd382e40a986e80806b921e30a762785b580  # frozen: v0.0.84
   hooks:
   - id: ty
     additional_dependencies:
@@ -44,7 +44,7 @@ repos:
     - tenacity
     - types-setuptools
 - repo: https://github.com/mxr/sync-typing-deps
-  rev: 896a112838d434d8e607d4d636323c5914ab933f  # frozen: v0.7.0
+  rev: fc38ded36eb5fcf5a9f1147d46b28d80761ac427  # frozen: v0.7.1
   hooks:
   - id: sync-typing-deps
 - repo: https://github.com/pre-commit/mirrors-mypy
