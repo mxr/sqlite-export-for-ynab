@@ -43,6 +43,7 @@ repos:
     - rich>=10
     - tenacity
     - types-setuptools
+    - typing-extensions; python_version<'3.12'
 - repo: https://github.com/mxr/sync-typing-deps
   rev: fc38ded36eb5fcf5a9f1147d46b28d80761ac427  # frozen: v0.7.1
   hooks:
@@ -63,7 +64,8 @@ repos:
     - rich>=10
     - tenacity
     - types-setuptools
-    language_version: python3.12
+    - typing-extensions; python_version<'3.12'
+    language_version: python3.11
 - repo: https://github.com/pre-commit/pre-commit-hooks
   rev: 3e8a8703264a2f4a69428a0aa4dcb512790b2c8c  # frozen: v6.0.0
   hooks:
@@ -87,6 +89,7 @@ repos:
     - rich>=10
     - tenacity
     - types-setuptools
+    - typing-extensions; python_version<'3.12'
 - repo: https://github.com/rhysd/actionlint
   rev: 914e7df21a07ef503a81201c76d2b11c789d3fca  # frozen: v1.7.12
   hooks:
