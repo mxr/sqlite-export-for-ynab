@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import os
+import sys
 from contextlib import asynccontextmanager
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -12,15 +13,14 @@ from datetime import datetime
 from datetime import timedelta
 from importlib import resources
 from importlib.metadata import version
-from itertools import batched
 from pathlib import Path
 from typing import TYPE_CHECKING
 from typing import Any
 from typing import Literal
+from typing import TypeVar
 from typing import cast
 from typing import get_args
 from typing import overload
-from typing import override
 
 import aiosqlite
 import asyncio_for_ynab  # noqa: F401
@@ -56,8 +56,25 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator
     from collections.abc import Awaitable
     from collections.abc import Callable
+    from collections.abc import Iterable
     from collections.abc import Iterator
     from collections.abc import Sequence
+
+_T = TypeVar("_T")
+
+if sys.version_info >= (3, 12):  # pragma: >=3.12 cover
+    from itertools import batched
+    from typing import override
+else:  # pragma: <3.12 cover
+    from itertools import islice
+
+    from typing_extensions import override
+
+    def batched(iterable: Iterable[_T], n: int) -> Iterator[tuple[_T, ...]]:
+        it = iter(iterable)
+        while batch := tuple(islice(it, n)):
+            yield batch
+
 
 try:
     from rich.progress import (
@@ -677,7 +694,7 @@ class _ProgressYnab:
     task_id: TaskID
 
     @retry(stop=stop_after_attempt(3))
-    async def get[T](self, endpoint: Callable[..., Awaitable[T]]) -> T:
+    async def get(self, endpoint: Callable[..., Awaitable[_T]]) -> _T:
         try:
             return await endpoint(
                 plan_id=self.plan_id,

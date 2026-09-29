@@ -1,5 +1,5 @@
 stack: [python, sql]
 opt:
   python:
-    min-version: '3.12'
+    min-version: '3.11'
     packaging: wheel
