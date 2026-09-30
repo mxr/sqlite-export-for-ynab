@@ -56,7 +56,7 @@ jobs:
     uses: asottile/workflows/.github/workflows/tox.yml@75fa946a6d3d763b75b3a6669c18dc4d1822e939 # v1.11.1
     with:
       env: '["py311"]'
-      os: windows-latest
+      os: windows-2025
   main-win:
     needs: [changes, main-win-real]
     if: always()
