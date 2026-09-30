@@ -3,6 +3,15 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "commitMessageAction": "weekly",
   "commitMessagePrefix": "[renovate]",
+  "customManagers": [
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/^\\.github/workflows/main\\.yml$/"],
+      "matchStrings": ["\\sos: (?<depName>windows)-(?<currentValue>\\S+)"],
+      "datasourceTemplate": "github-runners",
+      "versioningTemplate": "docker"
+    }
+  ],
   "extends": ["config:recommended", ":disableDependencyDashboard"],
   "groupSingleUpdates": true,
   "minimumReleaseAge": "7 days",
@@ -11,10 +20,14 @@
       "commitMessageExtra": " ",
       "groupName": "update",
       "matchPackageNames": ["*"]
+    },
+    {
+      "matchDatasources": ["github-runners"],
+      "minimumReleaseAgeBehaviour": "timestamp-optional"
     }
   ],
   "prBodyTemplate": "{{{table}}}",
-  "schedule": ["* 16-17 * * 1"],
+  "schedule": ["* 21-22 * * 1"],
   "separateMajorMinor": false,
   "separateMultipleMajor": false
 }
