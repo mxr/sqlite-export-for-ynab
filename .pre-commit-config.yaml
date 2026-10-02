@@ -114,7 +114,7 @@ repos:
   rev: 18144ee908237e94f42328cba96ba0b2de0eeff4  # frozen: v1.7.0
   hooks:
   - id: tombi-format
-    args: [--offline]
+    args: [--offline, --quiet]
     exclude: ^uv\.lock$
 - repo: https://github.com/zizmorcore/zizmor-pre-commit
   rev: fa412071e4f5d44d44f9e365f4676f9df92456a2  # frozen: v1.30.1
