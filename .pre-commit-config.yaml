@@ -126,7 +126,7 @@ repos:
   - id: biome-schema-version
     name: biome schema version
     entry: |-
-      python3 -c 'import re, pathlib; cfg = pathlib.Path(".pre-commit-config.yaml").read_text(); ver = re.search(r"biomejs/pre-commit.*?frozen: v([0-9.]+)", cfg, re.S)[1]; p = pathlib.Path("biome.json"); p.write_text(re.sub(r"schemas/[^/]+/schema\.json", f"schemas/{ver}/schema.json", p.read_text()))'
+      python3 -c 'import re, pathlib, subprocess; cfg = pathlib.Path(".pre-commit-config.yaml").read_text(); ver = re.search(r"biomejs/pre-commit.*?frozen: v([0-9.]+)", cfg, re.S)[1]; paths = subprocess.check_output(["git", "ls-files", ":(glob)**/biome.json"], text=True).splitlines(); [p.write_text(re.sub(r"schemas/[^/]+/schema\.json", f"schemas/{ver}/schema.json", p.read_text())) for p in map(pathlib.Path, paths)]'
     language: python
-    files: ^(biome\.json|\.pre-commit-config\.yaml)$
+    files: (^|/)biome\.json$|^\.pre-commit-config\.yaml$
     pass_filenames: false
