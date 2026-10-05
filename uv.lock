@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.11"
 
 [[package]]
@@ -196,7 +196,7 @@ wheels = [
 
 [[package]]
 name = "asyncio-for-ynab"
-version = "1.86.0"
+version = "1.87.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "httpx" },
@@ -204,9 +204,9 @@ dependencies = [
     { name = "python-dateutil" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/f9/99/d72e1f373b4477d8f258fbf8a1f2d173c8a5777dd10d6669f0832e695180/asyncio_for_ynab-1.86.0.tar.gz", hash = "sha256:eefd7ba00380ae373c0f591e6d14efab1ecda584ba27a16dcf936aff0f3c539c", size = 105760, upload-time = "2026-07-09T12:27:45.686Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/d7/0a/c39e361f3922715058fdb5b38b97e4da4a076bfc64c90c34b052ef03745a/asyncio_for_ynab-1.87.0.tar.gz", hash = "sha256:889be57f5a66c6904c64e0cb36b0845ee753fd383916d165ddb33162218aaaa7", size = 108656, upload-time = "2026-09-23T11:01:45.952Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/43/b7/8e65bcb8882e86905c823bd871be5ae0d1ed6c32c47277e7a75229b94138/asyncio_for_ynab-1.86.0-py3-none-any.whl", hash = "sha256:cd087898ba45c89645a64d5af842cde317f9b8f7c02024aabe2e83d4f01425a0", size = 401594, upload-time = "2026-07-09T12:27:42.823Z" },
+    { url = "https://files.pythonhosted.org/packages/08/69/6407f858e0a4d615f81f621153f6ae1b0e23570c06f0e3db32877f131cdd/asyncio_for_ynab-1.87.0-py3-none-any.whl", hash = "sha256:5a3388e31b3a7474d1e2ec1f79d698a2c48bdc52386b0a33182398e1178dc434", size = 404148, upload-time = "2026-09-23T11:01:44.206Z" },
 ]
 
 [[package]]
@@ -1047,7 +1047,7 @@ wheels = [
 
 [[package]]
 name = "sqlite-export-for-ynab"
-version = "2.9.6"
+version = "2.9.7"
 source = { editable = "." }
 dependencies = [
     { name = "aiohttp" },
@@ -1073,7 +1073,7 @@ requires-dist = [
     { name = "aiohttp", specifier = ">=3" },
     { name = "aiopathlib" },
     { name = "aiosqlite" },
-    { name = "asyncio-for-ynab", specifier = "~=1.86.0" },
+    { name = "asyncio-for-ynab", specifier = "~=1.87.0" },
     { name = "fasteners" },
     { name = "rich", specifier = ">=10" },
     { name = "tenacity" },
