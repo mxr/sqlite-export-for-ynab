@@ -47,6 +47,7 @@ from rich.progress import Progress
 from rich.progress import TaskID
 from rich.progress import TextColumn
 from rich.progress import TimeElapsedColumn
+from tenacity import AsyncRetrying
 from tenacity import retry
 from tenacity import stop_after_attempt
 
@@ -693,15 +694,17 @@ class _ProgressYnab:
     lkos: dict[str, int]
     task_id: TaskID
 
-    @retry(stop=stop_after_attempt(3))
     async def get(self, endpoint: Callable[..., Awaitable[_T]]) -> _T:
-        try:
-            return await endpoint(
-                plan_id=self.plan_id,
-                last_knowledge_of_server=self.lkos.get(self.plan_id),
-            )
-        finally:
-            self.context.progress.update(self.task_id, advance=1)
+        async for attempt in AsyncRetrying(stop=stop_after_attempt(3)):
+            with attempt:
+                try:
+                    return await endpoint(
+                        plan_id=self.plan_id,
+                        last_knowledge_of_server=self.lkos.get(self.plan_id),
+                    )
+                finally:
+                    self.context.progress.update(self.task_id, advance=1)
+        raise AssertionError("unreachable")
 
 
 @dataclass(slots=True, frozen=True)
