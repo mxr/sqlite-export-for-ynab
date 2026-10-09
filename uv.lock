@@ -1,5 +1,5 @@
 version = 1
-revision = 5
+revision = 3
 requires-python = ">=3.11"
 
 [[package]]
@@ -1047,7 +1047,7 @@ wheels = [
 
 [[package]]
 name = "sqlite-export-for-ynab"
-version = "2.9.7"
+version = "2.9.8"
 source = { editable = "." }
 dependencies = [
     { name = "aiohttp" },
