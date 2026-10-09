@@ -31,7 +31,7 @@ jobs:
   main-real:
     needs: [changes]
     if: needs.changes.outputs.project_files == 'true'
-    uses: mxr/workflows/.github/workflows/tox-uv.yml@8f3f2b365f4602de5c39ec148f07884a0c7bbd29 # tox-uv
+    uses: mxr/workflows/.github/workflows/tox-uv.yml@076755c78be86cbe7a289894eaa48660f5bcab74 # tox-uv
     with:
       env: '["py311", "py312", "py313", "py314", "py315", "pypy311"]'
       os: ubuntu-latest
@@ -54,7 +54,7 @@ jobs:
   main-win-real:
     needs: [changes]
     if: needs.changes.outputs.project_files == 'true'
-    uses: mxr/workflows/.github/workflows/tox-uv.yml@8f3f2b365f4602de5c39ec148f07884a0c7bbd29 # tox-uv
+    uses: mxr/workflows/.github/workflows/tox-uv.yml@076755c78be86cbe7a289894eaa48660f5bcab74 # tox-uv
     with:
       env: '["py311"]'
       os: windows-2025
