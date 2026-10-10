@@ -3,3 +3,4 @@ opt:
   python:
     min-version: '3.11'
     packaging: wheel
+    console-script: true
