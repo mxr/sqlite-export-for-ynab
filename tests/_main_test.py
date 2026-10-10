@@ -3,8 +3,10 @@ from __future__ import annotations
 import tomllib
 from datetime import date
 from pathlib import Path
+from unittest.mock import ANY
 from unittest.mock import AsyncMock
 from unittest.mock import Mock
+from unittest.mock import call
 from unittest.mock import patch
 
 import aiosqlite
@@ -1048,8 +1050,7 @@ async def test_sync_lock_times_out(mock_get_running_loop, mock_acquire, tmp_path
             timeout=0.1,
         ).__aenter__()
 
-    assert mock_acquire.call_count == 1
-    assert mock_acquire.call_args.args[1] is False
+    mock_acquire.assert_called_once_with(ANY, False)
 
 
 @patch(
@@ -1085,8 +1086,7 @@ async def test_context_retries_after_sleep(
     ):
         pass
 
-    assert mock_acquire.call_count == 2
-    assert mock_acquire.call_args_list[0].args[1] is False
+    assert mock_acquire.call_args_list == [call(ANY, False), call(ANY, False)]
     assert mock_sleep.call_count == 1
     assert mock_release.call_count == 1
 
