@@ -31,6 +31,10 @@ repos:
   - id: mdformat
     args: [--number, --wrap, '120']
     additional_dependencies: [mdformat-footnote, mdformat-gfm, mdformat-gfm-alerts]
+- repo: https://github.com/lorenzwalthert/gitignore-tidy
+  rev: 1c69ff10567d7de6ce5e291ddf13c522a9007deb  # frozen: 0.1.3
+  hooks:
+  - id: tidy-gitignore
 - repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
   rev: 4380fbb73a154b5f5624794c1c78d9719ccc860f  # frozen: v2.16.0
   hooks:
