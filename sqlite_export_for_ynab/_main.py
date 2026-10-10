@@ -43,6 +43,7 @@ from asyncio_for_ynab import TransactionsApi
 from asyncio_for_ynab import TransactionsResponse
 from asyncio_for_ynab import TransactionsResponseData
 from rich.progress import BarColumn
+from rich.progress import MofNCompleteColumn
 from rich.progress import Progress
 from rich.progress import TaskID
 from rich.progress import TextColumn
@@ -65,46 +66,13 @@ _T = TypeVar("_T")
 
 if sys.version_info >= (3, 12):  # pragma: >=3.12 cover
     from itertools import batched
-    from typing import override
 else:  # pragma: <3.12 cover
     from itertools import islice
-
-    from typing_extensions import override
 
     def batched(iterable: Iterable[_T], n: int) -> Iterator[tuple[_T, ...]]:
         it = iter(iterable)
         while batch := tuple(islice(it, n)):
             yield batch
-
-
-try:
-    from rich.progress import (
-        MofNCompleteColumn,  # pyright: ignore[reportAssignmentType]
-    )
-# https://github.com/benleb/surepy/issues/240
-except ImportError:  # pragma: no cover
-    from rich.progress import ProgressColumn
-    from rich.progress import Task
-    from rich.text import Text
-
-    if TYPE_CHECKING:
-        from rich.table import Column
-
-    class MofNCompleteColumn(ProgressColumn):  # type:ignore[no-redef]
-        def __init__(self, separator: str = "/", table_column: Column | None = None):
-            self.separator = separator
-            super().__init__(table_column=table_column)
-
-        @override
-        def render(self, task: Task) -> Text:
-            """Show completed/total."""
-            completed = int(task.completed)
-            total = int(task.total) if task.total is not None else "?"
-            total_width = len(str(total))
-            return Text(
-                f"{completed:{total_width}d}{self.separator}{total}",
-                style="progress.download",
-            )
 
 
 _EntryTable = Literal[

@@ -1057,7 +1057,6 @@ dependencies = [
     { name = "fasteners" },
     { name = "rich" },
     { name = "tenacity" },
-    { name = "typing-extensions", marker = "python_full_version < '3.12'" },
 ]
 
 [package.dev-dependencies]
@@ -1075,9 +1074,8 @@ requires-dist = [
     { name = "aiosqlite" },
     { name = "asyncio-for-ynab", specifier = "~=1.87.0" },
     { name = "fasteners" },
-    { name = "rich", specifier = ">=10" },
+    { name = "rich", specifier = ">=12" },
     { name = "tenacity" },
-    { name = "typing-extensions", marker = "python_full_version < '3.12'" },
 ]
 
 [package.metadata.requires-dev]
