@@ -1047,7 +1047,7 @@ wheels = [
 
 [[package]]
 name = "sqlite-export-for-ynab"
-version = "2.9.9"
+version = "2.9.10"
 source = { editable = "." }
 dependencies = [
     { name = "aiohttp" },
