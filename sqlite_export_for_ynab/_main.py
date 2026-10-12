@@ -55,9 +55,10 @@ from tenacity import stop_after_attempt
 from sqlite_export_for_ynab import ddl
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator
+    from collections.abc import AsyncGenerator
     from collections.abc import Awaitable
     from collections.abc import Callable
+    from collections.abc import Generator
     from collections.abc import Iterable
     from collections.abc import Iterator
     from collections.abc import Sequence
@@ -111,7 +112,7 @@ _PROGRESS_COLUMNS = (
 
 
 def resolve_token(token_override: str | None = None) -> str:
-    token = token_override or os.environ.get(_ENV_TOKEN)
+    token = token_override or os.environ.get(_ENV_TOKEN, "")
     if token:
         return token
 
@@ -161,7 +162,7 @@ def default_db_path() -> Path:
     return (
         (
             Path(xdg_data_home)
-            if (xdg_data_home := os.environ.get("XDG_DATA_HOME"))
+            if (xdg_data_home := os.environ.get("XDG_DATA_HOME", ""))
             else Path.home() / ".local" / "share"
         )
         / _PACKAGE
@@ -206,7 +207,7 @@ async def _context(
     *,
     quiet: bool,
     timeout: float = _SYNC_LOCK_TIMEOUT,
-) -> AsyncIterator[_Context]:
+) -> AsyncGenerator[_Context]:
     progress = Progress(*_PROGRESS_COLUMNS, disable=quiet)
     lock_path = db.parent / f"{db.name}.lock"
     lock = fasteners.InterProcessLock(lock_path)
@@ -242,7 +243,7 @@ async def _context(
 
 
 @contextmanager
-def _progress(context: _Context) -> Iterator[None]:
+def _progress(context: _Context) -> Generator[None]:
     context.progress.start()
     try:
         yield
