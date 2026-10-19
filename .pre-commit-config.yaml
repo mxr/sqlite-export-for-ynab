@@ -16,7 +16,7 @@ repos:
     - sqlfluff fix --dialect sqlite
     additional_dependencies: [sqlfluff]
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: 44b5042edab9382aba712eed4f9c7bab7a3d6a3e  # frozen: v0.17.0
+  rev: 38bfb07c0c64c304f47eb52090f8288150c77730  # frozen: v0.17.1
   hooks:
   - id: ruff-check
     args: [--fix]
@@ -41,7 +41,7 @@ repos:
   - id: pretty-format-yaml
     args: [--autofix]
 - repo: https://github.com/mxr/mirrors-ty
-  rev: cac91551f7f2f5379780e909accb858bee241a70  # frozen: v0.0.86
+  rev: 4bc9a8701f7a8852337c04d060a7d572c6f15195  # frozen: v0.0.89
   hooks:
   - id: ty
     additional_dependencies:
@@ -112,13 +112,13 @@ repos:
   - id: sqlfluff-fix
     args: [--dialect, sqlite]
 - repo: https://github.com/tombi-toml/tombi-pre-commit
-  rev: 0d5fcb91ac3b9ebc04fddc5331601511fd744701  # frozen: v1.8.2
+  rev: 7c1739b6be770a7ccc8170a43993ccbb8e19dfb9  # frozen: v1.8.9
   hooks:
   - id: tombi-format
     args: [--offline, --quiet]
     exclude: ^(uv\.lock)$
 - repo: https://github.com/zizmorcore/zizmor-pre-commit
-  rev: fa412071e4f5d44d44f9e365f4676f9df92456a2  # frozen: v1.30.1
+  rev: c92afdf2c6ca336aaa8f39e2bd8d48f62dbd8e1f  # frozen: v1.31.1
   hooks:
   - id: zizmor
     args: [--no-progress, --fix]
