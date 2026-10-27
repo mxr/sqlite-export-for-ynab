@@ -80,7 +80,7 @@ additions:
 
 ## Querying
 
-You can issue queries with typical SQLite tools. *`sqlite-export-for-ynab` deliberately does not implement a SQL REPL.*
+You can issue queries with typical SQLite tools. _`sqlite-export-for-ynab` deliberately does not implement a SQL REPL._
 
 ### Sample Queries
 
