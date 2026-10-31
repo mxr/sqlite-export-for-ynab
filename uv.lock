@@ -196,7 +196,7 @@ wheels = [
 
 [[package]]
 name = "asyncio-for-ynab"
-version = "1.87.0"
+version = "1.88.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "httpx" },
@@ -204,9 +204,9 @@ dependencies = [
     { name = "python-dateutil" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/d7/0a/c39e361f3922715058fdb5b38b97e4da4a076bfc64c90c34b052ef03745a/asyncio_for_ynab-1.87.0.tar.gz", hash = "sha256:889be57f5a66c6904c64e0cb36b0845ee753fd383916d165ddb33162218aaaa7", size = 108656, upload-time = "2026-09-23T11:01:45.952Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/34/75/bfb8ef153351587c0ed1b007515948ab7b7abcea06c9b71d1acf2dcbd98a/asyncio_for_ynab-1.88.0.tar.gz", hash = "sha256:d0a0a9af456efaadb3031cfcb8cca29d63aaa63d62b7049b41efcd31c64a08a5", size = 114021, upload-time = "2026-10-30T12:01:29.58Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/08/69/6407f858e0a4d615f81f621153f6ae1b0e23570c06f0e3db32877f131cdd/asyncio_for_ynab-1.87.0-py3-none-any.whl", hash = "sha256:5a3388e31b3a7474d1e2ec1f79d698a2c48bdc52386b0a33182398e1178dc434", size = 404148, upload-time = "2026-09-23T11:01:44.206Z" },
+    { url = "https://files.pythonhosted.org/packages/06/8e/81bea2db4c2557c98384a921165115763a7c5b77f21a5d54259bd38921d1/asyncio_for_ynab-1.88.0-py3-none-any.whl", hash = "sha256:4e3ad00683497926cd2506727cea5751b9bb69a6d9e0e2d30898fb75fbf7e889", size = 407850, upload-time = "2026-10-30T12:01:27.927Z" },
 ]
 
 [[package]]
@@ -1072,7 +1072,7 @@ requires-dist = [
     { name = "aiohttp", specifier = ">=3" },
     { name = "aiopathlib" },
     { name = "aiosqlite" },
-    { name = "asyncio-for-ynab", specifier = "~=1.87.0" },
+    { name = "asyncio-for-ynab", specifier = "~=1.88.0" },
     { name = "fasteners" },
     { name = "rich", specifier = ">=12" },
     { name = "tenacity" },
