@@ -16,17 +16,17 @@ repos:
     - sqlfluff fix --dialect sqlite
     additional_dependencies: [sqlfluff]
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: f368fb366ff7f2f808dd324b83a6d32267799e19  # frozen: v0.17.2
+  rev: c0f278f1254ccc8fb09676bcdb8d847e7db493e5  # frozen: v0.17.4
   hooks:
   - id: ruff-check
     args: [--fix]
   - id: ruff-format
 - repo: https://github.com/biomejs/pre-commit
-  rev: 9043c78f09d0d322ff458336dcb1aefcdfdbb8a0  # frozen: v2.6.3
+  rev: bc3c1d9acd69eaa1e5912f282ca563f914fd78d3  # frozen: v2.6.4
   hooks:
   - id: biome-check
 - repo: https://github.com/hukkin/mdformat
-  rev: 82912cdaea4fb830f751504486a7879c70526547  # frozen: 1.0.0
+  rev: 2d496dbc18e31b83a1596685347ffe0b6041daf0  # frozen: 1.0.0
   hooks:
   - id: mdformat
     args: [--number, --wrap, '120']
@@ -41,7 +41,7 @@ repos:
   - id: pretty-format-yaml
     args: [--autofix]
 - repo: https://github.com/mxr/mirrors-ty
-  rev: eb4ceb7491bb88c21e5f156f8e1e224e59ba99dd  # frozen: v0.0.92
+  rev: 36df018dbd072ec71195d0fb8ccbd33506fd4630  # frozen: v0.0.99
   hooks:
   - id: ty
     additional_dependencies:
@@ -77,7 +77,7 @@ repos:
   hooks:
   - id: sync-typing-deps
 - repo: https://github.com/pre-commit/mirrors-mypy
-  rev: 2834ec6639549dd6796205c8f011dedcd587288b  # frozen: v2.4.0
+  rev: ad26ebfa797fcb9b8f83275937c1c1d6e126719c  # frozen: v2.4.1
   hooks:
   - id: mypy
     additional_dependencies:
@@ -107,18 +107,18 @@ repos:
   - id: actionlint
     additional_dependencies: [github.com/wasilibs/go-shellcheck/cmd/shellcheck@latest]
 - repo: https://github.com/sqlfluff/sqlfluff
-  rev: 0348222a3bcdb0226563f7349c5a39beb0641955  # frozen: 4.4.0
+  rev: 0a7c698408dc56e5efcbe37edc1ec23c782c003b  # frozen: 4.5.0
   hooks:
   - id: sqlfluff-fix
     args: [--dialect, sqlite]
 - repo: https://github.com/tombi-toml/tombi-pre-commit
-  rev: b3f6e09de51290a21d6c7b05b4f5cbe6cfe65b4f  # frozen: v1.9.6
+  rev: eb5a34a798c45a534791de7aa408a25100554273  # frozen: v1.11.1
   hooks:
   - id: tombi-format
     args: [--offline, --quiet]
     exclude: ^(uv\.lock)$
 - repo: https://github.com/zizmorcore/zizmor-pre-commit
-  rev: c92afdf2c6ca336aaa8f39e2bd8d48f62dbd8e1f  # frozen: v1.31.1
+  rev: 06a39750ec31860bb44f2acf67182c40016cd1e7  # frozen: v1.32.0
   hooks:
   - id: zizmor
     args: [--no-progress, --fix]
