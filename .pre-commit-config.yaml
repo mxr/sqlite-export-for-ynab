@@ -51,8 +51,8 @@ repos:
     - asyncio-for-ynab~=1.89.0
     - coverage
     - fasteners
-    - pytest
-    - pytest-asyncio
+    - pytest-asyncio>=1.4.1
+    - pytest>=9.2.0
     - rich>=12
     - tenacity
     - types-setuptools
@@ -67,8 +67,8 @@ repos:
     - asyncio-for-ynab~=1.89.0
     - coverage
     - fasteners
-    - pytest
-    - pytest-asyncio
+    - pytest-asyncio>=1.4.1
+    - pytest>=9.2.0
     - rich>=12
     - tenacity
     - types-setuptools
@@ -87,8 +87,8 @@ repos:
     - asyncio-for-ynab~=1.89.0
     - coverage
     - fasteners
-    - pytest
-    - pytest-asyncio
+    - pytest-asyncio>=1.4.1
+    - pytest>=9.2.0
     - rich>=12
     - tenacity
     - types-setuptools
