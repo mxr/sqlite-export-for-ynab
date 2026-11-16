@@ -16,7 +16,7 @@ repos:
     - sqlfluff fix --dialect sqlite
     additional_dependencies: [sqlfluff]
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: c0f278f1254ccc8fb09676bcdb8d847e7db493e5  # frozen: v0.17.4
+  rev: ef6cf06c079dd6b299dfc720b0f14400c9d168e1  # frozen: v0.17.5
   hooks:
   - id: ruff-check
     args: [--fix]
@@ -41,7 +41,7 @@ repos:
   - id: pretty-format-yaml
     args: [--autofix]
 - repo: https://github.com/mxr/mirrors-ty
-  rev: 36df018dbd072ec71195d0fb8ccbd33506fd4630  # frozen: v0.0.99
+  rev: bea9ff8bec5772863240e75717af7717edd5dd86  # frozen: v0.0.104
   hooks:
   - id: ty
     additional_dependencies:
@@ -112,7 +112,7 @@ repos:
   - id: sqlfluff-fix
     args: [--dialect, sqlite]
 - repo: https://github.com/tombi-toml/tombi-pre-commit
-  rev: eb5a34a798c45a534791de7aa408a25100554273  # frozen: v1.11.1
+  rev: 6f428aba5ced98b5a579ff23cab6b39822b4347d  # frozen: v1.11.2
   hooks:
   - id: tombi-format
     args: [--offline, --quiet]
