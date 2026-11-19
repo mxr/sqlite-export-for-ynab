@@ -14,8 +14,15 @@
   ],
   "extends": ["config:recommended", ":disableDependencyDashboard"],
   "groupSingleUpdates": true,
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["* 21-22 * * 1"]
+  },
   "minimumReleaseAge": "7 days",
   "osvVulnerabilityAlerts": true,
+  "vulnerabilityAlerts": {
+    "groupName": "security"
+  },
   "packageRules": [
     {
       "commitMessageExtra": " ",
