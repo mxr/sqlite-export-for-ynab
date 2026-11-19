@@ -15,6 +15,7 @@
   "extends": ["config:recommended", ":disableDependencyDashboard"],
   "groupSingleUpdates": true,
   "minimumReleaseAge": "7 days",
+  "osvVulnerabilityAlerts": true,
   "packageRules": [
     {
       "commitMessageExtra": " ",
