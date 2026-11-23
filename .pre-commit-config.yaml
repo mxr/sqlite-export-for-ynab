@@ -16,13 +16,13 @@ repos:
     - sqlfluff fix --dialect sqlite
     additional_dependencies: [sqlfluff]
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: ef6cf06c079dd6b299dfc720b0f14400c9d168e1  # frozen: v0.17.5
+  rev: 9026c9127e153371d7a78dfcb0c45ae2046a3d10  # frozen: v0.17.6
   hooks:
   - id: ruff-check
     args: [--fix]
   - id: ruff-format
 - repo: https://github.com/biomejs/pre-commit
-  rev: bc3c1d9acd69eaa1e5912f282ca563f914fd78d3  # frozen: v2.6.4
+  rev: 216d8fa970928fb8a778ca681142e9927f99a77d  # frozen: v2.6.8
   hooks:
   - id: biome-check
 - repo: https://github.com/hukkin/mdformat
@@ -41,7 +41,7 @@ repos:
   - id: pretty-format-yaml
     args: [--autofix]
 - repo: https://github.com/mxr/mirrors-ty
-  rev: bea9ff8bec5772863240e75717af7717edd5dd86  # frozen: v0.0.104
+  rev: 01aac24b89157f044c74bc32d90456df0de87873  # frozen: v0.0.108
   hooks:
   - id: ty
     additional_dependencies:
@@ -112,13 +112,13 @@ repos:
   - id: sqlfluff-fix
     args: [--dialect, sqlite]
 - repo: https://github.com/tombi-toml/tombi-pre-commit
-  rev: 6f428aba5ced98b5a579ff23cab6b39822b4347d  # frozen: v1.11.2
+  rev: 1066584123cce44a99b4818c2b2c4a7e732ff8e9  # frozen: v1.11.3
   hooks:
   - id: tombi-format
     args: [--offline, --quiet]
     exclude: ^(uv\.lock)$
 - repo: https://github.com/zizmorcore/zizmor-pre-commit
-  rev: 06a39750ec31860bb44f2acf67182c40016cd1e7  # frozen: v1.32.0
+  rev: c7d31dc612dffdd4d3b2f2b88b9660d3ab057ee8  # frozen: v1.33.1
   hooks:
   - id: zizmor
     args: [--no-progress, --fix]
