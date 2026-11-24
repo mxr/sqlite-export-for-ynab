@@ -20,6 +20,13 @@
       "preset": "recommended"
     }
   },
+  "markdown": {
+    "formatter": {
+      "enabled": true,
+      "lineWidth": 120,
+      "proseWrap": "always"
+    }
+  },
   "yaml": {
     "formatter": {
       "enabled": false
