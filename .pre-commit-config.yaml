@@ -99,7 +99,7 @@ repos:
   rev: 914e7df21a07ef503a81201c76d2b11c789d3fca  # frozen: v1.7.12
   hooks:
   - id: actionlint
-    additional_dependencies: [github.com/wasilibs/go-shellcheck/cmd/shellcheck@latest]
+    additional_dependencies: [github.com/wasilibs/go-shellcheck/cmd/shellcheck@v0.11.1]
 - repo: https://github.com/sqlfluff/sqlfluff
   rev: 0a7c698408dc56e5efcbe37edc1ec23c782c003b  # frozen: 4.5.0
   hooks:
