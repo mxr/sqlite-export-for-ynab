@@ -12,7 +12,7 @@
       "versioningTemplate": "docker"
     }
   ],
-  "extends": ["config:recommended", ":disableDependencyDashboard"],
+  "extends": ["config:recommended", ":disableDependencyDashboard", "customManagers:githubActionsVersions"],
   "groupSingleUpdates": true,
   "lockFileMaintenance": {
     "commitMessageAction": "lockfile maintenance",
