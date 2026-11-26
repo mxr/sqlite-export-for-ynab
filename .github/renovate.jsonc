@@ -10,6 +10,13 @@
       "matchStrings": ["\\sos: (?<depName>windows)-(?<currentValue>\\S+)"],
       "datasourceTemplate": "github-runners",
       "versioningTemplate": "docker"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/^\\.pre-commit-config\\.yaml$/"],
+      "matchStrings": ["github\\.com/wasilibs/go-shellcheck/cmd/shellcheck@(?<currentValue>v[^\\s,\\]]+)"],
+      "depNameTemplate": "github.com/wasilibs/go-shellcheck",
+      "datasourceTemplate": "go"
     }
   ],
   "extends": ["config:recommended", ":disableDependencyDashboard", "customManagers:githubActionsVersions"],
