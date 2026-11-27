@@ -13,6 +13,13 @@
     },
     {
       "customType": "regex",
+      "managerFilePatterns": ["/^\\.github/workflows/(?:main|typing)\\.yml$/"],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>[a-zA-Z0-9-._]+?) depName=(?<depName>[^\\s]+?)\\s+[a-z0-9-]+-version: (?<currentValue>\\S+)"
+      ]
+    },
+    {
+      "customType": "regex",
       "managerFilePatterns": ["/^\\.pre-commit-config\\.yaml$/"],
       "matchStrings": ["github\\.com/wasilibs/go-shellcheck/cmd/shellcheck@(?<currentValue>v[^\\s,\\]]+)"],
       "depNameTemplate": "github.com/wasilibs/go-shellcheck",
