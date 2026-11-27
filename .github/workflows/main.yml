@@ -36,6 +36,12 @@ jobs:
     with:
       env: '["py311", "py312", "py313", "py314", "py315", "pypy311"]'
       os: ubuntu-26.04
+      # renovate: datasource=pypi depName=uv
+      uv-version: 0.13.9
+      # renovate: datasource=pypi depName=tox
+      tox-version: 4.67.15
+      # renovate: datasource=pypi depName=tox-uv
+      tox-uv-version: 1.37.9
   main:
     needs: [changes, main-real]
     if: always()
@@ -59,6 +65,12 @@ jobs:
     with:
       env: '["py311"]'
       os: windows-2025
+      # renovate: datasource=pypi depName=uv
+      uv-version: 0.13.9
+      # renovate: datasource=pypi depName=tox
+      tox-version: 4.67.15
+      # renovate: datasource=pypi depName=tox-uv
+      tox-uv-version: 1.37.9
   main-win:
     needs: [changes, main-win-real]
     if: always()
